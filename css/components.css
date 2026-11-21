@@ -40,3 +40,18 @@ select {
 @media (hover: hover) { select:hover { border-color: var(--line-hover); } }
 .status { color: var(--accent); min-height: 1.5rem; }
 .ident { font-family: var(--font-mono); color: var(--accent); overflow-wrap: anywhere; letter-spacing: .025em; }
+
+/* Connexion et profils */
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row input[type="text"] { flex: 1 1 12rem; min-width: 0; }
+input[type="text"] {
+  font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r-md); padding: .55rem .6rem;
+  transition: border-color .2s;
+}
+@media (hover: hover) { input[type="text"]:hover { border-color: var(--line-hover); } }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.status-error { color: var(--danger); }
+.section-title { margin: 0 0 .5rem; font-size: 1.125rem; font-weight: 600; color: var(--ink); }
+#view > section + section { padding-top: 24px; border: 0 solid; border-top-width: var(--divider-width); border-image: var(--divider) 1; }
+.list { margin: 0 0 1rem; padding-left: 1.2rem; }
