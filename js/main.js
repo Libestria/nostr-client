@@ -5,6 +5,8 @@ import { stateBlock } from './ui/common.js';
 import { renderFeed, placeholder } from './ui/feed.js';
 import { renderProfile } from './ui/profile.js';
 import { renderSettings } from './ui/settings.js';
+import { renderLogin } from './ui/login.js';
+import { loadSession } from './storage/session.js';
 
 const routes = {
   feed: renderFeed,
@@ -13,6 +15,7 @@ const routes = {
   messages: placeholder('nav.messages'),
   profile: renderProfile,
   settings: renderSettings,
+  login: renderLogin,
 };
 
 const main = document.getElementById('view');
@@ -68,6 +71,7 @@ async function boot() {
   let settings = loadSettings();
   if (settings.relays.length === 0) settings = updateSettings({ relays: await loadDefaultRelays() });
   state.set('settings', settings);
+  state.set('session', loadSession());
   applyTheme(settings.theme);
   await applyLang(settings.lang);
 
