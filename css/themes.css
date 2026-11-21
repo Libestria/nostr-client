@@ -1,23 +1,53 @@
+/* Jetons de couleur alignés sur Libestria.fr (thème sombre = identité du site).
+   Le thème clair est une variante violette ; "auto" suit le système. */
 :root {
   color-scheme: light dark;
-  --bg: #f3f5f7;
+  --bg: #f5f3fa;
   --surface: #ffffff;
-  --ink: #18202b;
-  --muted: #55606e;
-  --line: #d5dbe2;
-  --accent: #0b5f73;
+  --surface-hover: #ece7f7;
+  --ink: #1c1730;
+  --ink-2: #463f5c;
+  --muted: #5f5a75;
+  --line: #cfc7e2;
+  --line-hover: #7c4fd0;
+  --accent: #6a2fd1;
   --accent-ink: #ffffff;
-  --danger: #a3281f;
+  --focus: #7c3aed;
+  --danger: #b42318;
+  --title: #1c1730;
+  --nav-hover-bg: #ece7f7;
+  --nav-hover-text: #4b1fa8;
+  --stops: #e6dcfa 0%, #e0e4fa 25%, #eef0fb 50%, #f5f3fa 75%;
+  --grad-title: linear-gradient(105deg, #7b2fd0 0%, #c026b8 50%, #1d6fd6 100%);
+  --scrim: rgb(28 23 48 / 55%);
+
+  /* Dérivés : valables pour les deux thèmes */
+  --divider: linear-gradient(90deg, var(--stops));
+  --divider-width: 2px;
+  --grad-card: linear-gradient(160deg, var(--stops));
+  --grad-side: linear-gradient(180deg, var(--stops));
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #10151b; --surface: #18202a; --ink: #e7ecf2; --muted: #9ba7b5;
-    --line: #2b3643; --accent: #6cc4d8; --accent-ink: #0a1a20; --danger: #ff8f85;
+    --bg: #000000; --surface: #15131e; --surface-hover: #211b30;
+    --ink: #f2f0f7; --ink-2: #bdb9cf; --muted: #9693aa;
+    --line: #3c3453; --line-hover: #8b63d8;
+    --accent: #39c8ff; --accent-ink: #000000; --focus: #9b6bf2; --danger: #fca5a5;
+    --title: #ffffff; --nav-hover-bg: #211b2d; --nav-hover-text: #bca0ff;
+    --stops: #302044 0%, #281d40 21%, #20264a 42%, #10121d 60%, #000 75%;
+    --grad-title: linear-gradient(105deg, #d9a4ff 0%, #b45cff 25%, #f26adf 52%, #8e7bff 75%, #39c8ff 100%);
+    --scrim: rgb(0 0 0 / 68%);
   }
 }
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #10151b; --surface: #18202a; --ink: #e7ecf2; --muted: #9ba7b5;
-  --line: #2b3643; --accent: #6cc4d8; --accent-ink: #0a1a20; --danger: #ff8f85;
+  --bg: #000000; --surface: #15131e; --surface-hover: #211b30;
+  --ink: #f2f0f7; --ink-2: #bdb9cf; --muted: #9693aa;
+  --line: #3c3453; --line-hover: #8b63d8;
+  --accent: #39c8ff; --accent-ink: #000000; --focus: #9b6bf2; --danger: #fca5a5;
+  --title: #ffffff; --nav-hover-bg: #211b2d; --nav-hover-text: #bca0ff;
+  --stops: #302044 0%, #281d40 21%, #20264a 42%, #10121d 60%, #000 75%;
+  --grad-title: linear-gradient(105deg, #d9a4ff 0%, #b45cff 25%, #f26adf 52%, #8e7bff 75%, #39c8ff 100%);
+  --scrim: rgb(0 0 0 / 68%);
 }
