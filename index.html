@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; media-src https:; connect-src 'self' wss: https:; manifest-src 'self'; base-uri 'none'; form-action 'none'">
+  <title>Nostr</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/themes.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+  <button type="button" class="skip" id="skip" data-i18n="skip">Aller au contenu</button>
+  <div id="offline" class="banner" role="status" hidden data-i18n="state.offline">Hors ligne : le cache reste lisible.</div>
+  <div class="app">
+    <nav id="nav" class="nav" aria-label="Navigation principale">
+      <span class="brand" aria-hidden="true">nostr</span>
+      <ul>
+        <li><a href="#/feed" data-route="feed" data-i18n="nav.feed">Accueil</a></li>
+        <li><a href="#/search" data-route="search" data-i18n="nav.search">Recherche</a></li>
+        <li><a href="#/notifications" data-route="notifications" data-i18n="nav.notifications">Notifications</a></li>
+        <li><a href="#/messages" data-route="messages" data-i18n="nav.messages">Messages</a></li>
+        <li><a href="#/profile" data-route="profile" data-i18n="nav.profile">Profil</a></li>
+        <li><a href="#/settings" data-route="settings" data-i18n="nav.settings">Réglages</a></li>
+      </ul>
+    </nav>
+    <main id="view" tabindex="-1"></main>
+  </div>
+  <noscript><p>JavaScript est nécessaire pour utiliser ce client.</p></noscript>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
