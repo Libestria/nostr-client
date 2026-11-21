@@ -6,7 +6,7 @@ const LANGS = ['fr', 'en'];
 
 export const defaults = () => ({
   version: VERSION,
-  theme: 'auto',
+  theme: 'dark',
   lang: (navigator.language || '').startsWith('fr') ? 'fr' : 'en',
   loadMedia: true,
   readOnly: false,
