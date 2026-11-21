@@ -1,0 +1,90 @@
+import { state } from './state.js';
+import { setLang, applyI18n, t } from './i18n.js';
+import { loadSettings, updateSettings } from './storage/settings.js';
+import { stateBlock } from './ui/common.js';
+import { renderFeed, placeholder } from './ui/feed.js';
+import { renderProfile } from './ui/profile.js';
+import { renderSettings } from './ui/settings.js';
+
+const routes = {
+  feed: renderFeed,
+  search: placeholder('nav.search'),
+  notifications: placeholder('nav.notifications'),
+  messages: placeholder('nav.messages'),
+  profile: renderProfile,
+  settings: renderSettings,
+};
+
+const main = document.getElementById('view');
+let renderId = 0;
+let currentLang = null;
+
+function parseHash() {
+  const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map((p) => {
+    try { return decodeURIComponent(p); } catch { return p; }
+  });
+  return { name: parts[0] || 'feed', params: parts.slice(1) };
+}
+
+async function render(focus = false) {
+  const id = ++renderId;
+  const { name, params } = parseHash();
+  const view = Object.hasOwn(routes, name) ? routes[name] : null;
+  document.querySelectorAll('#nav a').forEach((a) => {
+    if (a.dataset.route === name) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
+  document.title = `${t(view ? `nav.${name}` : 'state.notFound')} – Nostr`;
+  main.replaceChildren(stateBlock('loading', 'state.loading'));
+  try {
+    if (!view) main.replaceChildren(stateBlock('error', 'state.notFound'));
+    else await view(main, params);
+  } catch (err) {
+    console.error(err);
+    if (id === renderId) main.replaceChildren(stateBlock('error', 'state.error'));
+  }
+  if (focus && id === renderId) main.focus({ preventScroll: true });
+}
+
+function applyTheme(theme) {
+  if (theme === 'auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.dataset.theme = theme;
+}
+
+async function loadDefaultRelays() {
+  try {
+    const res = await fetch(new URL('../data/default-relays.json', import.meta.url));
+    return res.ok ? await res.json() : [];
+  } catch { return []; }
+}
+
+async function applyLang(lang) {
+  currentLang = lang;
+  try { await setLang(lang); } catch (err) { console.error(err); }
+  applyI18n();
+}
+
+async function boot() {
+  let settings = loadSettings();
+  if (settings.relays.length === 0) settings = updateSettings({ relays: await loadDefaultRelays() });
+  state.set('settings', settings);
+  applyTheme(settings.theme);
+  await applyLang(settings.lang);
+
+  state.on('settings', async (s) => {
+    applyTheme(s.theme);
+    if (s.lang !== currentLang) { await applyLang(s.lang); render(); }
+  });
+
+  const offline = document.getElementById('offline');
+  const syncOnline = () => { state.set('online', navigator.onLine); offline.hidden = navigator.onLine; };
+  addEventListener('online', syncOnline);
+  addEventListener('offline', syncOnline);
+  syncOnline();
+
+  document.getElementById('skip').addEventListener('click', () => main.focus());
+  addEventListener('hashchange', () => render(true));
+  render();
+}
+
+boot();
