@@ -66,5 +66,6 @@
   "relay.open": "Connecté",
   "relay.retrying": "Nouvelle tentative",
   "relay.closed": "Fermé",
-  "relay.stats": "{events} événements, {invalid} rejetés"
+  "relay.stats": "{events} événements, {invalid} rejetés",
+  "feed.refresh": "Actualiser"
 }
