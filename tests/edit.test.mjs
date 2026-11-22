@@ -95,3 +95,28 @@ test('publishToMany : OK, refus avec message, délai dépassé, relais invalides
     { id: 'e'.repeat(64) }, { WS: FakeWS, okTimeout: 30 });
   assert.deepEqual(r.map((x) => [x.url.slice(6, 10), x.ok, x.message]), [['ok.e', true, ''], ['refu', false, 'blocked: spam'], ['muet', false, 'timeout']]);
 });
+
+import { creationTemplate } from '../js/nostr/relaylists.js';
+import { createLists, applyCreated } from '../js/account.js';
+
+test('creationTemplate : normalisé, dédoublonné, plafonné, vide refusé', () => {
+  const t = creationTemplate('pub', [A, 'WSS://A.example.com/', 'ws://x.example.com', B], 7);
+  assert.deepEqual(t, { kind: 10002, created_at: 7, tags: [['r', A], ['r', B]], content: '' });
+  assert.deepEqual(creationTemplate('dm', [A], 7).tags, [['relay', A]]);
+  assert.throws(() => creationTemplate('pub', ['ws://x.example.com']), /EMPTY/);
+  assert.equal(creationTemplate('pub', Array.from({ length: 30 }, (_, i) => `wss://r${i}.example.com`)).tags.length, MAX_LIST_RELAYS);
+});
+test('createLists : une version par liste, appliquées seulement à applyCreated', async () => {
+  resetAccount({ apply: () => {} });
+  const calls = [];
+  const o = mkOpts(calls);
+  const created = await createLists({ pub: [A, B], search: [], dm: [C] }, o);
+  assert.deepEqual(Object.keys(created), ['pub', 'dm']);
+  assert.equal(calls.length, 2);
+  assert.equal(state.get('lists').status, 'idle'); // rien d'appliqué avant la lecture du résultat
+  applyCreated(created, { cache: { put: () => {} }, apply: () => {} });
+  assert.equal(state.get('lists').status, 'ready');
+  assert.deepEqual(state.get('lists').dm.relays.map((r) => r.url), [C]);
+  await assert.rejects(createLists({ pub: [], dm: [C] }, o), /EMPTY/);
+  await assert.rejects(createLists({ pub: [A] }, { ...o, signer: null }), /NO_SIGNER/);
+});
