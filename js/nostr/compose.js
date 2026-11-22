@@ -33,7 +33,7 @@ export function parseNoteText(text) {
   return { content, mentions, hashtags };
 }
 
-function rootOf(parent) {
+export function rootOf(parent) {
   const es = (parent.tags ?? []).filter((t) => t[0] === 'e' && HEX64.test(t[1] ?? ''));
   const marked = es.find((t) => t[3] === 'root');
   if (marked) return { id: marked[1], pubkey: HEX64.test(marked[4] ?? '') ? marked[4] : undefined };

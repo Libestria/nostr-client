@@ -37,3 +37,32 @@ export function parseProfile(event) {
     lud16: LUD16.test(lud16) ? lud16 : '',
   };
 }
+
+// ---- Modification du profil : on part de la dernière version publiée et on conserve les champs inconnus.
+export const PROFILE_FIELDS = ['name', 'display_name', 'about', 'picture', 'banner', 'website', 'lud16', 'nip05'];
+const URL_FIELDS = new Set(['picture', 'banner', 'website']);
+const MAX = { name: 60, display_name: 60, about: 1000, picture: 500, banner: 500, website: 500, lud16: 120, nip05: 120 };
+const NIP05 = /^(?:[a-z0-9._-]{1,64}@)?[a-z0-9.-]{1,200}\.[a-z]{2,}$/i;
+
+// previous : dernier événement kind 0 connu (ou null) ; fields : { name, … } (chaînes, vides = champ retiré).
+// Erreurs : INVALID_<champ> (ex. INVALID_picture), TOO_LONG_<champ>.
+export function buildProfileTemplate(previous, fields, created_at = Math.floor(Date.now() / 1000)) {
+  let base = {};
+  if (previous?.kind === 0) {
+    try { const j = JSON.parse(previous.content); if (j && typeof j === 'object' && !Array.isArray(j)) base = j; } catch { /* contenu illisible : on repart de zéro */ }
+  }
+  const out = { ...base };
+  for (const key of PROFILE_FIELDS) {
+    if (!(key in fields)) continue;
+    const raw = String(fields[key] ?? '').trim();
+    if (key !== 'about' && /[\r\n]/.test(raw)) throw new Error(`INVALID_${key}`);
+    if (raw.length > MAX[key]) throw new Error(`TOO_LONG_${key}`);
+    if (!raw) { delete out[key]; continue; }
+    if (URL_FIELDS.has(key) && !safeUrl(raw)) throw new Error(`INVALID_${key}`);
+    if (key === 'lud16' && !LUD16.test(raw)) throw new Error(`INVALID_${key}`);
+    if (key === 'nip05' && !NIP05.test(raw)) throw new Error(`INVALID_${key}`);
+    out[key] = URL_FIELDS.has(key) ? safeUrl(raw) : raw;
+  }
+  const at = Math.max(created_at, (previous?.created_at ?? 0) + 1);
+  return { kind: 0, created_at: at, tags: Array.isArray(previous?.tags) ? previous.tags : [], content: JSON.stringify(out) };
+}
