@@ -164,3 +164,47 @@ test('file de vérification saturée : les surplus sont écartés', async () => 
   assert.equal(pool.status()[0].dropped, 50);
   sub.close(); pool.closeAll();
 });
+
+test('publication : OK accepté, refusé, délai et fermeture', async () => {
+  const { pool, ws } = setup(['wss://r1.example.com', 'wss://r2.example.com']);
+  const e = ev(900);
+  const p = pool.publish(e);
+  assert.deepEqual(ws[0].sent.at(-1), ['EVENT', e]);
+  ws[0].recv(['OK', e.id, true, '']);
+  ws[1].recv(['OK', e.id, false, 'blocked: spam']);
+  const res = await p;
+  assert.deepEqual(res.map((r) => [r.ok, r.message]), [[true, ''], [false, 'blocked: spam']]);
+  const e2 = ev(901);
+  const p2 = pool.publish(e2);
+  ws[0].drop(); ws[1].drop();
+  assert.deepEqual((await p2).map((r) => r.message), ['closed', 'closed']);
+  pool.closeAll();
+});
+test('publication : relais non connectés ou en lecture seule ignorés', async () => {
+  MockWS.all.length = 0;
+  const pool = new Pool({ verify });
+  pool.setRelays([{ url: 'wss://r1.example.com', read: true, write: false }, { url: 'wss://r2.example.com', read: true, write: true }]);
+  MockWS.all[0].open();                 // r2 reste en connexion
+  assert.deepEqual(await pool.publish(ev(902)), []);
+  pool.closeAll();
+});
+
+test('closeOnEose : les événements en cours de vérification sont livrés avant la fermeture', async () => {
+  MockWS.all.length = 0;
+  const slow = (e) => new Promise((r) => setTimeout(() => r(true), 20));
+  const pool = new Pool({ verify: slow });
+  pool.setRelays([{ url: 'wss://r1.example.com' }]);
+  MockWS.all[0].open();
+  const got = []; let eose = 0;
+  const sub = pool.subscribe([{ kinds: [1] }], { closeOnEose: true, onevent: (e) => got.push(e.id), oneose: () => eose++ });
+  const id = MockWS.all[0].sent[0][1];
+  MockWS.all[0].recv(['EVENT', id, ev(700)]);
+  MockWS.all[0].recv(['EVENT', id, ev(701)]);
+  MockWS.all[0].recv(['EOSE', id]);          // arrive avant la fin des vérifications
+  assert.equal(sub.closed, false);
+  await new Promise((r) => setTimeout(r, 80));
+  assert.equal(got.length, 2);
+  assert.equal(eose, 1);
+  assert.equal(sub.closed, true);
+  pool.closeAll();
+});
