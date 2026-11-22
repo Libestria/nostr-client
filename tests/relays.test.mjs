@@ -138,3 +138,29 @@ test('adresses de relais dangereuses ignorées par le pool', () => {
   assert.deepEqual(pool.status().map((r) => r.url), ['wss://ok.example.com']);
   pool.closeAll();
 });
+
+test('soupape : un abonnement se ferme après maxEvents événements', async () => {
+  const { pool, ws } = setup(['wss://r1.example.com']);
+  const got = [];
+  const sub = pool.subscribe([{ kinds: [1] }], { maxEvents: 3, onevent: (e) => got.push(e.id) });
+  const id = ws[0].sent[0][1];
+  for (let i = 10; i < 20; i++) ws[0].recv(['EVENT', id, ev(i)]);
+  await tick();
+  assert.equal(got.length, 3);
+  assert.equal(sub.closed, true);
+  assert.ok(ws[0].sent.some((m) => m[0] === 'CLOSE' && m[1] === id));
+  pool.closeAll();
+});
+
+test('file de vérification saturée : les surplus sont écartés', async () => {
+  MockWS.all.length = 0;
+  const pool = new Pool({ verify: () => new Promise(() => {}) }); // vérification jamais terminée
+  pool.setRelays([{ url: 'wss://r1.example.com' }]);
+  MockWS.all[0].open();
+  const sub = pool.subscribe([{ kinds: [1] }], { maxEvents: 5000 });
+  const id = MockWS.all[0].sent[0][1];
+  for (let i = 100; i < 450; i++) MockWS.all[0].recv(['EVENT', id, ev(i)]);
+  assert.equal(pool.inFlight, 300);
+  assert.equal(pool.status()[0].dropped, 50);
+  sub.close(); pool.closeAll();
+});
