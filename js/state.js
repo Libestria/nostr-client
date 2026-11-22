@@ -27,4 +27,5 @@ export const state = createStore({
   settings: null, session: null, online: navigator.onLine,
   lists: { status: 'idle', pub: null, search: null, dm: null },   // listes de relais du compte
   listsProgress: { running: false, done: 0, total: 0 },
+  published: null,                                              // dernier événement publié par l'utilisateur
 });
