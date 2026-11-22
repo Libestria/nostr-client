@@ -7,6 +7,8 @@ import { renderProfile } from './ui/profile.js';
 import { renderSettings } from './ui/settings.js';
 import { renderLogin } from './ui/login.js';
 import { loadSession } from './storage/session.js';
+import { pool } from './relays/pool.js';
+import { putEvent, prune } from './storage/db.js';
 
 const routes = {
   feed: renderFeed,
@@ -21,6 +23,7 @@ const routes = {
 const main = document.getElementById('view');
 let renderId = 0;
 let currentLang = null;
+let cleanup = null;
 
 function parseHash() {
   const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map((p) => {
@@ -31,6 +34,7 @@ function parseHash() {
 
 async function render(focus = false) {
   const id = ++renderId;
+  if (cleanup) { cleanup(); cleanup = null; }
   const { name, params } = parseHash();
   const view = Object.hasOwn(routes, name) ? routes[name] : null;
   document.querySelectorAll('#nav a').forEach((a) => {
@@ -41,7 +45,10 @@ async function render(focus = false) {
   main.replaceChildren(stateBlock('loading', 'state.loading'));
   try {
     if (!view) main.replaceChildren(stateBlock('error', 'state.notFound'));
-    else await view(main, params);
+    else {
+      const done = await view(main, params);
+      if (typeof done === 'function') { if (id === renderId) cleanup = done; else done(); }
+    }
   } catch (err) {
     console.error(err);
     if (id === renderId) main.replaceChildren(stateBlock('error', 'state.error'));
@@ -72,17 +79,23 @@ async function boot() {
   if (settings.relays.length === 0) settings = updateSettings({ relays: await loadDefaultRelays() });
   state.set('settings', settings);
   state.set('session', loadSession());
+  pool.onVerified = putEvent;
+  pool.setRelays(settings.relays);
+  setTimeout(() => prune(), 5000);
+  let relaysKey = JSON.stringify(settings.relays);
   applyTheme(settings.theme);
   await applyLang(settings.lang);
 
   state.on('settings', async (s) => {
     applyTheme(s.theme);
+    const key = JSON.stringify(s.relays);
+    if (key !== relaysKey) { relaysKey = key; pool.setRelays(s.relays); }
     if (s.lang !== currentLang) { await applyLang(s.lang); render(); }
   });
 
   const offline = document.getElementById('offline');
   const syncOnline = () => { state.set('online', navigator.onLine); offline.hidden = navigator.onLine; };
-  addEventListener('online', syncOnline);
+  addEventListener('online', () => { syncOnline(); pool.reconnectAll(); });
   addEventListener('offline', syncOnline);
   syncOnline();
 
