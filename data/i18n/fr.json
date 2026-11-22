@@ -117,5 +117,21 @@
   "login.nc.waiting": "En attente de l'approbation du signeur…",
   "login.connected.nip46": "Connecté avec un signeur distant (NIP-46). La session dure tant que l'onglet reste ouvert.",
   "settings.account": "Compte",
-  "settings.account.none": "Aucun compte connecté."
+  "settings.account.none": "Aucun compte connecté.",
+  "lists.loading": "Recherche de ta liste de relais…",
+  "lists.progress": "{done}/{total} relais interrogés",
+  "lists.checking": "Mise à jour…",
+  "lists.empty": "Aucune liste de relais trouvée pour ce compte sur les relais d'amorçage.",
+  "lists.error": "Impossible de joindre les relais d'amorçage. Vérifie ta connexion.",
+  "lists.retry": "Réessayer",
+  "lists.refresh": "Actualiser les listes",
+  "settings.lists": "Mes relais",
+  "lists.pub": "Relais généraux",
+  "lists.search": "Relais de recherche",
+  "lists.dm": "Relais de messagerie privée",
+  "lists.date": "Liste du {date}",
+  "lists.none": "Aucune liste publiée.",
+  "role.rw": "Lecture + écriture",
+  "role.r": "Lecture",
+  "role.w": "Écriture"
 }

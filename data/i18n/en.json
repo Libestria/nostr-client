@@ -117,5 +117,21 @@
   "login.nc.waiting": "Waiting for the signer to approve…",
   "login.connected.nip46": "Signed in with a remote signer (NIP-46). The session lasts while this tab stays open.",
   "settings.account": "Account",
-  "settings.account.none": "No account signed in."
+  "settings.account.none": "No account signed in.",
+  "lists.loading": "Looking for your relay list…",
+  "lists.progress": "{done}/{total} relays queried",
+  "lists.checking": "Updating…",
+  "lists.empty": "No relay list found for this account on the bootstrap relays.",
+  "lists.error": "Could not reach the bootstrap relays. Check your connection.",
+  "lists.retry": "Retry",
+  "lists.refresh": "Refresh lists",
+  "settings.lists": "My relays",
+  "lists.pub": "General relays",
+  "lists.search": "Search relays",
+  "lists.dm": "Private messaging relays",
+  "lists.date": "List of {date}",
+  "lists.none": "No list published.",
+  "role.rw": "Read + write",
+  "role.r": "Read",
+  "role.w": "Write"
 }
