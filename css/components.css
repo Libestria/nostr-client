@@ -55,3 +55,19 @@ input[type="text"] {
 .section-title { margin: 0 0 .5rem; font-size: 1.125rem; font-weight: 600; color: var(--ink); }
 #view > section + section { padding-top: 24px; border: 0 solid; border-top-width: var(--divider-width); border-image: var(--divider) 1; }
 .list { margin: 0 0 1rem; padding-left: 1.2rem; }
+
+/* Flux et relais */
+#view > form + section { padding-top: 24px; border: 0 solid; border-top-width: var(--divider-width); border-image: var(--divider) 1; }
+.notes { display: grid; gap: 12px; }
+.note { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 12px 14px; }
+.note-head { display: flex; justify-content: space-between; gap: 8px; font-size: .85rem; color: var(--muted); }
+.note-text { margin: .5rem 0 0; max-width: none; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.note-via { margin: .5rem 0 0; font-size: .8rem; color: var(--muted); }
+.relays { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: 8px; }
+.relay { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px 10px; }
+.relay-body { flex: 1; min-width: 0; display: grid; }
+.relay-meta { font-size: .8rem; color: var(--muted); overflow-wrap: anywhere; }
+.relay .btn { min-height: 36px; padding: 4px 12px; }
+.dot { width: .65rem; height: .65rem; border-radius: 50%; background: var(--muted); flex: none; }
+.dot-open { background: var(--accent); }
+.dot-retrying { background: var(--danger); }
