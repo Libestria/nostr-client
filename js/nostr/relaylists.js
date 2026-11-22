@@ -102,3 +102,12 @@ export function listTemplate(key, event, op, now = Math.floor(Date.now() / 1000)
     content: typeof base?.content === 'string' ? base.content : '',
   };
 }
+
+// Première version d'une liste : adresses normalisées, doublons écartés, plafonnée. Erreur : EMPTY.
+export function creationTemplate(key, urls, now = Math.floor(Date.now() / 1000)) {
+  const def = LISTS[key];
+  if (!def) throw new Error('INVALID_LIST');
+  const clean = [...new Set((urls ?? []).map(normalizeRelayUrl).filter(Boolean))].slice(0, MAX_LIST_RELAYS);
+  if (!clean.length) throw new Error('EMPTY');
+  return { kind: def.kind, created_at: now, tags: clean.map((u) => makeTag(key, u, true, true)), content: '' };
+}
