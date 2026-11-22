@@ -7,6 +7,7 @@ import { renderProfile } from './ui/profile.js';
 import { renderSettings } from './ui/settings.js';
 import { renderLogin } from './ui/login.js';
 import { loadSession } from './storage/session.js';
+import { restoreRemoteSession } from './auth.js';
 import { pool } from './relays/pool.js';
 import { putEvent, prune } from './storage/db.js';
 
@@ -79,6 +80,7 @@ async function boot() {
   if (settings.relays.length === 0) settings = updateSettings({ relays: await loadDefaultRelays() });
   state.set('settings', settings);
   state.set('session', loadSession());
+  restoreRemoteSession();
   pool.onVerified = putEvent;
   pool.setRelays(settings.relays);
   setTimeout(() => prune(), 5000);
