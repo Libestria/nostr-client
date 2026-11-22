@@ -102,3 +102,12 @@ export function deleteEvent(id) {
     tx.onerror = () => resolve(false);
   })).catch(() => false);
 }
+
+// Un événement du cache par identifiant (ou null).
+export function getEvent(id) {
+  return open().then((db) => new Promise((resolve) => {
+    const req = db.transaction('events').objectStore('events').get(id);
+    req.onsuccess = () => resolve(req.result ?? null);
+    req.onerror = () => resolve(null);
+  })).catch(() => null);
+}
