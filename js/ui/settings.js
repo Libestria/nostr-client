@@ -2,7 +2,8 @@ import { t } from '../i18n.js';
 import { state } from '../state.js';
 import { updateSettings } from '../storage/settings.js';
 import { pool } from '../relays/pool.js';
-import { normalizeRelayUrl } from '../nostr/relayurl.js';
+import { loadAccountLists } from '../account.js';
+import { LIST_KEYS } from '../nostr/relaylists.js';
 import { npubEncode } from '../nostr/nip19.js';
 import { logout } from '../auth.js';
 import { el, pageTitle } from './common.js';
@@ -21,48 +22,44 @@ function checkbox(id, labelKey, hintKey, checked, onChange) {
     el('p', { class: 'hint', id: `${id}-hint` }, t(hintKey)));
 }
 
-const saveRelays = (relays) => state.set('settings', updateSettings({ relays }));
+const fmtDate = (ts) => new Intl.DateTimeFormat(document.documentElement.lang || 'fr', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(ts * 1000));
 
-function relaysSection() {
-  const list = el('ul', { class: 'relays' });
-  const msg = el('p', { class: 'status', role: 'status' });
-  const input = el('input', { type: 'text', id: 'relay-url', name: 'relay-url', placeholder: 'wss://', inputmode: 'url', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false' });
-  const add = el('button', { type: 'submit', class: 'btn' }, t('settings.relays.add'));
-  const form = el('form', { class: 'form' }, el('div', { class: 'field' },
-    el('label', { for: 'relay-url' }, t('settings.relays.label')), el('div', { class: 'row' }, input, add)));
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const url = normalizeRelayUrl(input.value);
-    const current = state.get('settings').relays;
-    msg.classList.toggle('status-error', !url || current.some((r) => r.url === url));
-    if (!url) { msg.textContent = t('settings.relays.invalid'); return; }
-    if (current.some((r) => r.url === url)) { msg.textContent = t('settings.relays.exists'); return; }
-    msg.textContent = '';
-    input.value = '';
-    saveRelays([...current, { url, read: true, write: true }]);
-  });
+// Listes de relais du compte (10002 / 10007 / 10050) : affichage de la version la plus récente et de sa date.
+function listsSection() {
+  const body = el('div');
+  const refresh = el('button', { type: 'button', class: 'btn' }, t('lists.refresh'));
+  refresh.addEventListener('click', () => { const s = state.get('session'); if (s) loadAccountLists(s.pubkey, { force: true }); });
+  const status = el('p', { class: 'status', role: 'status' });
 
-  const row = (r) => {
-    const rm = el('button', { type: 'button', class: 'btn', 'aria-label': t('settings.relays.remove', { url: r.url }) }, '×');
-    rm.addEventListener('click', () => saveRelays(state.get('settings').relays.filter((x) => x.url !== r.url)));
-    const meta = [t(`relay.${r.state}`)];
-    if (r.state === 'open' && r.latency != null) meta.push(`${r.latency} ms`);
-    meta.push(t('relay.stats', { events: r.events, invalid: r.invalid }));
+  const row = (r, live, showRole) => {
+    const meta = [];
+    if (showRole) meta.push(t(r.read && r.write ? 'role.rw' : r.read ? 'role.r' : 'role.w'));
+    if (live) {
+      meta.push(t(`relay.${live.state}`));
+      if (live.state === 'open' && live.latency != null) meta.push(`${live.latency} ms`);
+    }
     return el('li', { class: 'relay' },
-      el('span', { class: `dot dot-${r.state}`, 'aria-hidden': 'true' }),
-      el('div', { class: 'relay-body' },
-        el('span', { class: 'ident' }, r.url.replace(/^wss:\/\//, '')),
-        el('span', { class: 'relay-meta' }, meta.join(' · ')),
-        r.notice ? el('span', { class: 'relay-meta' }, r.notice) : null),
-      rm);
+      live ? el('span', { class: `dot dot-${live.state}`, 'aria-hidden': 'true' }) : null,
+      el('div', { class: 'relay-body' }, el('span', { class: 'ident' }, r.url.replace(/^wss:\/\//, '')),
+        meta.length ? el('span', { class: 'relay-meta' }, meta.join(' · ')) : null));
   };
   const draw = () => {
-    const items = pool.status();
-    list.replaceChildren(...(items.length ? items.map(row) : [el('li', {}, t('settings.relays.none'))]));
+    const lists = state.get('lists');
+    const prog = state.get('listsProgress');
+    const live = new Map(pool.status().map((r) => [r.url, r]));
+    status.textContent = prog.running ? (prog.total ? t('lists.progress', { done: prog.done, total: prog.total }) : t('lists.checking')) : '';
+    refresh.disabled = prog.running;
+    body.replaceChildren(...LIST_KEYS.map((key) => {
+      const info = lists[key];
+      return el('div', { class: 'relay-list' },
+        el('h3', { class: 'list-title' }, t(`lists.${key}`)),
+        info ? el('p', { class: 'hint' }, t('lists.date', { date: fmtDate(info.created_at) })) : el('p', { class: 'hint' }, t(lists.status === 'loading' || prog.running ? 'lists.checking' : 'lists.none')),
+        info?.relays.length ? el('ul', { class: 'relays' }, ...info.relays.map((r) => row(r, key === 'pub' ? live.get(r.url) : null, key === 'pub'))) : null);
+    }));
   };
-  const stop = pool.onChange(draw);
+  const offs = [state.on('lists', draw), state.on('listsProgress', draw), pool.onChange(draw)];
   draw();
-  return { node: el('section', {}, el('h2', { class: 'section-title' }, t('settings.relays')), list, form, msg), stop };
+  return { node: el('section', {}, el('h2', { class: 'section-title' }, t('settings.lists')), body, el('div', { class: 'row' }, refresh), status), stop: () => offs.forEach((f) => f()) };
 }
 
 function accountSection() {
@@ -89,7 +86,7 @@ export function renderSettings(main) {
     checkbox('readOnly', 'settings.readOnly', 'settings.readOnly.hint', s.readOnly, (v) => save({ readOnly: v })),
     status);
   form.addEventListener('submit', (e) => e.preventDefault());
-  const relays = relaysSection();
-  main.replaceChildren(pageTitle('nav.settings'), accountSection(), form, relays.node);
-  return relays.stop;
+  const lists = state.get('session') ? listsSection() : null;
+  main.replaceChildren(pageTitle('nav.settings'), accountSection(), form, ...(lists ? [lists.node] : []));
+  return lists?.stop;
 }

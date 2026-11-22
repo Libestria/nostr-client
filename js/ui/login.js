@@ -3,7 +3,7 @@ import { state } from '../state.js';
 import { el, pageTitle } from './common.js';
 import { decode, Nip19Error, npubEncode } from '../nostr/nip19.js';
 import { resolveNip05 } from '../nostr/nip05.js';
-import { hasExtension, connectExtension, readOnlySession, setSession, setRemoteSession, logout } from '../auth.js';
+import { hasExtension, connectExtension, readOnlySession, setSession, setRemoteSession, logout, takeReturnTo } from '../auth.js';
 import { connectBunker, startNostrConnect } from '../nostr/nip46.js';
 import { pool } from '../relays/pool.js';
 
@@ -32,7 +32,7 @@ export function renderLogin(main) {
     extBtn.disabled = true;
     try {
       setSession(await connectExtension());
-      location.hash = '#/feed';
+      location.hash = takeReturnTo();
     } catch {
       setMsg(t('login.ext.denied'), true);
       extBtn.disabled = false;
@@ -68,7 +68,7 @@ export function renderLogin(main) {
       return setMsg(t(err instanceof Nip19Error || err.message === 'invalid' ? 'login.ro.invalid' : 'login.ro.nip05fail'), true);
     }
     setSession(readOnlySession(pubkey));
-    location.hash = '#/feed';
+    location.hash = takeReturnTo();
   });
 
   main.replaceChildren(pageTitle('nav.login'),
@@ -96,7 +96,7 @@ function bunkerSection(setMsg) {
       const info = await connectBunker(value);
       input.value = '';
       setRemoteSession(info);
-      location.hash = '#/feed';
+      location.hash = takeReturnTo();
     } catch (err) { setMsg(t(errKey(err)), true); go.disabled = false; }
   });
 
@@ -118,7 +118,7 @@ function bunkerSection(setMsg) {
       const info = await mine.wait();
       if (!linkBox.isConnected) { info.close?.(); return; } // annulé ou page quittée entre-temps
       setRemoteSession(info);
-      location.hash = '#/feed';
+      location.hash = takeReturnTo();
     } catch (err) {
       if (err?.code !== 'cancelled') { linkBox.replaceChildren(); setMsg(t(errKey(err)), true); }
       gen.disabled = false;
