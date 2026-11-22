@@ -1,0 +1,20 @@
+{
+  "pub": [
+    "wss://relay.nostrmap.net",
+    "wss://relay.decentralia.fr",
+    "wss://relay.noeudlibre.fr",
+    "wss://nos.lol",
+    "wss://relay.primal.net"
+  ],
+  "search": [
+    "wss://search.nos.today",
+    "wss://relay.noswhere.com",
+    "wss://nostr.wine",
+    "wss://relay.ditto.pub"
+  ],
+  "dm": [
+    "wss://auth.nostr1.com",
+    "wss://nip17.com",
+    "wss://relay.decentralia.fr"
+  ]
+}
