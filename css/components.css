@@ -109,3 +109,13 @@ input[type="text"] {
 .add-relay input[type="text"] { flex: 1 1 14rem; min-width: 0; }
 .relay-list details { margin-block: .5rem; }
 .relay-list .status button { margin-inline-start: .5rem; }
+
+/* Écriture : composeur et actions sur les notes */
+.composer { display: grid; gap: .5rem; margin-block: .75rem; }
+.composer textarea { width: 100%; min-height: 5rem; resize: vertical; font: inherit; }
+.composer-box { margin-bottom: 1rem; }
+.note-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .5rem; }
+.note-msg:empty, .compose-result:empty { display: none; }
+.note-msg { margin-top: .5rem; font-size: .9rem; }
+.note .composer { margin-top: .75rem; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
