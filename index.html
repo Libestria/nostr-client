@@ -9,10 +9,10 @@
   <title>Nostr</title>
   <link rel="manifest" href="manifest.json">
   <link rel="preload" href="fonts/exo-2-v26-latin-regular.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/themes.css?v=m3">
-  <link rel="stylesheet" href="css/base.css?v=m3">
-  <link rel="stylesheet" href="css/layout.css?v=m3">
-  <link rel="stylesheet" href="css/components.css?v=m3">
+  <link rel="stylesheet" href="css/themes.css?v=m3b">
+  <link rel="stylesheet" href="css/base.css?v=m3b">
+  <link rel="stylesheet" href="css/layout.css?v=m3b">
+  <link rel="stylesheet" href="css/components.css?v=m3b">
 </head>
 <body>
   <button type="button" class="skip" id="skip" data-i18n="skip">Aller au contenu</button>
@@ -21,6 +21,7 @@
     <nav id="nav" class="nav" aria-label="Navigation principale">
       <span class="brand" aria-hidden="true">nostr</span>
       <ul>
+        <li><a href="#/login" data-route="login" data-i18n="nav.login">Connexion</a></li>
         <li><a href="#/feed" data-route="feed" data-i18n="nav.feed">Accueil</a></li>
         <li><a href="#/search" data-route="search" data-i18n="nav.search">Recherche</a></li>
         <li><a href="#/notifications" data-route="notifications" data-i18n="nav.notifications">Notifications</a></li>
@@ -32,6 +33,6 @@
     <main id="view" tabindex="-1"></main>
   </div>
   <noscript><p>JavaScript est nécessaire pour utiliser ce client.</p></noscript>
-  <script type="module" src="js/main.js?v=m3"></script>
+  <script type="module" src="js/main.js?v=m3b"></script>
 </body>
 </html>
