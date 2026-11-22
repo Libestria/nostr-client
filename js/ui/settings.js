@@ -3,6 +3,8 @@ import { state } from '../state.js';
 import { updateSettings } from '../storage/settings.js';
 import { pool } from '../relays/pool.js';
 import { normalizeRelayUrl } from '../nostr/relayurl.js';
+import { npubEncode } from '../nostr/nip19.js';
+import { logout } from '../auth.js';
 import { el, pageTitle } from './common.js';
 
 function select(id, labelKey, options, value, onChange) {
@@ -63,6 +65,16 @@ function relaysSection() {
   return { node: el('section', {}, el('h2', { class: 'section-title' }, t('settings.relays')), list, form, msg), stop };
 }
 
+function accountSection() {
+  const s = state.get('session');
+  if (!s) return el('section', {}, el('h2', { class: 'section-title' }, t('settings.account')), el('p', {}, t('settings.account.none')),
+    el('a', { class: 'btn', href: '#/login' }, t('login.cta')));
+  const out = el('button', { type: 'button', class: 'btn' }, t('login.logout'));
+  out.addEventListener('click', () => { logout(); location.hash = '#/login'; });
+  return el('section', {}, el('h2', { class: 'section-title' }, t('settings.account')),
+    el('p', {}, t(`login.connected.${s.method}`)), el('p', { class: 'ident' }, npubEncode(s.pubkey)), out);
+}
+
 export function renderSettings(main) {
   const s = state.get('settings');
   const status = el('p', { class: 'status', role: 'status' });
@@ -78,6 +90,6 @@ export function renderSettings(main) {
     status);
   form.addEventListener('submit', (e) => e.preventDefault());
   const relays = relaysSection();
-  main.replaceChildren(pageTitle('nav.settings'), form, relays.node);
+  main.replaceChildren(pageTitle('nav.settings'), accountSection(), form, relays.node);
   return relays.stop;
 }
