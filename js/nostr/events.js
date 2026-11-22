@@ -44,3 +44,9 @@ export function replaceKey(e) {
   if (isAddressable(e.kind)) return `${e.kind}:${e.pubkey}:${e.tags.find((t) => t[0] === 'd')?.[1] ?? ''}`;
   return null;
 }
+
+// Un signeur (extension ou bunker) ne doit rendre que ce qu'on lui a demandé de signer.
+export function matchesTemplate(ev, tpl, pubkey) {
+  return !!ev && ev.pubkey === pubkey && ev.kind === tpl.kind && ev.content === tpl.content &&
+    JSON.stringify(ev.tags) === JSON.stringify(tpl.tags);
+}
