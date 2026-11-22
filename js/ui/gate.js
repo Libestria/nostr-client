@@ -2,12 +2,14 @@ import { t } from '../i18n.js';
 import { state } from '../state.js';
 import { loadAccountLists } from '../account.js';
 import { el, pageTitle, stateBlock } from './common.js';
+import { renderSetup } from './setup.js';
 
 // Page affichée à la place d'une page de contenu tant que les relais du compte ne sont pas connus.
 export function renderGate(main, routeName) {
   const title = pageTitle(`nav.${routeName}`);
   const st = state.get('lists').status;
-  if (st === 'empty' || st === 'error') {
+  if (st === 'empty') { renderSetup(main); return undefined; }
+  if (st === 'error') {
     const retry = el('button', { type: 'button', class: 'btn' }, t('lists.retry'));
     retry.addEventListener('click', () => { retry.disabled = true; loadAccountLists(state.get("session").pubkey); });
     main.replaceChildren(title, stateBlock(st === 'empty' ? 'empty' : 'error', st === 'empty' ? 'lists.empty' : 'lists.error'), el('p', {}, retry));
