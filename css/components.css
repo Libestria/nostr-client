@@ -95,3 +95,8 @@ input[type="text"] {
 .people { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: 8px; }
 .people li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px 10px; }
 .hint { color: var(--muted); font-size: .9rem; }
+
+/* Listes de relais du compte */
+.relay-list { margin-bottom: 1rem; }
+.list-title { margin: 0 0 .25rem; font-size: 1rem; font-weight: 600; color: var(--ink); }
+.nav li[hidden] { display: none; }
