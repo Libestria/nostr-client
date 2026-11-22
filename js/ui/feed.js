@@ -1,87 +1,148 @@
 import { t } from '../i18n.js';
 import { state } from '../state.js';
 import { pool } from '../relays/pool.js';
-import { latest } from '../storage/db.js';
-import { el, pageTitle, stateBlock, shortNpub, timeAgo } from './common.js';
+import { latest, getReplaceable } from '../storage/db.js';
+import { parseContacts } from '../nostr/contacts.js';
+import { onProfiles } from '../profiles.js';
+import { el, pageTitle, stateBlock } from './common.js';
+import { noteCard, updateAuthors } from './note.js';
 
 const PAGE = 30;
-const MAX_SHOWN = 150;
+const MAX_SHOWN = 300;
+const CHUNK = 100;       // auteurs par filtre
+const MAX_AUTHORS = 1000; // 10 filtres au maximum par abonnement
 
-function noteCard(ev, relay) {
-  const text = ev.content.length > 600 ? `${ev.content.slice(0, 600)}…` : ev.content;
-  return el('article', { class: 'note' },
-    el('div', { class: 'note-head' },
-      el('span', { class: 'ident' }, shortNpub(ev.pubkey)),
-      el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, timeAgo(ev.created_at))),
-    el('p', { class: 'note-text' }, text),
-    relay ? el('p', { class: 'note-via' }, t('note.relay', { relay: relay.replace(/^wss:\/\//, '') })) : null);
-}
+const tab = (href, key, active) => el('a', { class: 'tab', href, 'aria-current': active ? 'page' : false }, t(key));
 
-// Flux global brut : notes (kind 1) de tous les comptes, sur les relais de lecture.
-export function renderFeed(main) {
+// Accueil : fil des comptes suivis (si connecté) ou flux global. Chargements ponctuels, jamais de flux continu.
+export function renderFeed(main, params = []) {
+  const session = state.get('session');
+  const following = !!session && params[0] !== 'global';
+
   const notes = new Map();
   const via = new Map();
   const subs = [];
-  let oldest = Infinity;
-  let got = false;
-  let queued = false;
+  let alive = true, got = false, drawTimer = null;
+  let oldest = Infinity;                 // mode global
+  let chunks = [], cursor = [], chunkOf = new Map(), authorSet = null; // mode abonnements
+  let contacts = null, followCount = 0, contactsDone = false, contactsSub = null;
 
   const status = el('p', { class: 'status', role: 'status' });
   const holder = el('div');
   const list = el('div', { class: 'notes' });
+  const reload = el('button', { type: 'button', class: 'btn' }, t('feed.refresh'));
   const more = el('button', { type: 'button', class: 'btn' }, t('feed.more'));
   more.hidden = true;
-  const reload = el('button', { type: 'button', class: 'btn' }, t('feed.refresh'));
-  const login = state.get('session') ? [] : [el('p', {}, el('a', { class: 'btn', href: '#/login' }, t('login.cta')))];
-  main.replaceChildren(pageTitle('nav.feed'), el('p', {}, t('feed.global')), status, el('div', { class: 'row' }, reload), holder, list, more, ...login);
+  const extra = [];
+  if (!session) extra.push(el('p', {}, el('a', { class: 'btn', href: '#/login' }, t('login.cta'))));
+  main.replaceChildren(pageTitle('nav.feed'),
+    session ? el('nav', { class: 'tabs', 'aria-label': t('feed.tabs') }, tab('#/feed', 'feed.following', following), tab('#/feed/global', 'feed.globalTab', !following))
+      : el('p', {}, t('feed.global')),
+    status, el('div', { class: 'row' }, reload), holder, list, more, ...extra);
 
   const setHolder = (kind, key) => holder.replaceChildren(...(kind ? [stateBlock(kind, key)] : []));
-  const draw = () => {
-    queued = false;
+  const scheduleDraw = () => { drawTimer ||= setTimeout(draw, 150); };
+  function draw() {
+    drawTimer = null;
+    if (!alive) return;
     const arr = [...notes.values()].sort((a, b) => b.created_at - a.created_at || (a.id < b.id ? -1 : 1)).slice(0, MAX_SHOWN);
-    list.replaceChildren(...arr.map((ev) => noteCard(ev, via.get(ev.id))));
-  };
-  const add = (ev, relay) => {
-    if (ev.kind !== 1 || notes.has(ev.id)) return;
+    list.replaceChildren(...arr.map((ev) => noteCard(ev, { via: via.get(ev.id) })));
+  }
+
+  function add(ev, relay) {
+    if (!alive || ev.kind !== 1 || notes.has(ev.id)) return;
+    if (following) {
+      if (!authorSet?.has(ev.pubkey)) return;
+      const i = chunkOf.get(ev.pubkey);
+      cursor[i] = cursor[i] == null ? ev.created_at : Math.min(cursor[i], ev.created_at);
+    } else oldest = Math.min(oldest, ev.created_at);
     notes.set(ev.id, ev);
     if (relay) via.set(ev.id, relay);
-    oldest = Math.min(oldest, ev.created_at);
     got = true;
     setHolder(null);
     more.hidden = false;
-    if (!queued) { queued = true; requestAnimationFrame(draw); }
+    scheduleDraw();
+  }
+
+  const filters = (first) => {
+    if (!following) return [{ kinds: [1], limit: PAGE, ...(first || !Number.isFinite(oldest) ? {} : { until: oldest - 1 }) }];
+    return chunks.map((authors, i) => ({ kinds: [1], authors, limit: PAGE, ...(!first && cursor[i] != null ? { until: cursor[i] - 1 } : {}) }));
   };
-  const open = (filter, once) => subs.push(pool.subscribe([filter], {
-    closeOnEose: once,
-    onevent: add,
-    oneose: () => { if (!got) setHolder('empty', 'feed.empty'); more.disabled = false; reload.disabled = false; },
-  }));
 
-  more.addEventListener('click', () => {
-    if (!Number.isFinite(oldest)) return;
-    more.disabled = true;
-    open({ kinds: [1], limit: PAGE, until: oldest - 1 }, true);
-  });
+  function fetchPage(first) {
+    const f = filters(first);
+    if (!f.length) return;
+    reload.disabled = more.disabled = true;
+    subs.push(pool.subscribe(f, {
+      closeOnEose: true, onevent: add,
+      oneose: () => {
+        if (!got) setHolder('empty', following ? 'feed.followingEmpty' : 'feed.empty');
+        reload.disabled = more.disabled = false;
+      },
+    }));
+  }
 
-  reload.addEventListener('click', () => {
-    reload.disabled = true;
-    open({ kinds: [1], limit: PAGE }, true);
-  });
+  more.addEventListener('click', () => fetchPage(false));
+  reload.addEventListener('click', () => fetchPage(true));
 
-  const refresh = () => {
+  const refreshStatus = () => {
     const st = pool.status();
-    status.textContent = t('feed.relays', { open: st.filter((r) => r.state === 'open').length, total: st.length });
+    const base = t('feed.relays', { open: st.filter((r) => r.state === 'open').length, total: st.length });
+    status.textContent = following && contactsDone ? `${base} · ${t('feed.follows', { n: followCount })}` : base;
   };
-  const stop = pool.onChange(refresh);
-  refresh();
-  setHolder('loading', 'state.loading');
-  latest({ kinds: [1], limit: PAGE }).then((evs) => evs.forEach((ev) => add(ev)));
-  open({ kinds: [1], limit: PAGE }, true); // lot ponctuel : le flux global en direct serait interminable
-  const timer = setTimeout(() => {
+  const stopPool = pool.onChange(refreshStatus);
+  const stopProfiles = onProfiles(() => updateAuthors(list));
+  refreshStatus();
+
+  // --- démarrage
+  if (!following) {
+    setHolder('loading', 'state.loading');
+    latest({ kinds: [1], limit: PAGE }).then((evs) => evs.forEach((ev) => add(ev)));
+    fetchPage(true);
+  } else {
+    setHolder('loading', 'state.loading');
+    const me = session.pubkey;
+    const apply = (ev) => {
+      if (!alive || ev.kind !== 3 || ev.pubkey !== me || (contacts && ev.created_at <= contacts.created_at)) return;
+      const follows = parseContacts(ev);
+      const authors = [...new Set([...follows, me])].slice(0, MAX_AUTHORS);
+      const same = contacts && contacts.key === authors.join();
+      contacts = { created_at: ev.created_at, key: authors.join() };
+      followCount = follows.length;
+      contactsDone = true;
+      refreshStatus();
+      if (same) return;
+      subs.splice(0).forEach((s) => s.close());
+      chunks = []; chunkOf = new Map(); cursor = [];
+      for (let i = 0; i < authors.length; i += CHUNK) chunks.push(authors.slice(i, i + CHUNK));
+      chunks.forEach((c, i) => c.forEach((pk) => chunkOf.set(pk, i)));
+      cursor = chunks.map(() => null);
+      authorSet = new Set(authors);
+      latest({ kinds: [1], limit: 300 }).then((evs) => evs.filter((e) => authorSet.has(e.pubkey)).slice(0, PAGE).forEach((e) => add(e)));
+      fetchPage(true);
+    };
+    getReplaceable(3, me).then((ev) => ev && apply(ev));
+    contactsSub = pool.subscribe([{ kinds: [3], authors: [me], limit: 1 }], {
+      closeOnEose: true, onevent: apply,
+      oneose: () => {
+        if (contacts) return;
+        // Aucune liste trouvée : on affiche au moins ses propres notes
+        apply({ kind: 3, pubkey: me, created_at: 1, tags: [] });
+        setHolder('empty', 'feed.noFollows');
+      },
+    });
+  }
+
+  const noRelays = setTimeout(() => {
     if (!got && pool.status().every((r) => r.state !== 'open')) setHolder('error', 'feed.noRelays');
   }, 10000);
 
-  return () => { stop(); clearTimeout(timer); subs.forEach((s) => s.close()); };
+  return () => {
+    alive = false;
+    stopPool(); stopProfiles(); clearTimeout(noRelays); clearTimeout(drawTimer);
+    subs.forEach((s) => s.close());
+    contactsSub?.close();
+  };
 }
 
 export function placeholder(titleKey) {
