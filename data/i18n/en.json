@@ -115,5 +115,7 @@
   "login.nc.cancel": "Cancel",
   "login.nc.hint": "Open this link in your signing app, or copy it into a web signer.",
   "login.nc.waiting": "Waiting for the signer to approve…",
-  "login.connected.nip46": "Signed in with a remote signer (NIP-46). The session lasts while this tab stays open."
+  "login.connected.nip46": "Signed in with a remote signer (NIP-46). The session lasts while this tab stays open.",
+  "settings.account": "Account",
+  "settings.account.none": "No account signed in."
 }

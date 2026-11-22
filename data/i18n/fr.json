@@ -115,5 +115,7 @@
   "login.nc.cancel": "Annuler",
   "login.nc.hint": "Ouvre ce lien dans ton application de signature, ou copie-le dans un signeur web.",
   "login.nc.waiting": "En attente de l'approbation du signeur…",
-  "login.connected.nip46": "Connecté avec un signeur distant (NIP-46). La session dure tant que l'onglet reste ouvert."
+  "login.connected.nip46": "Connecté avec un signeur distant (NIP-46). La session dure tant que l'onglet reste ouvert.",
+  "settings.account": "Compte",
+  "settings.account.none": "Aucun compte connecté."
 }
