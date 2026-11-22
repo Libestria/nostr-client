@@ -2,7 +2,12 @@ import { t } from '../i18n.js';
 import { state } from '../state.js';
 import { npubEncode } from '../nostr/nip19.js';
 import { getCached, requestProfile } from '../profiles.js';
+import { getSigner } from '../auth.js';
+import { buildReaction, buildRepost, buildDeletion } from '../nostr/compose.js';
+import { publishEvent } from '../publish.js';
+import { deleteEvent } from '../storage/db.js';
 import { el, shortNpub, timeAgo } from './common.js';
+import { composer, showResult, errorKey } from './composer.js';
 
 // Remplit un lien d'auteur (nom + avatar) à partir du cache de profils.
 export function fillAuthor(node) {
@@ -27,12 +32,66 @@ export function authorLink(pk) {
 
 export const updateAuthors = (root) => root.querySelectorAll('.author[data-pk]').forEach(fillAuthor);
 
+const done = { reacted: new Set(), reposted: new Set() };   // pour éviter les doublons dans cette session
+
+// Boutons Répondre / J'aime / Reposter / Supprimer (uniquement avec un signeur).
+function noteActions(ev, article) {
+  const signer = getSigner();
+  if (!signer) return null;
+  const msg = el('div', { class: 'note-msg', role: 'status' });
+  let busy = false;
+  const btn = (key, onClick, disabled = false) => {
+    const b = el('button', { type: 'button', class: 'btn btn-small' }, t(key));
+    b.disabled = disabled;
+    b.addEventListener('click', () => onClick(b));
+    return b;
+  };
+  const act = async (b, build, mark, doneKey) => {
+    if (busy) return;
+    busy = true; b.disabled = true; msg.replaceChildren(t('lists.publishing'));
+    try {
+      const res = await publishEvent(build());
+      showResult(msg, res, () => publishEvent(build()));
+      if (res.ok) { mark?.(); b.textContent = t(doneKey); } else b.disabled = false;
+    } catch (e) { msg.replaceChildren(el('span', { class: 'status status-error' }, t(errorKey(e)))); b.disabled = false; } finally { busy = false; }
+  };
+  let form = null;
+  const reply = btn('note.reply', () => {
+    if (form) { form.remove(); form = null; return; }
+    form = composer({ reply: ev, onPublished: () => { form?.remove(); form = null; } });
+    article.append(form);
+    form.querySelector('textarea').focus();
+  });
+  const like = btn(done.reacted.has(ev.id) ? 'note.liked' : 'note.like', (b) => act(b, () => buildReaction(ev), () => done.reacted.add(ev.id), 'note.liked'), done.reacted.has(ev.id));
+  const repost = btn(done.reposted.has(ev.id) ? 'note.reposted' : 'note.repost', (b) => act(b, () => buildRepost(ev), () => done.reposted.add(ev.id), 'note.reposted'), done.reposted.has(ev.id));
+  const row = el('div', { class: 'note-actions' }, reply, like, repost);
+  if (ev.pubkey === signer.pubkey) {
+    let armed = false;
+    const del = btn('note.delete', async (b) => {
+      if (!armed) { armed = true; b.textContent = t('note.delete.confirm'); msg.replaceChildren(t('note.delete.hint')); return; }
+      if (busy) return;
+      busy = true; b.disabled = true; msg.replaceChildren(t('lists.publishing'));
+      try {
+        const res = await publishEvent(buildDeletion(ev, signer.pubkey));
+        showResult(msg, res, () => publishEvent(buildDeletion(ev, signer.pubkey)));
+        if (res.ok) { deleteEvent(ev.id); article.classList.add('note-deleted'); article.replaceChildren(el('p', { class: 'hint' }, t('note.deleted'))); }
+        else { armed = false; b.disabled = false; b.textContent = t('note.delete'); }
+      } catch (e) { msg.replaceChildren(el('span', { class: 'status status-error' }, t(errorKey(e)))); armed = false; b.disabled = false; b.textContent = t('note.delete'); } finally { busy = false; }
+    });
+    row.append(del);
+  }
+  return [row, msg];
+}
+
 export function noteCard(ev, { via, author = true } = {}) {
   const text = ev.content.length > 600 ? `${ev.content.slice(0, 600)}…` : ev.content;
-  return el('article', { class: 'note' },
+  const article = el('article', { class: 'note' },
     el('div', { class: 'note-head' },
       author ? authorLink(ev.pubkey) : el('span'),
       el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, timeAgo(ev.created_at))),
     el('p', { class: 'note-text' }, text),
     via ? el('p', { class: 'note-via' }, t('note.relay', { relay: via.replace(/^wss:\/\//, '') })) : null);
+  const actions = noteActions(ev, article);
+  if (actions) article.append(...actions);
+  return article;
 }
