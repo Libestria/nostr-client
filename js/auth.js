@@ -68,3 +68,15 @@ export function getSigner() {
   }
   return null;
 }
+
+// Retour à la page demandée après connexion (liens partagés, rechargement…)
+const RETURN_KEY = 'nostr-client:return';
+export function rememberReturnTo(hash) {
+  if (typeof hash !== 'string' || !/^#\/[^\s]{0,500}$/.test(hash) || /^#\/login/.test(hash)) return;
+  try { sessionStorage.setItem(RETURN_KEY, hash); } catch { /* indisponible */ }
+}
+export function takeReturnTo() {
+  let h = null;
+  try { h = sessionStorage.getItem(RETURN_KEY); sessionStorage.removeItem(RETURN_KEY); } catch { /* indisponible */ }
+  return typeof h === 'string' && /^#\/[^\s]{0,500}$/.test(h) && !/^#\/login/.test(h) ? h : '#/feed';
+}

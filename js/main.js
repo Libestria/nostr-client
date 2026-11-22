@@ -1,15 +1,17 @@
 import { state } from './state.js';
 import { setLang, applyI18n, t } from './i18n.js';
-import { loadSettings, updateSettings } from './storage/settings.js';
+import { loadSettings } from './storage/settings.js';
 import { stateBlock } from './ui/common.js';
 import { renderFeed, placeholder } from './ui/feed.js';
 import { renderProfile } from './ui/profile.js';
 import { renderSettings } from './ui/settings.js';
 import { renderLogin } from './ui/login.js';
 import { loadSession } from './storage/session.js';
-import { restoreRemoteSession } from './auth.js';
+import { restoreRemoteSession, rememberReturnTo } from './auth.js';
 import { pool } from './relays/pool.js';
 import { putEvent, prune } from './storage/db.js';
+import { loadAccountLists, resetAccount } from './account.js';
+import { renderGate } from './ui/gate.js';
 
 const routes = {
   feed: renderFeed,
@@ -25,6 +27,7 @@ const main = document.getElementById('view');
 let renderId = 0;
 let currentLang = null;
 let cleanup = null;
+const OPEN_ROUTES = new Set(['login', 'settings']);   // accessibles sans compte
 
 function parseHash() {
   const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map((p) => {
@@ -38,6 +41,11 @@ async function render(focus = false) {
   if (cleanup) { cleanup(); cleanup = null; }
   const { name, params } = parseHash();
   const view = Object.hasOwn(routes, name) ? routes[name] : null;
+  if (view && !OPEN_ROUTES.has(name) && !state.get('session')) {
+    rememberReturnTo(location.hash || '#/feed');
+    location.hash = '#/login';   // déclenche un nouveau rendu
+    return;
+  }
   document.querySelectorAll('#nav a').forEach((a) => {
     if (a.dataset.route === name) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
@@ -47,7 +55,8 @@ async function render(focus = false) {
   try {
     if (!view) main.replaceChildren(stateBlock('error', 'state.notFound'));
     else {
-      const done = await view(main, params);
+      const gated = view && !OPEN_ROUTES.has(name) && state.get('lists').status !== 'ready';
+      const done = gated ? renderGate(main, name) : await view(main, params);
       if (typeof done === 'function') { if (id === renderId) cleanup = done; else done(); }
     }
   } catch (err) {
@@ -62,11 +71,13 @@ function applyTheme(theme) {
   else document.documentElement.dataset.theme = theme;
 }
 
-async function loadDefaultRelays() {
-  try {
-    const res = await fetch(new URL('../data/default-relays.json', import.meta.url));
-    return res.ok ? await res.json() : [];
-  } catch { return []; }
+// Navigation : sans compte, seules la connexion et les réglages sont proposées.
+function syncNav() {
+  const connected = !!state.get('session');
+  document.querySelectorAll('#nav a[data-route]').forEach((a) => {
+    const r = a.dataset.route;
+    a.parentElement.hidden = r === 'login' ? connected : !connected && !OPEN_ROUTES.has(r);
+  });
 }
 
 async function applyLang(lang) {
@@ -76,24 +87,36 @@ async function applyLang(lang) {
 }
 
 async function boot() {
-  let settings = loadSettings();
-  if (settings.relays.length === 0) settings = updateSettings({ relays: await loadDefaultRelays() });
+  const settings = loadSettings();
   state.set('settings', settings);
   state.set('session', loadSession());
   restoreRemoteSession();
   pool.onVerified = putEvent;
-  pool.setRelays(settings.relays);
   setTimeout(() => prune(), 5000);
-  let relaysKey = JSON.stringify(settings.relays);
   applyTheme(settings.theme);
   await applyLang(settings.lang);
 
   state.on('settings', async (s) => {
     applyTheme(s.theme);
-    const key = JSON.stringify(s.relays);
-    if (key !== relaysKey) { relaysKey = key; pool.setRelays(s.relays); }
     if (s.lang !== currentLang) { await applyLang(s.lang); render(); }
   });
+
+  // Compte : à chaque changement, listes de relais du compte (cache, puis découverte)
+  const onSession = (s, fresh) => {
+    syncNav();
+    resetAccount();
+    if (s) loadAccountLists(s.pubkey, { force: fresh });
+  };
+  state.on('session', (s) => { onSession(s, true); render(); });
+  let lastStatus = state.get('lists').status;
+  state.on('lists', (l) => {
+    if (l.status === lastStatus) return;
+    lastStatus = l.status;
+    if (!OPEN_ROUTES.has(parseHash().name)) render();   // la page affichée dépend de l'état des listes
+  });
+  const first = state.get('session');
+  syncNav();
+  if (first) loadAccountLists(first.pubkey, { force: false });
 
   const offline = document.getElementById('offline');
   const syncOnline = () => { state.set('online', navigator.onLine); offline.hidden = navigator.onLine; };

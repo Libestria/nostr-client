@@ -23,4 +23,8 @@ export const bus = {
   emit: (name, detail) => target.dispatchEvent(new CustomEvent(name, { detail })),
 };
 
-export const state = createStore({ settings: null, session: null, online: navigator.onLine });
+export const state = createStore({
+  settings: null, session: null, online: navigator.onLine,
+  lists: { status: 'idle', pub: null, search: null, dm: null },   // listes de relais du compte
+  listsProgress: { running: false, done: 0, total: 0 },
+});
