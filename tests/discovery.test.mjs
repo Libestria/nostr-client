@@ -140,17 +140,12 @@ test('compte : résultat périmé ignoré après changement de compte ou déconn
   assert.equal(state.get('lists').status, 'idle');
   assert.deepEqual(applied.at(-1), []);
 });
-test('compte : pas de nouvelle découverte avant 6 h si le cache est frais', async () => {
+test('compte : la découverte tourne à chaque ouverture, même avec un cache frais', async () => {
   const cached = mk(10002, [['r', 'wss://cache.example.com']], 100);
-  const store = new Map();
-  globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
   let calls = 0;
   const discover = async () => { calls++; return found({})(); };
   const opts = { discover, cache: memCache({ 10002: cached }), apply: () => {} };
-  await loadAccountLists(PK, { ...opts, force: true });
   await loadAccountLists(PK, opts);
-  assert.equal(calls, 1);
-  await loadAccountLists(PK, { ...opts, now: () => Date.now() + 7 * 3600 * 1000 });
+  await loadAccountLists(PK, opts);
   assert.equal(calls, 2);
-  delete globalThis.localStorage;
 });
