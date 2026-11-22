@@ -5,11 +5,21 @@ import { getReplaceable, putEvent } from './storage/db.js';
 import { discoverAccount } from './relays/discovery.js';
 import { acceptProfileEvent } from './profiles.js';
 import { publishToMany } from './relays/oneshot.js';
-import { LISTS, LIST_KEYS, relaysFromEvent, latestEvent, listTemplate, tagUrls } from './nostr/relaylists.js';
+import { LISTS, LIST_KEYS, relaysFromEvent, latestEvent, listTemplate, creationTemplate, tagUrls } from './nostr/relaylists.js';
 
 const KINDS = [0, 10002, 10007, 10050];
 let token = 0;
 let appliedKey = '[]';
+
+export async function suggestedRelays() {
+  try {
+    const res = await fetch(new URL('../data/suggested-relays.json', import.meta.url));
+    const j = res.ok ? await res.json() : {};
+    const out = {};
+    for (const key of LIST_KEYS) out[key] = Array.isArray(j[key]) ? j[key].filter((u) => typeof u === 'string') : [];
+    return out;
+  } catch { return { pub: [], search: [], dm: [] }; }
+}
 
 async function bootRelays() {
   const res = await fetch(new URL('../data/boot-relays.json', import.meta.url));
@@ -134,4 +144,31 @@ export function editList(key, op, { signer, publish, boot, onProgress, cache, ap
   const p = queue.then(run, run);
   queue = p.catch(() => {});
   return p;
+}
+
+// Création des premières listes : { pub: [urls], search: [urls], dm: [urls] } (clés vides ignorées).
+// Chaque liste est signée puis publiée ; elles ne sont appliquées à l'état qu'avec applyCreated(),
+// pour que l'écran de résultat ne disparaisse pas avant d'avoir été lu.
+// → { [key]: { event, results, ok, total } } ; lève NO_SIGNER / SIGN_FAILED / EMPTY (liste générale vide).
+export function createLists(selection, { signer, publish, boot, onProgress, now } = {}) {
+  const run = async () => {
+    if (!signer) throw new Error('NO_SIGNER');
+    if (!selection?.pub?.length) throw new Error('EMPTY');
+    const out = {};
+    for (const key of LIST_KEYS) {
+      if (!selection[key]?.length) continue;
+      const tpl = creationTemplate(key, selection[key], now);
+      let signed;
+      try { signed = await signer.signEvent(tpl); } catch { throw new Error('SIGN_FAILED'); }
+      out[key] = await publishListEvent(key, signed, null, { publish, boot, onProgress });
+    }
+    return out;
+  };
+  const p = queue.then(run, run);
+  queue = p.catch(() => {});
+  return p;
+}
+
+export function applyCreated(created, opts) {
+  for (const key of LIST_KEYS) if (created[key]) applyListEvent(created[key].event, opts);
 }
