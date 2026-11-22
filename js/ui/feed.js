@@ -31,8 +31,9 @@ export function renderFeed(main) {
   const list = el('div', { class: 'notes' });
   const more = el('button', { type: 'button', class: 'btn' }, t('feed.more'));
   more.hidden = true;
+  const reload = el('button', { type: 'button', class: 'btn' }, t('feed.refresh'));
   const login = state.get('session') ? [] : [el('p', {}, el('a', { class: 'btn', href: '#/login' }, t('login.cta')))];
-  main.replaceChildren(pageTitle('nav.feed'), el('p', {}, t('feed.global')), status, holder, list, more, ...login);
+  main.replaceChildren(pageTitle('nav.feed'), el('p', {}, t('feed.global')), status, el('div', { class: 'row' }, reload), holder, list, more, ...login);
 
   const setHolder = (kind, key) => holder.replaceChildren(...(kind ? [stateBlock(kind, key)] : []));
   const draw = () => {
@@ -53,13 +54,18 @@ export function renderFeed(main) {
   const open = (filter, once) => subs.push(pool.subscribe([filter], {
     closeOnEose: once,
     onevent: add,
-    oneose: () => { if (!got) setHolder('empty', 'feed.empty'); more.disabled = false; },
+    oneose: () => { if (!got) setHolder('empty', 'feed.empty'); more.disabled = false; reload.disabled = false; },
   }));
 
   more.addEventListener('click', () => {
     if (!Number.isFinite(oldest)) return;
     more.disabled = true;
     open({ kinds: [1], limit: PAGE, until: oldest - 1 }, true);
+  });
+
+  reload.addEventListener('click', () => {
+    reload.disabled = true;
+    open({ kinds: [1], limit: PAGE }, true);
   });
 
   const refresh = () => {
@@ -70,7 +76,7 @@ export function renderFeed(main) {
   refresh();
   setHolder('loading', 'state.loading');
   latest({ kinds: [1], limit: PAGE }).then((evs) => evs.forEach((ev) => add(ev)));
-  open({ kinds: [1], limit: PAGE }, false);
+  open({ kinds: [1], limit: PAGE }, true); // lot ponctuel : le flux global en direct serait interminable
   const timer = setTimeout(() => {
     if (!got && pool.status().every((r) => r.state !== 'open')) setHolder('error', 'feed.noRelays');
   }, 10000);
