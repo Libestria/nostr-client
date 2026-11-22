@@ -9,7 +9,7 @@ export function renderGate(main, routeName) {
   const st = state.get('lists').status;
   if (st === 'empty' || st === 'error') {
     const retry = el('button', { type: 'button', class: 'btn' }, t('lists.retry'));
-    retry.addEventListener('click', () => { retry.disabled = true; loadAccountLists(state.get('session').pubkey, { force: true }); });
+    retry.addEventListener('click', () => { retry.disabled = true; loadAccountLists(state.get("session").pubkey); });
     main.replaceChildren(title, stateBlock(st === 'empty' ? 'empty' : 'error', st === 'empty' ? 'lists.empty' : 'lists.error'), el('p', {}, retry));
     return undefined;
   }
