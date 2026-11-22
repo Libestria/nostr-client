@@ -42,6 +42,21 @@ export function putEvent(ev) {
   })).catch(() => false);
 }
 
+// Dernier événement remplaçable connu (profil, contacts…) : null si absent.
+export function getReplaceable(kind, pubkey, d = '') {
+  return open().then((db) => new Promise((resolve) => {
+    const tx = db.transaction(['events', 'replaceable']);
+    const g = tx.objectStore('replaceable').get(`${kind}:${pubkey}:${d}`);
+    g.onerror = () => resolve(null);
+    g.onsuccess = () => {
+      if (!g.result) return resolve(null);
+      const e = tx.objectStore('events').get(g.result.id);
+      e.onsuccess = () => resolve(e.result ?? null);
+      e.onerror = () => resolve(null);
+    };
+  })).catch(() => null);
+}
+
 // Derniers événements du cache (plus récents d'abord), filtrés par kinds.
 export function latest({ kinds, limit = 30, until } = {}) {
   return open().then((db) => new Promise((resolve) => {
