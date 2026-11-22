@@ -7,6 +7,7 @@ import { isValidShape, isTooFarInFuture, eventKey, matchesAny } from '../nostr/e
 const VERIFIED_MAX = 5000;
 const LIMIT_DEFAULT = 100;
 const LIMIT_MAX = 500;
+const MAX_IN_FLIGHT = 300;
 let counter = 0;
 
 export class Pool {
@@ -17,6 +18,7 @@ export class Pool {
     this.subs = new Map();
     this.listeners = new Set();
     this.verified = new Set();
+    this.inFlight = 0;
     this.emitTimer = null;
     this.hooks = {
       onChange: () => this._emit(),
@@ -47,12 +49,12 @@ export class Pool {
     this._emit();
   }
 
-  subscribe(filters, { closeOnEose = false, onevent, oneose } = {}) {
+  subscribe(filters, { closeOnEose = false, onevent, oneose, maxEvents } = {}) {
     const list = (Array.isArray(filters) ? filters : [filters]).slice(0, 10).map((f) => ({
       ...f, limit: Math.min(Number.isInteger(f.limit) && f.limit > 0 ? f.limit : LIMIT_DEFAULT, LIMIT_MAX) }));
     const sub = new Subscription({
       id: `s${(++counter).toString(36)}${Math.random().toString(36).slice(2, 6)}`,
-      filters: list, closeOnEose, onevent, oneose, onClose: (s) => this._remove(s) });
+      filters: list, closeOnEose, onevent, oneose, maxEvents, onClose: (s) => this._remove(s) });
     this.subs.set(sub.id, sub);
     for (const relay of this.relays.values()) if (relay.read) { relay.addSub(sub); sub.attach(relay.url); }
     return sub;
@@ -96,13 +98,19 @@ export class Pool {
     const key = eventKey(ev);
     if (sub.seen.has(key)) return;
     sub.seen.add(key);
-    const deliver = () => { if (!sub.closed) sub.onevent?.(ev, relay.url); };
+    const deliver = () => {
+      if (sub.closed) return;
+      sub.onevent?.(ev, relay.url);
+      if (++sub.count >= sub.maxEvents) sub.close(); // soupape : un abonnement ne reçoit jamais indéfiniment
+    };
     if (this.verified.has(key)) return deliver();
+    if (this.inFlight >= MAX_IN_FLIGHT) { relay.stats.dropped++; sub.seen.delete(key); return; } // file de vérification saturée
+    this.inFlight++;
     Promise.resolve(this.verify(ev)).then((ok) => {
       if (!ok) { relay.stats.invalid++; this._emit(); return; }
       if (!this.verified.has(key)) { this._remember(key); try { this.onVerified?.(ev); } catch { /* cache facultatif */ } }
       deliver();
-    }).catch(() => { relay.stats.invalid++; });
+    }).catch(() => { relay.stats.invalid++; }).finally(() => { this.inFlight--; });
   }
 }
 
