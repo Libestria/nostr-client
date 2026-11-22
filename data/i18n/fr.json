@@ -155,5 +155,19 @@
   "lists.err.role": "Choisis au moins la lecture ou l'écriture.",
   "lists.err.signer": "Aucun signeur disponible (mode lecture seule ?).",
   "lists.err.sign": "La signature a été refusée ou a échoué.",
-  "lists.err.generic": "Modification impossible."
+  "lists.err.generic": "Modification impossible.",
+  "setup.title": "Première configuration",
+  "setup.intro": "Aucune liste de relais n'est publiée pour ce compte. Choisis les relais à utiliser : ils seront publiés sur ton compte et retrouvés à chaque connexion, depuis n'importe quel client.",
+  "setup.nosigner": "Aucune liste de relais n'est publiée pour ce compte, et la lecture seule ne permet pas d'en créer. Connecte-toi avec un signeur (extension ou bunker) pour en publier une, ou réessaie si tu penses qu'elle existe.",
+  "setup.hint.pub": "Relais où tu lis et publies tes notes.",
+  "setup.hint.search": "Relais interrogés pour la recherche (NIP-50). Facultatif.",
+  "setup.hint.dm": "Relais où tu reçois tes messages privés. Facultatif. Certains exigent une authentification.",
+  "setup.review": "Continuer",
+  "setup.err.empty": "Choisis au moins un relais général.",
+  "setup.confirm": "Voici ce qui va être signé et publié sur ton compte :",
+  "setup.confirm.hint": "Tu pourras modifier ces listes à tout moment dans les Réglages.",
+  "setup.publish": "Publier mes listes",
+  "setup.back": "Retour",
+  "setup.done": "Publication terminée.",
+  "setup.continue": "Entrer dans l'application"
 }

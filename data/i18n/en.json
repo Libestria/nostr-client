@@ -155,5 +155,19 @@
   "lists.err.role": "Pick at least read or write.",
   "lists.err.signer": "No signer available (read-only mode?).",
   "lists.err.sign": "Signing was refused or failed.",
-  "lists.err.generic": "Change not possible."
+  "lists.err.generic": "Change not possible.",
+  "setup.title": "First setup",
+  "setup.intro": "No relay list is published for this account. Pick the relays to use: they will be published on your account and found again at every login, from any client.",
+  "setup.nosigner": "No relay list is published for this account, and read-only mode cannot create one. Log in with a signer (extension or bunker) to publish one, or retry if you think it exists.",
+  "setup.hint.pub": "Relays where you read and publish your notes.",
+  "setup.hint.search": "Relays queried for search (NIP-50). Optional.",
+  "setup.hint.dm": "Relays where you receive private messages. Optional. Some require authentication.",
+  "setup.review": "Continue",
+  "setup.err.empty": "Pick at least one general relay.",
+  "setup.confirm": "This is what will be signed and published on your account:",
+  "setup.confirm.hint": "You can edit these lists at any time in Settings.",
+  "setup.publish": "Publish my lists",
+  "setup.back": "Back",
+  "setup.done": "Publication finished.",
+  "setup.continue": "Enter the app"
 }
