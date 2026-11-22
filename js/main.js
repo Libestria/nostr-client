@@ -105,7 +105,7 @@ async function boot() {
   const onSession = (s, fresh) => {
     syncNav();
     resetAccount();
-    if (s) loadAccountLists(s.pubkey, { force: fresh });
+    if (s) loadAccountLists(s.pubkey);
   };
   state.on('session', (s) => { onSession(s, true); render(); });
   let lastStatus = state.get('lists').status;
@@ -116,7 +116,7 @@ async function boot() {
   });
   const first = state.get('session');
   syncNav();
-  if (first) loadAccountLists(first.pubkey, { force: false });
+  if (first) loadAccountLists(first.pubkey);
 
   const offline = document.getElementById('offline');
   const syncOnline = () => { state.set('online', navigator.onLine); offline.hidden = navigator.onLine; };

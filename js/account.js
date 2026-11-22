@@ -4,11 +4,10 @@ import { pool } from './relays/pool.js';
 import { getReplaceable, putEvent } from './storage/db.js';
 import { discoverAccount } from './relays/discovery.js';
 import { acceptProfileEvent } from './profiles.js';
-import { LISTS, LIST_KEYS, relaysFromEvent, latestEvent } from './nostr/relaylists.js';
+import { publishToMany } from './relays/oneshot.js';
+import { LISTS, LIST_KEYS, relaysFromEvent, latestEvent, listTemplate, tagUrls } from './nostr/relaylists.js';
 
-const REFRESH_MS = 6 * 3600 * 1000;   // pas de nouvelle découverte avant 6 h, sauf demande ou nouvelle connexion
 const KINDS = [0, 10002, 10007, 10050];
-const checkedKey = (pk) => `nostr-client:lists-checked:${pk}`;
 let token = 0;
 let appliedKey = '[]';
 
@@ -18,9 +17,6 @@ async function bootRelays() {
   const list = await res.json();
   return Array.isArray(list) ? list.filter((u) => typeof u === 'string') : [];
 }
-
-const lsGet = (k) => { try { return Number(localStorage.getItem(k)) || 0; } catch { return 0; } };
-const lsSet = (k, v) => { try { localStorage.setItem(k, String(v)); } catch { /* indisponible */ } };
 
 // { status, pub, search, dm } à partir des événements (kind → événement)
 export function buildLists(byKind, status) {
@@ -47,12 +43,11 @@ export function resetAccount({ apply = (r) => pool.setRelays(r) } = {}) {
   state.set('listsProgress', { running: false, done: 0, total: 0 });
 }
 
+// Vérification à CHAQUE ouverture : le cache s'affiche tout de suite, la recherche tourne en arrière-plan.
 export async function loadAccountLists(pubkey, {
-  force = false,
   discover = async (pk, o) => discoverAccount(pk, { boot: await bootRelays(), ...o }),
   cache = { get: getReplaceable, put: putEvent },
   apply = (r) => pool.setRelays(r),
-  now = () => Date.now(),
 } = {}) {
   const my = ++token;
   const cached = {};
@@ -63,20 +58,18 @@ export async function loadAccountLists(pubkey, {
   state.set('lists', lists);
   applyRelays(lists.pub?.relays ?? [], apply);
 
-  if (!force && lists.pub && now() - lsGet(checkedKey(pubkey)) < REFRESH_MS) return;
-
   state.set('listsProgress', { running: true, done: 0, total: 0 });
   try {
     const found = await discover(pubkey, { onProgress: (p) => { if (my === token) state.set('listsProgress', { running: true, ...p }); } });
     if (my !== token) return;
     const merged = {};
     for (const kind of KINDS) {
-      const ev = latestEvent([cached[kind], found.events[kind]].filter(Boolean), kind);
+      const mine = state.get('lists')[LIST_KEYS.find((k) => LISTS[k].kind === kind)]?.event; // version publiée entre-temps
+      const ev = latestEvent([cached[kind], found.events[kind], mine].filter(Boolean), kind);
       merged[kind] = ev;
       if (found.events[kind]) cache.put(found.events[kind]);
     }
     merged[0] && acceptProfileEvent(merged[0]);
-    lsSet(checkedKey(pubkey), now());
     lists = buildLists(merged, merged[10002] ? 'ready' : 'empty');
     state.set('lists', lists);
     applyRelays(lists.pub?.relays ?? [], apply);
@@ -86,4 +79,59 @@ export async function loadAccountLists(pubkey, {
   } finally {
     if (my === token) state.set('listsProgress', { running: false, done: 0, total: 0 });
   }
+}
+
+// ---- Modification des listes ----
+
+function currentEvents() {
+  const lists = state.get('lists');
+  const byKind = {};
+  for (const key of LIST_KEYS) if (lists[key]?.event) byKind[LISTS[key].kind] = lists[key].event;
+  return byKind;
+}
+
+// Applique une version signée : état, cache, pool.
+export function applyListEvent(event, { cache = { put: putEvent }, apply = (r) => pool.setRelays(r) } = {}) {
+  const byKind = currentEvents();
+  byKind[event.kind] = event;
+  const lists = buildLists(byKind, byKind[10002] ? 'ready' : state.get('lists').status);
+  state.set('lists', lists);
+  cache.put(event);
+  if (event.kind === 10002) applyRelays(lists.pub?.relays ?? [], apply);
+}
+
+// Cibles de publication : relais d'amorçage + relais de la liste (nouvelle et ancienne version,
+// pour que les relais retirés reçoivent aussi la mise à jour) + relais d'écriture du compte.
+export async function listTargets(key, event, previous, { boot = bootRelays } = {}) {
+  let boots = [];
+  try { boots = await boot(); } catch { /* amorçage indisponible : on publie sur le reste */ }
+  const pubWrite = (state.get('lists').pub?.relays ?? []).filter((r) => r.write).map((r) => r.url);
+  return [...new Set([...boots, ...tagUrls(event, key), ...tagUrls(previous, key), ...pubWrite])];
+}
+
+export async function publishListEvent(key, event, previous, { publish = publishToMany, boot, onProgress } = {}) {
+  const targets = await listTargets(key, event, previous, { boot });
+  const results = await publish(targets, event, { onProgress });
+  return { event, results, ok: results.filter((r) => r.ok).length, total: results.length };
+}
+
+let queue = Promise.resolve();
+
+// Une modification = une nouvelle version signée, appliquée tout de suite puis publiée partout.
+// Les modifications sont traitées une par une (chaque version part de la précédente).
+// → { event, results, ok, total } ; lève les erreurs de listTemplate ou NO_SIGNER / SIGN_FAILED.
+export function editList(key, op, { signer, publish, boot, onProgress, cache, apply, now } = {}) {
+  const run = async () => {
+    if (!signer) throw new Error('NO_SIGNER');
+    const previous = state.get('lists')[key]?.event ?? null;
+    const tpl = listTemplate(key, previous, op, now);
+    let signed;
+    try { signed = await signer.signEvent(tpl); } catch { throw new Error('SIGN_FAILED'); }
+    applyListEvent(signed, { cache, apply });
+    const res = await publishListEvent(key, signed, previous, { publish, boot, onProgress });
+    return res;
+  };
+  const p = queue.then(run, run);
+  queue = p.catch(() => {});
+  return p;
 }
