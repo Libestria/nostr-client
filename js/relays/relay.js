@@ -19,6 +19,7 @@ export class Relay {
     this.maxSubs = 8;
     this.authChallenge = null;    // NIP-42 : traité au jalon réseau
     this.subs = new Map();
+    this.pendingOk = new Map();   // id d'événement → callback (accusé OK du relais)
     this.active = new Set();
     this.ws = null;
     this.timer = null;
@@ -36,6 +37,7 @@ export class Relay {
     this.wanted = false;
     clearTimeout(this.timer);
     this.timer = null;
+    this._failPending('closed');
     const ws = this.ws;
     this.ws = null;
     this.active.clear();
@@ -84,6 +86,7 @@ export class Relay {
       if (this.ws !== ws) return;
       this.ws = null;
       this.active.clear();
+      this._failPending('closed');
       if (this.wanted) { this._set('retrying'); this._retry(); } else this._set('closed');
     };
   }
@@ -94,6 +97,21 @@ export class Relay {
     this.attempt++;
     this.timer = setTimeout(() => this._open(), delay);
     this.timer?.unref?.();
+  }
+
+  // Publication : résout { url, ok, message } à la réception du OK du relais (ou après un délai).
+  publish(event, timeout = 8000) {
+    return new Promise((resolve) => {
+      if (this.state !== 'open') return resolve({ url: this.url, ok: false, message: 'not-connected' });
+      const timer = setTimeout(() => { this.pendingOk.delete(event.id); resolve({ url: this.url, ok: false, message: 'timeout' }); }, timeout);
+      timer?.unref?.();
+      this.pendingOk.set(event.id, (ok, message) => { clearTimeout(timer); resolve({ url: this.url, ok, message }); });
+      this._send(['EVENT', event]);
+    });
+  }
+
+  _failPending(message) {
+    for (const [id, cb] of this.pendingOk) { this.pendingOk.delete(id); cb(false, message); }
   }
 
   _send(msg) { if (this.ws?.readyState === 1) this.ws.send(JSON.stringify(msg)); }
@@ -130,6 +148,11 @@ export class Relay {
         this.notice = String(msg[2] ?? '').slice(0, 200);
         if (sub) this.hooks.onClosed?.(this, sub, this.notice);
         this.hooks.onChange();
+        break;
+      }
+      case 'OK': {
+        const cb = this.pendingOk.get(msg[1]);
+        if (cb) { this.pendingOk.delete(msg[1]); cb(msg[2] === true, String(msg[3] ?? '').slice(0, 200)); }
         break;
       }
       case 'NOTICE': this.notice = String(msg[1] ?? '').slice(0, 200); this.hooks.onChange(); break;

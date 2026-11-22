@@ -67,6 +67,12 @@ export class Pool {
   }
 
   onChange(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
+  // Publie sur les relais d'écriture connectés : [{ url, ok, message }]
+  publish(event) {
+    const targets = [...this.relays.values()].filter((r) => r.write && r.state === 'open');
+    return Promise.all(targets.map((r) => r.publish(event)));
+  }
+
   reconnectAll() { for (const r of this.relays.values()) r.reconnectNow(); }
   closeAll() {
     for (const s of [...this.subs.values()]) s.close();
@@ -106,11 +112,12 @@ export class Pool {
     if (this.verified.has(key)) return deliver();
     if (this.inFlight >= MAX_IN_FLIGHT) { relay.stats.dropped++; sub.seen.delete(key); return; } // file de vérification saturée
     this.inFlight++;
+    sub.pending++;
     Promise.resolve(this.verify(ev)).then((ok) => {
       if (!ok) { relay.stats.invalid++; this._emit(); return; }
       if (!this.verified.has(key)) { this._remember(key); try { this.onVerified?.(ev); } catch { /* cache facultatif */ } }
       deliver();
-    }).catch(() => { relay.stats.invalid++; }).finally(() => { this.inFlight--; });
+    }).catch(() => { relay.stats.invalid++; }).finally(() => { this.inFlight--; sub.pending--; sub.settle(); });
   }
 }
 

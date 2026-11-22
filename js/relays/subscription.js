@@ -3,6 +3,8 @@ export class Subscription {
   constructor({ id, filters, closeOnEose = false, onevent, oneose, onClose, eoseTimeout = 8000, maxEvents = 1000 }) {
     Object.assign(this, { id, filters, closeOnEose, onevent, oneose, onClose, maxEvents });
     this.count = 0;
+    this.pending = 0;          // événements en cours de vérification
+    this.eoseWaiting = false;
     this.seen = new Set();
     this.relays = new Set();
     this.eosed = new Set();
@@ -17,10 +19,14 @@ export class Subscription {
   _check() { if (this.relays.size > 0 && this.eosed.size >= this.relays.size) this._fireEose(); }
   _fireEose() {
     if (this.eoseFired || this.closed) return;
+    if (this.pending > 0) { this.eoseWaiting = true; return; } // ne jamais fermer avant d'avoir livré les événements en vérification
     this.eoseFired = true;
     clearTimeout(this.timer);
     this.oneose?.();
     if (this.closeOnEose) this.close();
+  }
+  settle() {
+    if (this.eoseWaiting && this.pending === 0) { this.eoseWaiting = false; this._fireEose(); }
   }
   close() {
     if (this.closed) return;
