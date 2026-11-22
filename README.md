@@ -1,7 +1,10 @@
 # Client Nostr web
 
 Client Nostr 100 % navigateur, sans build ni framework (modules ES natifs).
-Aucune clé privée (nsec) n'est jamais saisie ni stockée : connexion prévue par NIP-07, NIP-46 ou lecture seule.
+Aucune clé privée (nsec) n'est jamais saisie ni stockée : connexion par NIP-07, NIP-46 ou lecture seule.
+
+## NIP pris en charge (M3)
+NIP-01, 02 (contacts), 05, 07, 11, 19, 46 (bunker:// et nostrconnect://). Tests : `node --test tests/`.
 
 ## Lancer en local
     python3 -m http.server 8000
