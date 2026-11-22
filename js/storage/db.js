@@ -92,3 +92,13 @@ export function prune(max = 3000) {
     count.onerror = () => resolve(0);
   })).catch(() => 0);
 }
+
+// Retire un événement ordinaire du cache (suppression NIP-09 de ses propres notes).
+export function deleteEvent(id) {
+  return open().then((db) => new Promise((resolve) => {
+    const tx = db.transaction('events', 'readwrite');
+    tx.objectStore('events').delete(id);
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => resolve(false);
+  })).catch(() => false);
+}
