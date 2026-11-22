@@ -1,4 +1,5 @@
 import { t } from '../i18n.js';
+import { npubEncode } from '../nostr/nip19.js';
 
 // Création de nœuds DOM sûre : le texte passe toujours par createTextNode,
 // jamais par innerHTML ; les attributs on* sont refusés.
@@ -21,3 +22,17 @@ export function stateBlock(kind, key, vars) {
 }
 
 export const pageTitle = (key) => el('h1', {}, t(key));
+
+export function shortNpub(hex) {
+  const n = npubEncode(hex);
+  return `${n.slice(0, 12)}…${n.slice(-4)}`;
+}
+
+export function timeAgo(ts) {
+  const rtf = new Intl.RelativeTimeFormat(document.documentElement.lang || 'fr', { numeric: 'auto' });
+  const s = Math.max(0, Math.floor(Date.now() / 1000) - ts);
+  if (s < 60) return rtf.format(-s, 'second');
+  if (s < 3600) return rtf.format(-Math.floor(s / 60), 'minute');
+  if (s < 86400) return rtf.format(-Math.floor(s / 3600), 'hour');
+  return rtf.format(-Math.floor(s / 86400), 'day');
+}
