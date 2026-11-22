@@ -1,5 +1,7 @@
 [
-  { "url": "wss://relay.damus.io", "read": true, "write": true },
+  { "url": "wss://relay.nostrmap.net", "read": true, "write": true },
+  { "url": "wss://relay.decentralia.fr", "read": true, "write": true },
+  { "url": "wss://relay.noeudlibre.fr", "read": true, "write": true },
   { "url": "wss://nos.lol", "read": true, "write": true },
   { "url": "wss://relay.primal.net", "read": true, "write": true }
 ]
