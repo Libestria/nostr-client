@@ -4,6 +4,7 @@ import { loadSettings } from './storage/settings.js';
 import { stateBlock } from './ui/common.js';
 import { renderFeed, placeholder } from './ui/feed.js';
 import { renderProfile } from './ui/profile.js';
+import { renderThread } from './ui/thread.js';
 import { renderSettings } from './ui/settings.js';
 import { renderLogin } from './ui/login.js';
 import { loadSession } from './storage/session.js';
@@ -19,6 +20,7 @@ const routes = {
   notifications: placeholder('nav.notifications'),
   messages: placeholder('nav.messages'),
   profile: renderProfile,
+  note: renderThread,
   settings: renderSettings,
   login: renderLogin,
 };

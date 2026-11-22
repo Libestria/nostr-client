@@ -21,7 +21,7 @@ export async function suggestedRelays() {
   } catch { return { pub: [], search: [], dm: [] }; }
 }
 
-async function bootRelays() {
+export async function bootRelays() {
   const res = await fetch(new URL('../data/boot-relays.json', import.meta.url));
   if (!res.ok) throw new Error('boot-relays');
   const list = await res.json();
