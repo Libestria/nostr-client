@@ -9,6 +9,7 @@ import { getCached, onProfiles, requestProfile } from '../profiles.js';
 import { getSigner } from '../auth.js';
 import { el, pageTitle, stateBlock, shortNpub } from './common.js';
 import { authorLink, noteCard, updateAuthors } from './note.js';
+import { profileEditor } from './profile-edit.js';
 
 const PAGE = 30;
 const PEOPLE_PAGE = 50;
@@ -113,6 +114,22 @@ export function renderProfile(main, params) {
     stops.push(onProfiles(onProfile));
     requestProfile(pubkey, { force: true });
     onProfile(); paintHead();
+
+    // ---- modification de son propre profil
+    if (me && me === pubkey && getSigner()) {
+      const edit = el('button', { type: 'button', class: 'btn' }, t('pe.open'));
+      const slot = el('div');
+      let editor = null;
+      edit.addEventListener('click', () => {
+        if (editor) { editor.stop(); editor = null; slot.replaceChildren(); edit.textContent = t('pe.open'); return; }
+        editor = profileEditor(pubkey, { onSaved: () => {} });
+        slot.replaceChildren(editor.node);
+        edit.textContent = t('pe.close');
+      });
+      actions.append(edit);
+      head.after(slot);
+      stops.push(() => editor?.stop());
+    }
 
     // ---- actions : copier, suivre
     const copy = el('button', { type: 'button', class: 'btn' }, t('profile.copy'));

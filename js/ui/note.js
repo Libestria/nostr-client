@@ -3,6 +3,7 @@ import { state } from '../state.js';
 import { npubEncode } from '../nostr/nip19.js';
 import { getCached, requestProfile } from '../profiles.js';
 import { getSigner } from '../auth.js';
+import { tokenizeContent, noteHref } from '../nostr/content.js';
 import { buildReaction, buildRepost, buildDeletion } from '../nostr/compose.js';
 import { publishEvent } from '../publish.js';
 import { deleteEvent } from '../storage/db.js';
@@ -30,7 +31,40 @@ export function authorLink(pk) {
   return a;
 }
 
-export const updateAuthors = (root) => root.querySelectorAll('.author[data-pk]').forEach(fillAuthor);
+function fillMention(node) {
+  const p = getCached(node.dataset.pk);
+  node.textContent = `@${p?.displayName || p?.name || shortNpub(node.dataset.pk)}`;
+}
+export const updateAuthors = (root) => {
+  root.querySelectorAll('.author[data-pk]').forEach(fillAuthor);
+  root.querySelectorAll('.mention[data-pk]').forEach(fillMention);
+};
+
+// Texte d'une note : liens https, mentions, références de notes et hashtags ; le reste est du texte brut.
+export function renderContent(text) {
+  const media = !!state.get('settings')?.loadMedia;
+  const nodes = tokenizeContent(text).map((tk) => {
+    switch (tk.type) {
+      case 'link': {
+        const a = el('a', { href: tk.url, target: '_blank', rel: 'noopener noreferrer nofollow ugc', class: 'ext' }, tk.label.length > 40 ? `${tk.label.slice(0, 40)}…` : tk.label);
+        if (!tk.image || !media) return a;
+        const img = el('img', { class: 'note-img', src: tk.url, alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
+        img.addEventListener('error', () => img.remove());
+        return el('span', { class: 'note-media' }, a, img);
+      }
+      case 'mention': {
+        requestProfile(tk.pubkey);
+        const a = el('a', { class: 'mention', href: `#/profile/${npubEncode(tk.pubkey)}`, 'data-pk': tk.pubkey });
+        fillMention(a);
+        return a;
+      }
+      case 'note': return el('a', { class: 'note-ref', href: noteHref(tk.id) }, t('note.ref'));
+      case 'hashtag': return el('span', { class: 'hashtag' }, `#${tk.tag}`);
+      default: return tk.text;
+    }
+  });
+  return nodes;
+}
 
 const done = { reacted: new Set(), reposted: new Set() };   // pour éviter les doublons dans cette session
 
@@ -88,8 +122,9 @@ export function noteCard(ev, { via, author = true } = {}) {
   const article = el('article', { class: 'note' },
     el('div', { class: 'note-head' },
       author ? authorLink(ev.pubkey) : el('span'),
-      el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, timeAgo(ev.created_at))),
-    el('p', { class: 'note-text' }, text),
+      el('a', { class: 'note-time', href: noteHref(ev.id), 'aria-label': t('note.open') },
+        el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, timeAgo(ev.created_at)))),
+    el('p', { class: 'note-text' }, ...renderContent(text)),
     via ? el('p', { class: 'note-via' }, t('note.relay', { relay: via.replace(/^wss:\/\//, '') })) : null);
   const actions = noteActions(ev, article);
   if (actions) article.append(...actions);
