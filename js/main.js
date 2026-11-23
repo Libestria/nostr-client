@@ -89,6 +89,7 @@ async function applyLang(lang) {
 }
 
 async function boot() {
+  window.__nostrBooted = true;   // lu par boot-check.js
   const settings = loadSettings();
   state.set('settings', settings);
   state.set('session', loadSession());
