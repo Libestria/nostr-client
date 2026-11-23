@@ -5,7 +5,7 @@ import { pool } from '../relays/pool.js';
 import { loadAccountLists, editList, publishListEvent } from '../account.js';
 import { LIST_KEYS } from '../nostr/relaylists.js';
 import { npubEncode } from '../nostr/nip19.js';
-import { logout, getSigner } from '../auth.js';
+import { logout, getSigner, signerCapabilities } from '../auth.js';
 import { el, pageTitle } from './common.js';
 
 function select(id, labelKey, options, value, onChange) {
@@ -155,10 +155,13 @@ function accountSection() {
   const s = state.get('session');
   if (!s) return el('section', {}, el('h2', { class: 'section-title' }, t('settings.account')), el('p', {}, t('settings.account.none')),
     el('a', { class: 'btn', href: '#/login' }, t('login.cta')));
+  const caps = signerCapabilities(s);
   const out = el('button', { type: 'button', class: 'btn' }, t('login.logout'));
   out.addEventListener('click', () => { logout(); location.hash = '#/login'; });
   return el('section', {}, el('h2', { class: 'section-title' }, t('settings.account')),
-    el('p', {}, t(`login.connected.${s.method}`)), el('p', { class: 'ident' }, npubEncode(s.pubkey)), out);
+    el('p', {}, t(`login.connected.${s.method}`)), el('p', { class: 'ident' }, npubEncode(s.pubkey)),
+    ...(s.method === 'readonly' ? [] : [el('p', { class: 'hint' }, t('settings.signer.nip44', { state: t(`settings.signer.${caps.nip44}`) })),
+      ...(caps.nip44 === 'no' ? [el('p', { class: 'hint' }, t('settings.signer.nip44.missing'))] : [])]), out);
 }
 
 export function renderSettings(main) {

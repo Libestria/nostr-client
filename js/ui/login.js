@@ -124,5 +124,5 @@ function bunkerSection(setMsg) {
       gen.disabled = false;
     }
   });
-  return el('div', {}, form, el('p', { class: 'hint' }, t('login.nc.or')), gen, linkBox);
+  return el('div', {}, form, el('p', { class: 'hint' }, t('login.sameDevice')), el('p', { class: 'hint' }, t('login.nc.or')), gen, linkBox);
 }
