@@ -3,7 +3,7 @@ import { state } from '../state.js';
 import { decode, npubEncode } from '../nostr/nip19.js';
 import { resolveNip05, parseIdentifier } from '../nostr/nip05.js';
 import { getCached, onProfiles, requestProfile } from '../profiles.js';
-import { conversations, conversationMessages, markRead, sendDm, startDms, dmStats } from '../dms.js';
+import { conversations, conversationMessages, markRead, sendDm, startDms, dmStats, loadLegacy, legacyPartners, decryptLegacy } from '../dms.js';
 import { pool } from '../relays/pool.js';
 import { partnersOf } from '../nostr/dm.js';
 import { el, pageTitle, stateBlock, shortNpub, timeAgo } from './common.js';
@@ -131,12 +131,58 @@ export function renderDms(main, params) {
           el('time', { datetime: new Date(c.last.created_at * 1000).toISOString() }, timeAgo(c.last.created_at)));
       }));
     };
-    main.replaceChildren(title, banner0, diagBox, form, list, el('p', { class: 'status' }, t('dm.privacy')));
+    const legacyBox = el('details', { class: 'dm-legacy' }, el('summary', {}, t('dm.legacy.title')), el('p', { class: 'status' }, t('dm.legacy.warn')));
+    const legacyList = el('ul', { class: 'dm-list' });
+    const legacyBtn = el('button', { type: 'button', class: 'btn btn-small' }, t('dm.legacy.load'));
+    legacyBtn.addEventListener('click', async () => {
+      legacyBtn.disabled = true; legacyBtn.textContent = t('dm.sending');
+      const groups = await loadLegacy();
+      legacyBtn.remove();
+      const items = [...groups.entries()].sort((a, b) => b[1].at(-1).created_at - a[1].at(-1).created_at);
+      items.forEach(([pk]) => requestProfile(pk));
+      legacyList.replaceChildren(...(items.length ? items.map(([pk, msgs]) => el('li', { class: 'card dm-item' },
+        el('a', { href: `#/messages/legacy/${npubEncode(pk)}` }, el('strong', {}, nameOf(pk)), el('span', { class: 'badge' }, String(msgs.length))),
+        el('time', { datetime: new Date(msgs.at(-1).created_at * 1000).toISOString() }, timeAgo(msgs.at(-1).created_at)))) : [el('li', {}, t('dm.legacy.none'))]));
+    });
+    legacyBox.append(el('p', {}, legacyBtn), legacyList);
+    main.replaceChildren(title, banner0, diagBox, form, list, legacyBox, el('p', { class: 'status' }, t('dm.privacy')));
     paint();
     stops.push(state.on('dm', () => { banner0.replaceChildren(...[banner()].filter(Boolean)); if (!diagBox.querySelector('details[open]')) diagBox.replaceChildren(diag()); if (!list.contains(document.activeElement)) paint(); }));
     stops.push(onProfiles(() => { if (!list.contains(document.activeElement)) paint(); }));
   };
 
+  if (params[0] === 'legacy' && params[1]) {
+    main.replaceChildren(title, stateBlock('loading', 'state.loading'));
+    let alive = true;
+    resolveRecipient(params[1]).then(async (pk) => {
+      if (!alive) return;
+      requestProfile(pk);
+      const heading = el('h2', {}, nameOf(pk));
+      const out = el('div', {});
+      const btn = el('button', { type: 'button', class: 'btn' }, t('dm.legacy.decrypt'));
+      const paintMsgs = (messages, failed) => {
+        out.replaceChildren(el('ul', { class: 'dm-thread' }, ...messages.map((m) => el('li', { class: m.mine ? 'dm-msg dm-mine' : 'dm-msg' },
+          el('p', {}, m.content), el('time', { datetime: new Date(m.created_at * 1000).toISOString() }, timeAgo(m.created_at))))),
+          failed ? el('p', { class: 'status warn' }, t('dm.legacy.failed', { n: failed })) : null);
+      };
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        try { const r = await decryptLegacy(pk); btn.remove(); paintMsgs(r.messages, r.failed); }
+        catch (err) {
+          const code = err?.code === 'signer' ? 'SIGNER' : err?.message;
+          out.replaceChildren(el('p', { class: 'status warn', role: 'alert' }, t(`dm.legacy.error.${['NO_NIP04', 'READ_ONLY', 'SIGNER'].includes(code) ? code : 'SIGNER'}`)));
+          btn.disabled = false;
+        }
+      });
+      if (!legacyPartners().size) await loadLegacy();
+      if (!alive) return;
+      const count = legacyPartners().get(pk)?.length ?? 0;
+      main.replaceChildren(title, el('p', {}, el('a', { href: '#/messages' }, t('dm.back'))), heading,
+        el('p', { class: 'status warn' }, t('dm.legacy.warn')), el('p', { class: 'status' }, t('dm.legacy.count', { n: count })),
+        count ? el('p', {}, btn) : null, out);
+    }).catch(() => { if (alive) main.replaceChildren(title, stateBlock('error', 'dm.new.invalid')); });
+    return () => { alive = false; };
+  }
   if (params[0] === 'group' && params[1]) { openConversation(params[1], true); return () => stops.forEach((s) => s()); }
   if (params[0]) {
     main.replaceChildren(title, stateBlock('loading', 'state.loading'));
