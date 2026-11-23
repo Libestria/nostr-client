@@ -223,5 +223,11 @@
   "pe.err.invalid": "Valeur invalide pour « {field} ».",
   "pe.err.long": "« {field} » est trop long.",
   "pe.unavailable": "Impossible de lire ton profil actuel : aucun relais connecté. Réessaie plus tard pour ne pas l'écraser.",
-  "relay.auth": "Authentifié"
+  "relay.auth": "Authentifié",
+  "settings.signer.nip44": "Chiffrement NIP-44 (messages privés) : {state}",
+  "settings.signer.yes": "pris en charge",
+  "settings.signer.no": "non pris en charge",
+  "settings.signer.unknown": "à vérifier à la première utilisation (signeur distant)",
+  "settings.signer.nip44.missing": "Ton signeur n'expose pas le chiffrement NIP-44 : les messages privés ne seront pas disponibles. Mets-le à jour ou utilise un signeur compatible (Nostash, Alby récent, Clave, Amber…).",
+  "login.sameDevice": "Sur le même téléphone que ton application de signature (Clave, Amber…), utilise de préférence le lien bunker:// : le lien nostrconnect:// est fragile, car le téléphone suspend le navigateur quand tu changes d'application. Le lien nostrconnect:// convient surtout pour un signeur sur un autre appareil."
 }

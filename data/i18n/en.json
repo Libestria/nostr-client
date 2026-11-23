@@ -223,5 +223,11 @@
   "pe.err.invalid": "Invalid value for “{field}”.",
   "pe.err.long": "“{field}” is too long.",
   "pe.unavailable": "Could not read your current profile: no relay connected. Try again later so it isn't overwritten.",
-  "relay.auth": "Authenticated"
+  "relay.auth": "Authenticated",
+  "settings.signer.nip44": "NIP-44 encryption (private messages): {state}",
+  "settings.signer.yes": "supported",
+  "settings.signer.no": "not supported",
+  "settings.signer.unknown": "to be checked on first use (remote signer)",
+  "settings.signer.nip44.missing": "Your signer does not expose NIP-44 encryption: private messages will not be available. Update it or use a compatible signer (Nostash, recent Alby, Clave, Amber…).",
+  "login.sameDevice": "On the same phone as your signer app (Clave, Amber…), prefer the bunker:// link: nostrconnect:// is fragile because the phone suspends the browser when you switch apps. nostrconnect:// mainly suits a signer on another device."
 }
