@@ -3,7 +3,8 @@ import { state } from '../state.js';
 import { decode, npubEncode } from '../nostr/nip19.js';
 import { resolveNip05, parseIdentifier } from '../nostr/nip05.js';
 import { getCached, onProfiles, requestProfile } from '../profiles.js';
-import { conversations, conversationMessages, markRead, sendDm, startDms } from '../dms.js';
+import { conversations, conversationMessages, markRead, sendDm, startDms, dmStats } from '../dms.js';
+import { pool } from '../relays/pool.js';
 import { partnersOf } from '../nostr/dm.js';
 import { el, pageTitle, stateBlock, shortNpub, timeAgo } from './common.js';
 
@@ -39,6 +40,16 @@ export function renderDms(main, params) {
       return box;
     }
     return null;
+  };
+  // Diagnostic : relais de messagerie et progression du déchiffrement
+  const diag = () => {
+    const d = dmStats();
+    const relays = pool.status().filter((r) => r.dm);
+    const lines = relays.map((r) => `${r.url} — ${r.state}${r.authenticated ? ', authentifié' : ''}${r.notice ? ` (${String(r.notice).slice(0, 80)})` : ''}`);
+    return el('details', { class: 'dm-diag' }, el('summary', {}, t('dm.diag.title')),
+      el('p', {}, t('dm.diag.stats', { received: d.received, opened: d.opened, skipped: d.skipped, pending: d.pending, eose: d.eose ? t('dm.diag.yes') : t('dm.diag.no') })),
+      d.error ? el('p', {}, t('dm.diag.error', { code: d.error })) : null,
+      el('ul', {}, ...(lines.length ? lines : [t('dm.diag.norelay')]).map((l) => el('li', {}, l))));
   };
   const stops = [];
 
@@ -106,6 +117,7 @@ export function renderDms(main, params) {
       go.disabled = false;
     });
     const banner0 = el('div', { class: 'dm-banner' }, banner());
+    const diagBox = el('div', {}, diag());
     const paint = () => {
       const convs = conversations();
       convs.forEach((c) => c.participants.forEach(requestProfile));
@@ -119,9 +131,9 @@ export function renderDms(main, params) {
           el('time', { datetime: new Date(c.last.created_at * 1000).toISOString() }, timeAgo(c.last.created_at)));
       }));
     };
-    main.replaceChildren(title, banner0, form, list, el('p', { class: 'status' }, t('dm.privacy')));
+    main.replaceChildren(title, banner0, diagBox, form, list, el('p', { class: 'status' }, t('dm.privacy')));
     paint();
-    stops.push(state.on('dm', () => { banner0.replaceChildren(...[banner()].filter(Boolean)); if (!list.contains(document.activeElement)) paint(); }));
+    stops.push(state.on('dm', () => { banner0.replaceChildren(...[banner()].filter(Boolean)); if (!diagBox.querySelector('details[open]')) diagBox.replaceChildren(diag()); if (!list.contains(document.activeElement)) paint(); }));
     stops.push(onProfiles(() => { if (!list.contains(document.activeElement)) paint(); }));
   };
 
