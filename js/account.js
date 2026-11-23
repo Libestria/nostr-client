@@ -38,6 +38,11 @@ export function buildLists(byKind, status) {
   return out;
 }
 
+// Relais du pool : relais généraux (lecture / écriture) + relais de messagerie (connexion permanente, rôle « dm »).
+export function poolRelays(lists) {
+  return [...(lists.pub?.relays ?? []), ...(lists.dm?.relays ?? []).map((r) => ({ url: r.url, read: false, write: false, dm: true }))];
+}
+
 function applyRelays(relays, apply) {
   const key = JSON.stringify(relays);
   if (key === appliedKey) return;
@@ -66,7 +71,7 @@ export async function loadAccountLists(pubkey, {
   cached[0] && acceptProfileEvent(cached[0]);
   let lists = buildLists(cached, cached[10002] ? 'ready' : 'loading');
   state.set('lists', lists);
-  applyRelays(lists.pub?.relays ?? [], apply);
+  applyRelays(poolRelays(lists), apply);
 
   state.set('listsProgress', { running: true, done: 0, total: 0 });
   try {
@@ -82,7 +87,7 @@ export async function loadAccountLists(pubkey, {
     merged[0] && acceptProfileEvent(merged[0]);
     lists = buildLists(merged, merged[10002] ? 'ready' : 'empty');
     state.set('lists', lists);
-    applyRelays(lists.pub?.relays ?? [], apply);
+    applyRelays(poolRelays(lists), apply);
   } catch {
     if (my !== token) return;
     if (!lists.pub) state.set('lists', { ...lists, status: 'error' });
@@ -107,7 +112,7 @@ export function applyListEvent(event, { cache = { put: putEvent }, apply = (r) =
   const lists = buildLists(byKind, byKind[10002] ? 'ready' : state.get('lists').status);
   state.set('lists', lists);
   cache.put(event);
-  if (event.kind === 10002) applyRelays(lists.pub?.relays ?? [], apply);
+  if (event.kind === 10002 || event.kind === 10050) applyRelays(poolRelays(lists), apply);
 }
 
 // Cibles de publication : relais d'amorçage + relais de la liste (nouvelle et ancienne version,

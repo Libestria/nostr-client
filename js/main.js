@@ -8,7 +8,7 @@ import { renderThread } from './ui/thread.js';
 import { renderSettings } from './ui/settings.js';
 import { renderLogin } from './ui/login.js';
 import { loadSession } from './storage/session.js';
-import { restoreRemoteSession, rememberReturnTo } from './auth.js';
+import { restoreRemoteSession, rememberReturnTo, getSigner } from './auth.js';
 import { pool } from './relays/pool.js';
 import { putEvent, prune } from './storage/db.js';
 import { loadAccountLists, resetAccount } from './account.js';
@@ -94,6 +94,11 @@ async function boot() {
   state.set('session', loadSession());
   restoreRemoteSession();
   pool.onVerified = putEvent;
+  pool.signer = (tpl) => getSigner()?.signEvent(tpl) ?? null;   // NIP-42 : seulement si un relais exige l'authentification
+  // Reprise (onglet de nouveau visible, réseau revenu) : reconnexion immédiate, sans attendre le délai de reprise
+  const resume = () => { if (document.visibilityState === 'visible') pool.reconnectAll(); };
+  document.addEventListener('visibilitychange', resume);
+  window.addEventListener('online', resume);
   setTimeout(() => prune(), 5000);
   applyTheme(settings.theme);
   await applyLang(settings.lang);
