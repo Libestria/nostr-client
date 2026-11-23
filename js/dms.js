@@ -3,7 +3,7 @@
 import { state } from './state.js';
 import { pool } from './relays/pool.js';
 import { getSigner, signerCapabilities } from './auth.js';
-import { cryptoFromLib, buildRumor, wrapFor, unwrap, toRecord, DmError } from './nostr/dm.js';
+import { cryptoFromLib, buildRumor, wrapFor, unwrap, toRecord, legacyGroup, DmError } from './nostr/dm.js';
 import { putDm, markDmSeen, isDmSeen, listDms, clearDms, getReplaceable, putEvent } from './storage/db.js';
 import { publishToMany } from './relays/oneshot.js';
 import { discoverAccount } from './relays/discovery.js';
@@ -197,4 +197,45 @@ export async function sendDm(partner, text) {
     set({});
   }
   return { record, partner: partnerRes, self: selfRes, ok };
+}
+
+// ---- Anciens messages NIP-04 (lecture seule, déconseillés : métadonnées visibles des relais)
+let legacy = null;   // Map(partner → [{ id, mine, created_at, content }]) chiffrés
+
+// Recherche les kind 4 envoyés et reçus sur les relais de lecture du compte. Ne déchiffre rien.
+export function loadLegacy(timeout = 8000) {
+  const session = state.get('session');
+  if (!session) return Promise.resolve(new Map());
+  const pk = session.pubkey;
+  return new Promise((resolve) => {
+    const events = [];
+    let done = false, pending = 2;
+    const finish = () => { if (done) return; done = true; legacy = legacyGroup(events, pk); resolve(legacy); };
+    const part = () => { if (--pending <= 0) finish(); };
+    const take = (ev) => { if (ev.kind === 4) events.push(ev); };
+    pool.subscribe([{ kinds: [4], '#p': [pk], limit: 300 }], { closeOnEose: true, onevent: take, oneose: part, maxEvents: 300 });
+    pool.subscribe([{ kinds: [4], authors: [pk], limit: 300 }], { closeOnEose: true, onevent: take, oneose: part, maxEvents: 300 });
+    setTimeout(finish, timeout);
+  });
+}
+export const legacyPartners = () => legacy ?? new Map();
+
+// Déchiffre à la demande la conversation avec un interlocuteur. → { messages, failed } ; lève NO_NIP04 / READ_ONLY / SIGNER
+export async function decryptLegacy(partner) {
+  const signer = getSigner();
+  if (!signer) throw new Error('READ_ONLY');
+  if (!signer.nip04) throw new Error('NO_NIP04');
+  const messages = [];
+  let failed = 0;
+  for (const m of (legacy?.get(partner) ?? []).slice(-100)) {
+    try {
+      const content = await withTimeout(signer.nip04.decrypt(partner, m.content), 45000);
+      if (typeof content === 'string') messages.push({ ...m, content: content.slice(0, 20000) });
+      else failed++;
+    } catch (e) {
+      if (e instanceof DmError && messages.length === 0 && failed === 0) throw e;   // refus dès le premier : on s'arrête
+      failed++;
+    }
+  }
+  return { messages, failed };
 }
