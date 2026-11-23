@@ -151,3 +151,7 @@ input[type="text"] {
 .zap-pr { display: block; overflow-wrap: anywhere; word-break: break-all; max-height: 6rem; overflow: auto; font-size: .75rem; }
 .zap-total { font-size: .85rem; }
 .note-zaps { margin: 0; }
+
+.wallet { display: grid; gap: .5rem; margin-top: 1.5rem; }
+.wallet label, .zap-unlock label { display: grid; gap: .25rem; }
+.zap-unlock { display: grid; gap: .5rem; }
