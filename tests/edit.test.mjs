@@ -120,3 +120,22 @@ test('createLists : une version par liste, appliquées seulement à applyCreated
   await assert.rejects(createLists({ pub: [], dm: [C] }, o), /EMPTY/);
   await assert.rejects(createLists({ pub: [A] }, { ...o, signer: null }), /NO_SIGNER/);
 });
+
+// NIP-42 à la demande lors d'une publication ponctuelle (messagerie)
+class AuthWS {
+  constructor(url) { this.url = url; this.authed = false; this.sent = []; setTimeout(() => { this.reply(['AUTH', 'chal-1']); setTimeout(() => this.onopen?.(), 5); }, 0); }
+  reply(m) { setTimeout(() => this.onmessage?.({ data: JSON.stringify(m) }), 0); }
+  send(raw) {
+    const m = JSON.parse(raw); this.sent.push(m[0]);
+    if (m[0] === 'AUTH') { this.authed = m[1].tags.some((t) => t[0] === 'challenge' && t[1] === 'chal-1'); this.reply(['OK', m[1].id, this.authed, '']); }
+    else if (m[0] === 'EVENT') this.reply(this.authed ? ['OK', m[1].id, true, ''] : ['OK', m[1].id, false, 'auth-required: need auth']);
+  }
+  close() {}
+}
+test('publishToMany : NIP-42 — authentification puis nouvel envoi', async () => {
+  const sign = async (tpl) => ({ ...tpl, id: 'a'.repeat(64), pubkey: 'b'.repeat(64), sig: 'c'.repeat(128) });
+  const r = await publishToMany(['wss://x.example.com'], { id: 'e'.repeat(64) }, { WS: AuthWS, okTimeout: 200, sign });
+  assert.equal(r[0].ok, true);
+  const r2 = await publishToMany(['wss://x.example.com'], { id: 'e'.repeat(64) }, { WS: AuthWS, okTimeout: 200 });
+  assert.deepEqual([r2[0].ok, r2[0].message], [false, 'auth-required']);
+});
