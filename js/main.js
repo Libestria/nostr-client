@@ -15,6 +15,7 @@ import { loadAccountLists, resetAccount } from './account.js';
 import { renderGate } from './ui/gate.js';
 import { renderDms } from './ui/dms.js';
 import { initDms } from './dms.js';
+import { initWallet } from './wallet.js';
 
 const routes = {
   feed: renderFeed,
@@ -125,6 +126,7 @@ async function boot() {
     if (!OPEN_ROUTES.has(parseHash().name)) render();   // la page affichée dépend de l'état des listes
   });
   initDms();
+  initWallet();
   const first = state.get('session');
   syncNav();
   if (first) loadAccountLists(first.pubkey);
