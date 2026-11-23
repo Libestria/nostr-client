@@ -3,18 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#000000">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: https:; media-src https:; connect-src 'self' wss: https:; manifest-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: https:; media-src https:; connect-src 'self' wss: https:; manifest-src 'self'; base-uri 'none'; form-action 'none'; worker-src 'self'; object-src 'none'; upgrade-insecure-requests">
   <title>Nostr</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <meta name="apple-mobile-web-app-title" content="Nostr">
   <link rel="preload" href="fonts/exo-2-v26-latin-regular.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/themes.css?v=m8">
-  <link rel="stylesheet" href="css/base.css?v=m8">
-  <link rel="stylesheet" href="css/layout.css?v=m8">
-  <link rel="stylesheet" href="css/components.css?v=m8">
+  <link rel="stylesheet" href="css/themes.css?v=m9">
+  <link rel="stylesheet" href="css/base.css?v=m9">
+  <link rel="stylesheet" href="css/layout.css?v=m9">
+  <link rel="stylesheet" href="css/components.css?v=m9">
 </head>
 <body>
   <button type="button" class="skip" id="skip" data-i18n="skip">Aller au contenu</button>
@@ -35,7 +36,70 @@
     <main id="view" tabindex="-1"></main>
   </div>
   <noscript><p>JavaScript est nécessaire pour utiliser ce client.</p></noscript>
-  <script src="js/boot-check.js?v=m8" defer></script>
-  <script type="module" src="js/main.js?v=m8"></script>
+  <link rel="modulepreload" href="js/account.js">
+  <link rel="modulepreload" href="js/auth.js">
+  <link rel="modulepreload" href="js/dms.js">
+  <link rel="modulepreload" href="js/i18n.js">
+  <link rel="modulepreload" href="js/mute.js">
+  <link rel="modulepreload" href="js/notifications.js">
+  <link rel="modulepreload" href="js/queue.js">
+  <link rel="modulepreload" href="js/relays/pool.js">
+  <link rel="modulepreload" href="js/state.js">
+  <link rel="modulepreload" href="js/storage/db.js">
+  <link rel="modulepreload" href="js/storage/session.js">
+  <link rel="modulepreload" href="js/storage/settings.js">
+  <link rel="modulepreload" href="js/ui/common.js">
+  <link rel="modulepreload" href="js/ui/dms.js">
+  <link rel="modulepreload" href="js/ui/feed.js">
+  <link rel="modulepreload" href="js/ui/gate.js">
+  <link rel="modulepreload" href="js/ui/login.js">
+  <link rel="modulepreload" href="js/ui/notifications.js">
+  <link rel="modulepreload" href="js/ui/profile.js">
+  <link rel="modulepreload" href="js/ui/search.js">
+  <link rel="modulepreload" href="js/ui/settings.js">
+  <link rel="modulepreload" href="js/ui/thread.js">
+  <link rel="modulepreload" href="js/wallet.js">
+  <link rel="modulepreload" href="js/nostr/contacts.js">
+  <link rel="modulepreload" href="js/nostr/content.js">
+  <link rel="modulepreload" href="js/nostr/dm.js">
+  <link rel="modulepreload" href="js/nostr/events.js">
+  <link rel="modulepreload" href="js/nostr/mute.js">
+  <link rel="modulepreload" href="js/nostr/nip05.js">
+  <link rel="modulepreload" href="js/nostr/nip19.js">
+  <link rel="modulepreload" href="js/nostr/nip46.js">
+  <link rel="modulepreload" href="js/nostr/nip47.js">
+  <link rel="modulepreload" href="js/nostr/nip57.js">
+  <link rel="modulepreload" href="js/nostr/notif.js">
+  <link rel="modulepreload" href="js/nostr/outbox.js">
+  <link rel="modulepreload" href="js/nostr/profile.js">
+  <link rel="modulepreload" href="js/nostr/relaylists.js">
+  <link rel="modulepreload" href="js/nostr/relayurl.js">
+  <link rel="modulepreload" href="js/nostr/search.js">
+  <link rel="modulepreload" href="js/nostr/thread.js">
+  <link rel="modulepreload" href="js/profiles.js">
+  <link rel="modulepreload" href="js/publish.js">
+  <link rel="modulepreload" href="js/relays/discovery.js">
+  <link rel="modulepreload" href="js/relays/nwc.js">
+  <link rel="modulepreload" href="js/relays/oneshot.js">
+  <link rel="modulepreload" href="js/relays/outbox.js">
+  <link rel="modulepreload" href="js/relays/relay.js">
+  <link rel="modulepreload" href="js/relays/search.js">
+  <link rel="modulepreload" href="js/relays/subscription.js">
+  <link rel="modulepreload" href="js/storage/vault.js">
+  <link rel="modulepreload" href="js/ui/backup.js">
+  <link rel="modulepreload" href="js/ui/composer.js">
+  <link rel="modulepreload" href="js/ui/mute.js">
+  <link rel="modulepreload" href="js/ui/note.js">
+  <link rel="modulepreload" href="js/ui/profile-edit.js">
+  <link rel="modulepreload" href="js/ui/setup.js">
+  <link rel="modulepreload" href="js/ui/wallet.js">
+  <link rel="modulepreload" href="js/ui/zap.js">
+  <link rel="modulepreload" href="js/zap.js">
+  <link rel="modulepreload" href="js/nostr/backup.js">
+  <link rel="modulepreload" href="js/nostr/compose.js">
+  <link rel="modulepreload" href="js/nostr/http.js">
+  <link rel="modulepreload" href="js/nostr/verifier.js">
+  <script src="js/boot-check.js?v=m9" defer></script>
+  <script type="module" src="js/main.js?v=m9"></script>
 </body>
 </html>
