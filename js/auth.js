@@ -6,6 +6,21 @@ import { restoreBunker } from './nostr/nip46.js';
 const HEX64 = /^[0-9a-f]{64}$/;
 export const hasExtension = () => typeof window.nostr?.getPublicKey === 'function';
 
+// Chiffrement NIP-44 / NIP-04 d'une extension NIP-07 : facultatif dans la spécification, donc détecté à l'usage.
+const ext = (kind) => {
+  const api = window.nostr?.[kind];
+  return typeof api?.encrypt === 'function' && typeof api?.decrypt === 'function'
+    ? { encrypt: (pk, text) => api.encrypt(pk, text), decrypt: (pk, text) => api.decrypt(pk, text) } : null;
+};
+
+// → { nip44: 'yes' | 'no' | 'unknown', nip04: … } selon le type de signeur ('unknown' = à vérifier à la première utilisation)
+export function signerCapabilities(session = state.get('session')) {
+  if (!session || session.method === 'readonly') return { nip44: 'no', nip04: 'no' };
+  if (session.method === 'nip07') return { nip44: ext('nip44') ? 'yes' : 'no', nip04: ext('nip04') ? 'yes' : 'no' };
+  const s = getSigner();
+  return { nip44: s?.nip44 ? 'unknown' : 'no', nip04: s?.nip04 ? 'unknown' : 'no' };
+}
+
 let remote = null; // signeur NIP-46 actif (en mémoire uniquement)
 
 export function setSession(session) {
@@ -61,10 +76,12 @@ export function getSigner() {
         if (!hasExtension()) throw new Error('no-extension');
         return verified(await window.nostr.signEvent(tpl), tpl, s.pubkey);
       },
+      get nip44() { return ext('nip44'); },   // évalués à l'usage : une extension peut s'injecter après le chargement
+      get nip04() { return ext('nip04'); },
     };
   }
   if (s.method === 'nip46' && remote) {
-    return { pubkey: s.pubkey, signEvent: async (tpl) => verified(await remote.signEvent(tpl), tpl, s.pubkey) };
+    return { pubkey: s.pubkey, signEvent: async (tpl) => verified(await remote.signEvent(tpl), tpl, s.pubkey), nip44: remote.nip44, nip04: remote.nip04 };
   }
   return null;
 }
