@@ -2,7 +2,8 @@
 // Le texte reste NON FIABLE : seuls des liens https, des mentions nostr: décodées et des textes sont produits.
 import { decode, noteEncode } from './nip19.js';
 
-const TOKEN = /(?<![a-z0-9])(?:nostr:)?((?:npub|nprofile|nevent|note)1[02-9ac-hj-np-z]{20,})|(https:\/\/[^\s<>"'`]+)|(?<![\p{L}\p{N}_&#/])#([\p{L}\p{N}_]{1,60})/giu;
+// Pas de « lookbehind » (absent des anciens Safari) : le caractère qui précède est capturé puis rendu au texte.
+const TOKEN = /(^|[^a-z0-9])(?:nostr:)?((?:npub|nprofile|nevent|note)1[02-9ac-hj-np-z]{20,})|(https:\/\/[^\s<>"'`]+)|(^|[^\p{L}\p{N}_&#/])#([\p{L}\p{N}_]{1,60})/giu;
 const IMAGE = /\.(?:jpe?g|png|gif|webp|avif)$/i;
 const TRAILING = /[.,;:!?)\]}»”’]+$/;
 
@@ -20,8 +21,11 @@ export function tokenizeContent(text) {
   const out = [];
   const pushText = (s) => { if (s) out.push({ type: 'text', text: s }); };
   let last = 0;
-  for (const m of String(text ?? '').matchAll(TOKEN)) {
-    let [all, ref, url, tag] = m;
+  const src = String(text ?? '');
+  for (const m of src.matchAll(TOKEN)) {
+    const [all, before1, ref, url, before2, tag] = m;
+    const lead = (before1 ?? '').length + (before2 ?? '').length;   // un seul des deux est renseigné
+    const start = m.index + lead;
     let end = m.index + all.length;
     let token = null;
     if (ref) {
@@ -39,11 +43,11 @@ export function tokenizeContent(text) {
       if (href) token = { type: 'link', url: href, label: trimmed.replace(/^https:\/\//, ''), image: IMAGE.test(new URL(href).pathname) };
     } else if (tag) token = { type: 'hashtag', tag: tag.toLowerCase() };
     if (!token) continue;
-    pushText(text.slice(last, m.index));
+    pushText(src.slice(last, start));
     out.push(token);
     last = end;
   }
-  pushText(text.slice(last));
+  pushText(src.slice(last));
   return out;
 }
 

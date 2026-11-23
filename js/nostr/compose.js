@@ -6,7 +6,7 @@ export const MAX_NOTE_CHARS = 10000;
 const MAX_HASHTAGS = 10;
 const MAX_MENTIONS = 20;
 const HEX64 = /^[0-9a-f]{64}$/;
-const REF = /(?<![a-z0-9])(nostr:)?((?:npub|nprofile|nevent|note)1[02-9ac-hj-np-z]{20,})/g;
+const REF = /(^|[^a-z0-9])(nostr:)?((?:npub|nprofile|nevent|note)1[02-9ac-hj-np-z]{20,})/g;   // sans « lookbehind » : compatible avec les anciens Safari
 const PRIVATE_KEY = /nsec1[02-9ac-hj-np-z]{40,}/i;
 const HASHTAG = /(^|[\s(])#([\p{L}\p{N}_]{1,60})/gu;
 
@@ -15,7 +15,7 @@ const now = () => Math.floor(Date.now() / 1000);
 // Analyse du texte : contenu normalisé (nostr:…), mentions et hashtags.
 export function parseNoteText(text) {
   const mentions = []; // { type: 'p' | 'q', ... }
-  const content = text.replace(REF, (all, _prefix, ref) => {
+  const content = text.replace(REF, (all, before, _prefix, ref) => {
     let d;
     try { d = decode(ref); } catch { return all; }
     if (d.type === 'npub') mentions.push({ type: 'p', pubkey: d.data });
@@ -23,7 +23,7 @@ export function parseNoteText(text) {
     else if (d.type === 'note') mentions.push({ type: 'q', id: d.data });
     else if (d.type === 'nevent') mentions.push({ type: 'q', id: d.data.id, author: d.data.author });
     else return all;
-    return `nostr:${ref}`;
+    return `${before}nostr:${ref}`;
   });
   const hashtags = [];
   for (const m of content.matchAll(HASHTAG)) {
