@@ -10,6 +10,7 @@ export const defaults = () => ({
   lang: (navigator.language || '').startsWith('fr') ? 'fr' : 'en',
   loadMedia: true,
   readOnly: false,
+  browserNotify: false,
   muted: { pubkeys: [], words: [], events: [] },
 });
 
@@ -22,6 +23,7 @@ function normalize(raw) {
     lang: LANGS.includes(s.lang) ? s.lang : d.lang,
     loadMedia: typeof s.loadMedia === 'boolean' ? s.loadMedia : d.loadMedia,
     readOnly: typeof s.readOnly === 'boolean' ? s.readOnly : d.readOnly,
+    browserNotify: typeof s.browserNotify === 'boolean' ? s.browserNotify : d.browserNotify,
     muted: {
       pubkeys: Array.isArray(s.muted?.pubkeys) ? s.muted.pubkeys : [],
       words: Array.isArray(s.muted?.words) ? s.muted.words : [],
