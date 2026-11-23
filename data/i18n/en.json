@@ -254,5 +254,11 @@
   "dm.error.INVALID": "Invalid message or recipient.",
   "dm.error.FAILED": "No recipient relay accepted the message.",
   "dm.unread": "{n} unread",
-  "dm.privacy": "Decrypted messages stay on this device and are erased when you log out."
+  "dm.privacy": "Decrypted messages stay on this device and are erased when you log out.",
+  "dm.diag.title": "Diagnostics",
+  "dm.diag.stats": "Wraps received: {received} · decrypted: {opened} · skipped: {skipped} · waiting for signer: {pending} · end of stream: {eose}",
+  "dm.diag.yes": "yes",
+  "dm.diag.no": "no",
+  "dm.diag.error": "Last error: {code}",
+  "dm.diag.norelay": "No messaging relay connected."
 }

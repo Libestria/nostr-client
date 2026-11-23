@@ -254,5 +254,11 @@
   "dm.error.INVALID": "Message ou destinataire invalide.",
   "dm.error.FAILED": "Aucun relais du destinataire n'a accepté le message.",
   "dm.unread": "{n} non lu(s)",
-  "dm.privacy": "Les messages déchiffrés restent sur cet appareil et sont effacés à la déconnexion."
+  "dm.privacy": "Les messages déchiffrés restent sur cet appareil et sont effacés à la déconnexion.",
+  "dm.diag.title": "Diagnostic",
+  "dm.diag.stats": "Enveloppes reçues : {received} · déchiffrées : {opened} · ignorées : {skipped} · en attente du signeur : {pending} · fin de réception : {eose}",
+  "dm.diag.yes": "oui",
+  "dm.diag.no": "non",
+  "dm.diag.error": "Dernière erreur : {code}",
+  "dm.diag.norelay": "Aucun relais de messagerie connecté."
 }
