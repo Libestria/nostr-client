@@ -155,3 +155,16 @@ input[type="text"] {
 .wallet { display: grid; gap: .5rem; margin-top: 1.5rem; }
 .wallet label, .zap-unlock label { display: grid; gap: .25rem; }
 .zap-unlock { display: grid; gap: .5rem; }
+
+/* Sourdine */
+.mute { display: grid; gap: .5rem; margin-top: 1.5rem; }
+.mute-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
+.note-muted { opacity: .8; }
+
+/* Notifications */
+.notif-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+.notif a { text-decoration: none; }
+.notif-new { border-inline-start: 3px solid var(--focus); }
+.notif-text { margin: .25rem 0; overflow-wrap: anywhere; }
+
+.backup { display: grid; gap: .5rem; margin-top: 1.5rem; }

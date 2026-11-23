@@ -54,3 +54,5 @@
   .nav a { text-align: left; font-size: 1.05rem; padding: .6rem .75rem; border-top: 0; border-radius: var(--r-md); }
   #view { margin: 1rem 1.5rem 0; min-height: calc(100vh - 1rem); min-height: calc(100dvh - 1rem); }
 }
+
+#nav a[data-count]::after { content: " (" attr(data-count) ")"; font-weight: 600; }
