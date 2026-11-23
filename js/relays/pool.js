@@ -127,6 +127,12 @@ export class Pool {
     return Promise.all(targets.map((r) => r.publish(event)));
   }
 
+  // Publie sur les relais de messagerie du compte (connectés en arrière-plan) : [{ url, ok, message }]
+  publishDm(event) {
+    const targets = [...this.relays.values()].filter((r) => r.dm && r.scope === 'account' && r.state === 'open');
+    return Promise.all(targets.map((r) => r.publish(event)));
+  }
+
   reconnectAll() { for (const r of this.relays.values()) r.reconnectNow(); }
   closeAll() {
     for (const s of [...this.subs.values()]) s.close();

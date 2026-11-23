@@ -4,9 +4,9 @@ import { normalizeRelayUrl } from '../nostr/relayurl.js';
 
 const DEFAULTS = { concurrency: 8, connectTimeout: 6000, okTimeout: 8000 };
 
-function publishOne(url, event, { WS, connectTimeout, okTimeout }) {
+function publishOne(url, event, { WS, connectTimeout, okTimeout, sign }) {
   return new Promise((resolve) => {
-    let ws, done = false, t1, t2;
+    let ws, done = false, t1, t2, challenge = null, authed = false, authId = null;
     const finish = (ok, message) => {
       if (done) return;
       done = true;
@@ -19,12 +19,29 @@ function publishOne(url, event, { WS, connectTimeout, okTimeout }) {
     ws.onopen = () => {
       clearTimeout(t1);
       t2 = setTimeout(() => finish(false, 'timeout'), okTimeout);
-      try { ws.send(JSON.stringify(['EVENT', event])); } catch { finish(false, 'send-failed'); }
+      send(['EVENT', event]);
+    };
+    const send = (msg) => { try { ws.send(JSON.stringify(msg)); } catch { finish(false, 'send-failed'); } };
+    // NIP-42 à la demande : le relais a répondu « auth-required » → on s'authentifie puis on renvoie une fois
+    const authenticate = async () => {
+      if (authed || authId || !sign || !challenge) return finish(false, 'auth-required');
+      let signed;
+      try { signed = await sign({ kind: 22242, created_at: Math.floor(Date.now() / 1000), tags: [['relay', url], ['challenge', challenge]], content: '' }); } catch { return finish(false, 'auth-required'); }
+      if (!signed?.id || done) return finish(false, 'auth-required');
+      authId = signed.id;
+      send(['AUTH', signed]);
     };
     ws.onmessage = (m) => {
       let msg;
       try { msg = JSON.parse(m.data); } catch { return; }
-      if (Array.isArray(msg) && msg[0] === 'OK' && msg[1] === event.id) finish(msg[2] === true, String(msg[3] ?? '').slice(0, 200));
+      if (!Array.isArray(msg)) return;
+      if (msg[0] === 'AUTH' && typeof msg[1] === 'string') challenge = msg[1];
+      else if (msg[0] === 'OK' && msg[1] === authId) { if (msg[2] === true) { authed = true; send(['EVENT', event]); } else finish(false, 'auth-failed'); }
+      else if (msg[0] === 'OK' && msg[1] === event.id) {
+        const message = String(msg[3] ?? '').slice(0, 200);
+        if (msg[2] !== true && /^auth-required/i.test(message) && !authed) authenticate();
+        else finish(msg[2] === true, message);
+      }
     };
     ws.onerror = () => {};
     ws.onclose = () => finish(false, 'closed');
