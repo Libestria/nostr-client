@@ -260,5 +260,15 @@
   "dm.diag.yes": "yes",
   "dm.diag.no": "no",
   "dm.diag.error": "Last error: {code}",
-  "dm.diag.norelay": "No messaging relay connected."
+  "dm.diag.norelay": "No messaging relay connected.",
+  "dm.legacy.title": "Legacy messages (NIP-04)",
+  "dm.legacy.warn": "Obsolete and less secure format: relays can see who writes to whom. Read-only, no sending.",
+  "dm.legacy.load": "Search legacy messages",
+  "dm.legacy.none": "No legacy message found on your relays.",
+  "dm.legacy.decrypt": "Decrypt with my signer",
+  "dm.legacy.count": "{n} message(s) found. Your signer will be asked to decrypt.",
+  "dm.legacy.failed": "{n} message(s) could not be decrypted.",
+  "dm.legacy.error.NO_NIP04": "Your signer does not support NIP-04 decryption.",
+  "dm.legacy.error.READ_ONLY": "Read-only mode: cannot decrypt.",
+  "dm.legacy.error.SIGNER": "The signer refused or did not respond."
 }

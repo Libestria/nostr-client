@@ -260,5 +260,15 @@
   "dm.diag.yes": "oui",
   "dm.diag.no": "non",
   "dm.diag.error": "Dernière erreur : {code}",
-  "dm.diag.norelay": "Aucun relais de messagerie connecté."
+  "dm.diag.norelay": "Aucun relais de messagerie connecté.",
+  "dm.legacy.title": "Anciens messages (NIP-04)",
+  "dm.legacy.warn": "Format obsolète et moins sûr : les relais voient qui écrit à qui. Lecture seule, sans envoi.",
+  "dm.legacy.load": "Rechercher les anciens messages",
+  "dm.legacy.none": "Aucun ancien message trouvé sur vos relais.",
+  "dm.legacy.decrypt": "Déchiffrer avec mon signeur",
+  "dm.legacy.count": "{n} message(s) trouvé(s). Le déchiffrement sera demandé à votre signeur.",
+  "dm.legacy.failed": "{n} message(s) n'ont pas pu être déchiffrés.",
+  "dm.legacy.error.NO_NIP04": "Votre signeur ne prend pas en charge le déchiffrement NIP-04.",
+  "dm.legacy.error.READ_ONLY": "Mode lecture seule : déchiffrement impossible.",
+  "dm.legacy.error.SIGNER": "Le signeur a refusé ou n'a pas répondu."
 }
