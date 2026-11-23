@@ -13,12 +13,14 @@ import { pool } from './relays/pool.js';
 import { putEvent, prune } from './storage/db.js';
 import { loadAccountLists, resetAccount } from './account.js';
 import { renderGate } from './ui/gate.js';
+import { renderDms } from './ui/dms.js';
+import { initDms } from './dms.js';
 
 const routes = {
   feed: renderFeed,
   search: placeholder('nav.search'),
   notifications: placeholder('nav.notifications'),
-  messages: placeholder('nav.messages'),
+  messages: renderDms,
   profile: renderProfile,
   note: renderThread,
   settings: renderSettings,
@@ -122,6 +124,7 @@ async function boot() {
     lastStatus = l.status;
     if (!OPEN_ROUTES.has(parseHash().name)) render();   // la page affichée dépend de l'état des listes
   });
+  initDms();
   const first = state.get('session');
   syncNav();
   if (first) loadAccountLists(first.pubkey);
