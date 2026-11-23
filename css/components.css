@@ -168,3 +168,18 @@ input[type="text"] {
 .notif-text { margin: .25rem 0; overflow-wrap: anywhere; }
 
 .backup { display: grid; gap: .5rem; margin-top: 1.5rem; }
+
+/* Champs de saisie : même aspect pour tous les types, contour contrasté (≥ 3:1) et cible tactile suffisante */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]), select, textarea {
+  font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--field-border); border-radius: var(--r-md); padding: .55rem .6rem; min-height: 44px; max-width: 100%;
+}
+textarea { min-height: 5rem; }
+input[type="file"] { font: inherit; color: var(--ink); max-width: 100%; min-height: 44px; }
+input[type="number"] { max-width: 10rem; }
+@media (hover: hover) { input:hover, select:hover, textarea:hover { border-color: var(--line-hover); } }
+.note-time { display: inline-flex; align-items: center; min-height: 32px; padding-inline: .25rem; }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+/* Perf : le navigateur saute le rendu des notes hors écran */
+.notes > .note, .notes .note { content-visibility: auto; contain-intrinsic-size: auto 140px; }
