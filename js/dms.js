@@ -19,6 +19,10 @@ const HEX64 = /^[0-9a-f]{64}$/;
 const set = (patch) => state.set('dm', { ...(state.get('dm') ?? { status: 'off', version: 0 }), ...patch, version: (state.get('dm')?.version ?? 0) + 1 });
 state.set('dm', { status: 'off', version: 0 });
 
+const stats = { received: 0, opened: 0, skipped: 0, pending: 0, eose: false, error: '' };
+const resetStats = () => Object.assign(stats, { received: 0, opened: 0, skipped: 0, pending: 0, eose: false, error: '' });
+export const dmStats = () => ({ ...stats });
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new DmError('signer')), ms))]);
 let me = null, sub = null, messages = new Map(), queue = [], working = false, runId = 0, crypto = null;
 const syncKey = (pk) => `nostr-client:dm-sync:${pk}`;
 const readKey = (pk) => `nostr-client:dm-read:${pk}`;
@@ -58,16 +62,23 @@ async function handle(wrap, run) {
   if (await isDmSeen(wrap.id)) return;
   const signer = getSigner();
   try {
-    const opened = await unwrap(wrap, me, signer, await getCrypto());
+    stats.pending++; set({});
+    const opened = await withTimeout(unwrap(wrap, me, signer, await getCrypto()), 45000);
+    stats.pending--;
     if (run !== runId) return;
     const rec = toRecord(opened, me, wrap.id);
     await putDm(rec);
     messages.set(rec.id, rec);
     await markDmSeen(wrap.id);
+    stats.opened++;
     set({});
   } catch (e) {
+    stats.pending = Math.max(0, stats.pending - 1);
+    stats.error = e?.code ?? 'error';
     if (e instanceof DmError && e.code === 'signer') throw e;          // refus du signeur : on s'arrête, on réessaiera plus tard
+    stats.skipped++;
     await markDmSeen(wrap.id);                                          // enveloppe invalide ou étrangère : ne pas réessayer
+    set({});
   }
 }
 
@@ -90,6 +101,7 @@ export async function startDms() {
   if (signerCapabilities(session).nip44 === 'no') { set({ status: 'nosigner' }); return; }
   if (!(lists.dm?.relays?.length)) { set({ status: 'norelays' }); return; }
   const run = ++runId;
+  resetStats();
   me = session.pubkey;
   for (const r of await listDms(me)) messages.set(r.id, r);
   if (run !== runId) return;
@@ -99,8 +111,9 @@ export async function startDms() {
   set({ status: 'syncing' });
   sub = pool.subscribe([{ kinds: [1059], '#p': [me], since, limit: 500 }], {
     scope: 'dm',
-    onevent: (ev) => { if (ev.kind === 1059) { queue.push(ev); drain(run); } },
+    onevent: (ev) => { if (ev.kind === 1059) { stats.received++; queue.push(ev); drain(run); set({}); } },
     oneose: async () => {
+      stats.eose = true; set({});
       // attendre la fin du déchiffrement avant de mémoriser la date de synchronisation
       while ((queue.length || working) && run === runId) await new Promise((r) => setTimeout(r, 100));
       if (run !== runId || state.get('dm').status === 'denied') return;
