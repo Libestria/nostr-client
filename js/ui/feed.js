@@ -70,7 +70,7 @@ export function renderFeed(main, params = []) {
     scheduleDraw();
   }
 
-  function fetchPage(first) {
+  function fetchPage(first, only = null) {
     reload.disabled = more.disabled = true;
     const done = () => {
       if (!got) setHolder('empty', following ? 'feed.followingEmpty' : 'feed.empty');
@@ -83,6 +83,7 @@ export function renderFeed(main, params = []) {
     // modèle outbox : chaque relais n'interroge que les comptes qui y publient
     const byRelay = new Map();
     groups.forEach((g, i) => {
+      if (only && !only.includes(i)) return;
       const f = { kinds: [1], authors: [...g.authors], limit: PAGE, ...(!first && cursor[i] != null ? { until: cursor[i] - 1 } : {}) };
       if (!byRelay.has(g.url)) byRelay.set(g.url, []);
       byRelay.get(g.url).push(f);
@@ -128,14 +129,21 @@ export function renderFeed(main, params = []) {
       authorSet = new Set(authors);
       latest({ kinds: [1], limit: 300 }).then((evs) => evs.filter((e) => authorSet.has(e.pubkey)).slice(0, PAGE).forEach((e) => add(e)));
       const mine = pool.status().filter((r) => r.read && r.scope === 'account').map((r) => r.url);
+      // 1) affichage immédiat : tes relais de lecture pour tous les comptes suivis (comme avant)
+      for (const url of mine) chunkAuthors(authors).forEach((c) => groups.push({ url, authors: new Set(c) }));
+      cursor = groups.map(() => null);
+      fetchPage(true);
+      // 2) puis, sans bloquer, les relais d'écriture des comptes suivis (modèle outbox)
       const my = ++planToken;
       planFor(authors, { mine }).then((plan) => {
         if (!alive || my !== planToken) return;
-        for (const [url, pks] of plan.byRelay) chunkAuthors(pks).forEach((c) => groups.push({ url, authors: new Set(c) }));
-        for (const url of mine) chunkAuthors(plan.fallback).forEach((c) => groups.push({ url, authors: new Set(c) }));
-        cursor = groups.map(() => null);
-        fetchPage(true);
-      });
+        const added = [];
+        for (const [url, pks] of plan.byRelay) {
+          if (mine.includes(url)) continue;   // déjà interrogé pour tous les comptes
+          chunkAuthors(pks).forEach((c) => { groups.push({ url, authors: new Set(c) }); cursor.push(null); added.push(groups.length - 1); });
+        }
+        if (added.length) fetchPage(true, added);
+      }).catch(() => {});
     };
     getReplaceable(3, me).then((ev) => ev && apply(ev));
     contactsSub = pool.subscribe([{ kinds: [3], authors: [me], limit: 1 }], {
