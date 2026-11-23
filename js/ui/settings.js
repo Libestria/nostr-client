@@ -6,6 +6,7 @@ import { loadAccountLists, editList, publishListEvent } from '../account.js';
 import { LIST_KEYS } from '../nostr/relaylists.js';
 import { npubEncode } from '../nostr/nip19.js';
 import { logout, getSigner, signerCapabilities } from '../auth.js';
+import { walletSection } from './wallet.js';
 import { el, pageTitle } from './common.js';
 
 function select(id, labelKey, options, value, onChange) {
@@ -179,6 +180,6 @@ export function renderSettings(main) {
     status);
   form.addEventListener('submit', (e) => e.preventDefault());
   const lists = state.get('session') ? listsSection() : null;
-  main.replaceChildren(pageTitle('nav.settings'), accountSection(), form, ...(lists ? [lists.node] : []));
+  main.replaceChildren(pageTitle('nav.settings'), accountSection(), form, ...(getSigner() ? [walletSection()] : []), ...(lists ? [lists.node] : []));
   return lists?.stop;
 }

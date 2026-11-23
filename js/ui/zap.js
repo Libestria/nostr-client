@@ -2,10 +2,18 @@ import { t } from '../i18n.js';
 import { getCached, requestProfile, onProfiles } from '../profiles.js';
 import { lnurlInfo, createInvoice, hasWebln, payWebln, refreshZaps, watchZaps } from '../zap.js';
 import { formatSats, MAX_SATS } from '../nostr/nip57.js';
+import { walletInfo, isUnlocked, unlock, payWithWallet } from '../wallet.js';
 import { el } from './common.js';
 
 const PRESETS = [21, 100, 500, 1000, 5000];
 const BOLT11 = /^ln(?:bc|tbs|tb|bcrt)[0-9a-z]+$/i;
+
+export const nwcErrMsg = (e) => {
+  const code = e?.code;
+  const known = ['INVALID_URI', 'NO_RELAY', 'NO_SECRET', 'WEAK_PASSWORD', 'BAD_PASSWORD', 'LOCKED', 'AMOUNT_LIMIT', 'NWC_ENCRYPTION', 'NWC_UNSUPPORTED', 'NWC_TIMEOUT', 'NWC_RELAY', 'NWC_REFUSED', 'NWC_ERROR', 'NO_WALLET'];
+  const base = t(`nwc.error.${known.includes(code) ? code : 'GENERIC'}`, { n: e?.detail ?? '' });
+  return code === 'NWC_REFUSED' && e.detail ? `${base} (${e.detail})` : base;
+};
 
 const errMsg = (e) => {
   const code = e?.code ?? e?.message;
@@ -72,6 +80,30 @@ export function zapPanel({ recipient, event, onClose }) {
     invoiceBox.replaceChildren(...nodes);
   };
 
+  // Paiement par le portefeuille NWC ; déverrouillage par mot de passe si nécessaire. La facture reste affichée en cas d'échec.
+  const payNwc = async (pr, sats) => {
+    if (!isUnlocked()) {
+      const pw = el('input', { type: 'password', autocomplete: 'current-password', 'aria-label': t('nwc.password') });
+      const go = el('button', { type: 'button', class: 'btn' }, t('nwc.unlockpay'));
+      const row = el('div', { class: 'zap-unlock' }, el('label', {}, t('nwc.password'), pw), go);
+      invoiceBox.replaceChildren(row);
+      status.textContent = t('nwc.locked');
+      go.addEventListener('click', async () => {
+        go.disabled = true;
+        try { await unlock(pw.value); pw.value = ''; row.remove(); await payNwc(pr, sats); }
+        catch (err) { status.textContent = nwcErrMsg(err); go.disabled = false; }
+      });
+      return;
+    }
+    status.textContent = t('nwc.paying');
+    try {
+      await payWithWallet(pr, sats);
+      status.textContent = t('zap.paid', { n: formatSats(sats) });
+      invoiceBox.replaceChildren();
+      if (event) refreshZaps(event.id);
+    } catch (err) { status.textContent = nwcErrMsg(err); showInvoice(pr); }
+  };
+
   box.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (busy || !info) return;
@@ -79,6 +111,7 @@ export function zapPanel({ recipient, event, onClose }) {
     busy = true; send.disabled = true; invoiceBox.replaceChildren(); status.textContent = t('zap.invoice');
     try {
       const { pr } = await createInvoice({ recipient, lud16, event, amountSats: amount, comment: comment.value });
+      if (walletInfo()) { await payNwc(pr, amount); busy = false; send.disabled = false; return; }
       if (hasWebln()) {
         status.textContent = t('zap.paying');
         try { await payWebln(pr); status.textContent = t('zap.paid', { n: formatSats(amount) }); if (event) refreshZaps(event.id); busy = false; send.disabled = false; return; }
