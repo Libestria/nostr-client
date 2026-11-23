@@ -7,6 +7,8 @@ import { LIST_KEYS } from '../nostr/relaylists.js';
 import { npubEncode } from '../nostr/nip19.js';
 import { logout, getSigner, signerCapabilities } from '../auth.js';
 import { walletSection } from './wallet.js';
+import { muteSection } from './mute.js';
+import { backupSection } from './backup.js';
 import { el, pageTitle } from './common.js';
 
 function select(id, labelKey, options, value, onChange) {
@@ -177,9 +179,18 @@ export function renderSettings(main) {
     select('lang', 'settings.lang', [['fr', 'lang.fr'], ['en', 'lang.en']], s.lang, (v) => save({ lang: v })),
     checkbox('loadMedia', 'settings.media', 'settings.media.hint', s.loadMedia, (v) => save({ loadMedia: v })),
     checkbox('readOnly', 'settings.readOnly', 'settings.readOnly.hint', s.readOnly, (v) => save({ readOnly: v })),
+    ...(typeof Notification !== 'undefined' ? [checkbox('browserNotify', 'settings.notify', 'settings.notify.hint', s.browserNotify, async (v) => {
+      if (v && Notification.permission !== 'granted') {
+        let perm = 'denied';
+        try { perm = await Notification.requestPermission(); } catch { /* refusé */ }
+        if (perm !== 'granted') { status.textContent = t('settings.notify.denied'); const box = form.querySelector('input[name=browserNotify]'); if (box) box.checked = false; return; }
+      }
+      save({ browserNotify: v });
+    })] : []),
     status);
   form.addEventListener('submit', (e) => e.preventDefault());
   const lists = state.get('session') ? listsSection() : null;
-  main.replaceChildren(pageTitle('nav.settings'), accountSection(), form, ...(getSigner() ? [walletSection()] : []), ...(lists ? [lists.node] : []));
-  return lists?.stop;
+  const mute = state.get('session') ? muteSection() : null;
+  main.replaceChildren(pageTitle('nav.settings'), accountSection(), form, ...(lists ? [lists.node] : []), ...(mute ? [mute.node] : []), ...(getSigner() ? [walletSection()] : []), ...(state.get('session') ? [backupSection()] : []));
+  return () => { lists?.stop?.(); mute?.stop(); };
 }

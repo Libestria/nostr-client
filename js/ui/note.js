@@ -10,6 +10,7 @@ import { deleteEvent } from '../storage/db.js';
 import { el, shortNpub, timeAgo } from './common.js';
 import { composer, showResult, errorKey } from './composer.js';
 import { zapPanel, zapBadge } from './zap.js';
+import { isMuted, editMute } from '../mute.js';
 
 // Remplit un lien d'auteur (nom + avatar) à partir du cache de profils.
 export function fillAuthor(node) {
@@ -101,6 +102,15 @@ function noteActions(ev, article) {
   const repost = btn(done.reposted.has(ev.id) ? 'note.reposted' : 'note.repost', (b) => act(b, () => buildRepost(ev), () => done.reposted.add(ev.id), 'note.reposted'), done.reposted.has(ev.id));
   const row = el('div', { class: 'note-actions' }, reply, like, repost);
   if (ev.pubkey !== signer.pubkey) {
+    const hide = btn('mute.account', async (b) => {
+      b.disabled = true; msg.replaceChildren(t('lists.publishing'));
+      try {
+        const res = await editMute([{ type: 'add', kind: 'pubkey', value: ev.pubkey }]);
+        if (res.ok) article.replaceChildren(el('p', { class: 'hint' }, t('mute.done')));
+        else { b.disabled = false; msg.replaceChildren(t('lists.publish.failed', { ok: res.ok, total: res.total })); }
+      } catch { b.disabled = false; msg.replaceChildren(t('compose.err.generic')); }
+    });
+    row.append(hide);
     let panel = null;
     row.append(btn('note.zap', () => {
       if (panel) { panel.remove(); panel = null; return; }
@@ -126,7 +136,18 @@ function noteActions(ev, article) {
   return [row, msg];
 }
 
-export function noteCard(ev, { via, author = true } = {}) {
+// Note masquée (sourdine) : un bandeau avec la raison et un bouton pour l'afficher quand même.
+export function noteCard(ev, opts = {}) {
+  const reason = opts.force ? null : isMuted(ev);
+  if (!reason) return buildNoteCard(ev, opts);
+  const box = el('article', { class: 'note note-muted' });
+  const show = el('button', { type: 'button', class: 'btn btn-small' }, t('mute.show'));
+  show.addEventListener('click', () => box.replaceWith(buildNoteCard(ev, opts)));
+  box.append(el('p', { class: 'hint' }, t(`mute.hidden.${reason}`), ' ', show));
+  return box;
+}
+
+function buildNoteCard(ev, { via, author = true } = {}) {
   const text = ev.content.length > 600 ? `${ev.content.slice(0, 600)}…` : ev.content;
   const article = el('article', { class: 'note' },
     el('div', { class: 'note-head' },

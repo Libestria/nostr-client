@@ -12,6 +12,7 @@ import { authorLink, noteCard, updateAuthors } from './note.js';
 import { profileEditor } from './profile-edit.js';
 import { planFor } from '../relays/outbox.js';
 import { zapPanel } from './zap.js';
+import { muteList, editMute } from '../mute.js';
 
 const PAGE = 30;
 const PEOPLE_PAGE = 50;
@@ -164,6 +165,17 @@ export function renderProfile(main, params) {
           actions.after(panel);
         });
         actions.append(zap);
+        const hide = el('button', { type: 'button', class: 'btn' }, '');
+        const paintHide = () => { hide.textContent = t(muteList().pubkeys.includes(pubkey) ? 'mute.unmute' : 'mute.account'); };
+        paintHide();
+        stops.push(state.on('mute', paintHide));
+        hide.addEventListener('click', async () => {
+          hide.disabled = true;
+          try { const res = await editMute([{ type: muteList().pubkeys.includes(pubkey) ? 'remove' : 'add', kind: 'pubkey', value: pubkey }]); say(res.ok ? t('lists.published', { ok: res.ok, total: res.total }) : t('lists.publish.failed', { ok: res.ok, total: res.total }), !res.ok); if (res.ok) setTimeout(() => window.dispatchEvent(new HashChangeEvent('hashchange')), 400); }
+          catch { say(t('compose.err.generic'), true); }
+          hide.disabled = false;
+        });
+        actions.append(hide);
       }
       if (!getSigner()) actions.append(el('a', { class: 'btn', href: '#/login' }, t('profile.follow.needSigner')));
       const mineSub = loadReplaceable(3, me, (ev) => { mine = ev; paintFollow(); }, (ev, open) => { mineReady = true; mineRelays = open; paintFollow(); });

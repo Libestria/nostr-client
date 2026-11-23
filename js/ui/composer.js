@@ -15,6 +15,7 @@ const saveDraft = (id, v) => { try { v ? localStorage.setItem(draftKey(id), v) :
 
 // Remplit `box` avec le résultat d'une publication ; `retry()` est proposé quand aucun relais n'a accepté.
 export function showResult(box, res, retry) {
+  if (res.queued) { box.replaceChildren(el('span', { class: 'status' }, t('compose.queued'))); return; }
   const failed = !res.ok;
   const nodes = [el('span', { class: failed ? 'status status-error' : 'status' },
     res.total === 0 ? t('compose.norelay') : t(failed ? 'lists.publish.failed' : 'lists.published', { ok: res.ok, total: res.total }))];
@@ -53,7 +54,7 @@ export function composer({ reply = null, onPublished } = {}) {
     try {
       const res = await publishEvent(tpl);
       showResult(out, res, () => republishEvent(res.event));
-      if (res.ok) { area.value = ''; saveDraft(id, ''); onPublished?.(res); }
+      if (res.ok || res.queued) { area.value = ''; saveDraft(id, ''); if (res.ok) onPublished?.(res); }
     } catch (err) { showError(err); } finally { busy = false; send.disabled = false; }
   });
   function showError(err) { out.replaceChildren(el('span', { class: 'status status-error' }, t(errorKey(err)))); }
