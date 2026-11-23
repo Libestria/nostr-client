@@ -100,3 +100,11 @@ test('cryptoFromLib : adaptateur et bibliothèque incomplète', () => {
     finalizeEvent() {}, generateSecretKey() {}, getPublicKey() {}, getEventHash() {}, verifyEvent() {} };
   assert.equal(cryptoFromLib(lib).encryptWith('s', 'p', 't'), 'tsp');
 });
+
+import { legacyGroup } from '../js/nostr/dm.js';
+test('NIP-04 : regroupement par interlocuteur, envoyés/reçus, doublons et événements étrangers écartés', () => {
+  const k4 = (id, pubkey, to, created_at) => ({ id, kind: 4, pubkey, tags: [['p', to]], content: 'x?iv=y', created_at });
+  const g = legacyGroup([k4('1', A, B, 20), k4('2', B, A, 10), k4('2', B, A, 10), k4('3', B, C, 5), k4('4', C, B, 6), { id: '5', kind: 1, pubkey: A, tags: [], content: '' }], A);
+  assert.deepEqual([...g.keys()], [B]);
+  assert.deepEqual(g.get(B).map((m) => [m.id, m.mine]), [['2', false], ['1', true]]);
+});
