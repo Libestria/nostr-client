@@ -131,3 +131,11 @@ export function nprofileEncode({ pubkey, relays = [] }) {
   for (const r of relays) { const b = enc.encode(r); parts.push(Uint8Array.of(1, b.length, ...b)); }
   return bech32Encode('nprofile', Uint8Array.from(parts.flatMap((p) => [...p])));
 }
+
+// LNURL (LUD-01) : URL https encodée en bech32 (hrp « lnurl »), utilisée dans la demande de zap.
+export const lnurlEncode = (url) => bech32Encode('lnurl', new TextEncoder().encode(url));
+export function lnurlDecode(str) {
+  const { hrp, bytes } = bech32Decode(String(str).trim());
+  if (hrp !== 'lnurl') throw new Nip19Error('invalid');
+  return new TextDecoder().decode(bytes);
+}
