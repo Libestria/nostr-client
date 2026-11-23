@@ -10,6 +10,10 @@ export class Relay {
     this.hooks = hooks;           // { onChange(), onEvent(relay, sub, event), onClosed(relay, sub, msg) }
     this.read = true;
     this.write = true;
+    this.dm = false;              // relais de messagerie privée (connexion permanente, abonnements « dm » seulement)
+    this.scope = 'account';       // 'account' (listes du compte) | 'outbox' (relais d'un suivi, connexion temporaire)
+    this.authenticated = false;   // NIP-42
+    this.authPending = null;
     this.state = 'idle';          // idle | connecting | open | retrying | closed
     this.latency = null;
     this.error = null;
@@ -59,6 +63,7 @@ export class Relay {
     if (this.active.has(id)) this._send(['CLOSE', id]);
     this.active.delete(id);
     this.subs.delete(id);
+    this.authTried?.delete(id);
     this._pump();
   }
 
@@ -73,6 +78,9 @@ export class Relay {
     this.ws = ws;
     ws.onopen = () => {
       this.latency = Math.round(performance.now() - t0);
+      this.authChallenge = null;
+      this.authenticated = false;
+      this.authTried = null;
       this.attempt = 0;
       this.error = null;
       this.active.clear();
@@ -100,7 +108,14 @@ export class Relay {
   }
 
   // Publication : résout { url, ok, message } à la réception du OK du relais (ou après un délai).
-  publish(event, timeout = 8000) {
+  // Si le relais exige une authentification (NIP-42), on s'authentifie puis on réessaie une fois.
+  async publish(event, timeout = 8000) {
+    let res = await this._publishOnce(event, timeout);
+    if (!res.ok && /^auth-required/i.test(res.message) && await this.authenticate()) res = await this._publishOnce(event, timeout);
+    return res;
+  }
+
+  _publishOnce(event, timeout) {
     return new Promise((resolve) => {
       if (this.state !== 'open') return resolve({ url: this.url, ok: false, message: 'not-connected' });
       const timer = setTimeout(() => { this.pendingOk.delete(event.id); resolve({ url: this.url, ok: false, message: 'timeout' }); }, timeout);
@@ -108,6 +123,29 @@ export class Relay {
       this.pendingOk.set(event.id, (ok, message) => { clearTimeout(timer); resolve({ url: this.url, ok, message }); });
       this._send(['EVENT', event]);
     });
+  }
+
+  // NIP-42 : à la demande seulement (le relais a répondu « auth-required »), jamais à la connexion.
+  authenticate() {
+    if (this.authenticated) return Promise.resolve(true);
+    this.authPending ||= (async () => {
+      const challenge = this.authChallenge;
+      if (!this.hooks.sign || typeof challenge !== 'string' || !challenge || this.state !== 'open') return false;
+      let signed;
+      try {
+        signed = await this.hooks.sign({ kind: 22242, created_at: Math.floor(Date.now() / 1000), tags: [['relay', this.url], ['challenge', challenge]], content: '' });
+      } catch { return false; }
+      if (!signed?.id) return false;
+      const ok = await new Promise((resolve) => {
+        const timer = setTimeout(() => { this.pendingOk.delete(signed.id); resolve(false); }, 8000);
+        timer?.unref?.();
+        this.pendingOk.set(signed.id, (accepted) => { clearTimeout(timer); resolve(accepted); });
+        this._send(['AUTH', signed]);
+      });
+      this.authenticated = ok;
+      return ok;
+    })().finally(() => { this.authPending = null; });
+    return this.authPending;
   }
 
   _failPending(message) {
@@ -121,7 +159,7 @@ export class Relay {
     for (const sub of this.subs.values()) {
       if (this.active.size >= this.maxSubs) break;
       if (!this.active.has(sub.id)) {
-        this._send(['REQ', sub.id, ...sub.filters]);
+        this._send(['REQ', sub.id, ...(sub.relayFilters?.get(this.url) ?? sub.filters)]);
         this.active.add(sub.id);
       }
     }
@@ -146,6 +184,15 @@ export class Relay {
         const sub = this.subs.get(msg[1]);
         this.active.delete(msg[1]);
         this.notice = String(msg[2] ?? '').slice(0, 200);
+        if (sub && /^auth-required/i.test(this.notice) && !this.authTried?.has(msg[1])) {
+          // le relais demande une authentification : on la fait, puis on renvoie la demande une fois
+          (this.authTried ||= new Set()).add(msg[1]);
+          this.authenticate().then((ok) => {
+            if (ok) this._pump();
+            else { this.hooks.onClosed?.(this, sub, this.notice); this.hooks.onChange(); }
+          });
+          break;
+        }
         if (sub) this.hooks.onClosed?.(this, sub, this.notice);
         this.hooks.onChange();
         break;

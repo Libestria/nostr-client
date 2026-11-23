@@ -1,7 +1,7 @@
 // Un abonnement (REQ) partagé entre plusieurs relais. Les doublons sont filtrés par abonnement.
 export class Subscription {
-  constructor({ id, filters, closeOnEose = false, onevent, oneose, onClose, eoseTimeout = 8000, maxEvents = 1000 }) {
-    Object.assign(this, { id, filters, closeOnEose, onevent, oneose, onClose, maxEvents });
+  constructor({ id, filters, closeOnEose = false, onevent, oneose, onClose, eoseTimeout = 8000, maxEvents = 1000, scope = 'general', relayFilters = null }) {
+    Object.assign(this, { id, filters, closeOnEose, onevent, oneose, onClose, maxEvents, scope, relayFilters });
     this.count = 0;
     this.pending = 0;          // événements en cours de vérification
     this.eoseWaiting = false;
