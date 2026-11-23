@@ -222,5 +222,6 @@
   "pe.nip05.hint": "Au format nom@domaine ; le domaine doit te référencer.",
   "pe.err.invalid": "Valeur invalide pour « {field} ».",
   "pe.err.long": "« {field} » est trop long.",
-  "pe.unavailable": "Impossible de lire ton profil actuel : aucun relais connecté. Réessaie plus tard pour ne pas l'écraser."
+  "pe.unavailable": "Impossible de lire ton profil actuel : aucun relais connecté. Réessaie plus tard pour ne pas l'écraser.",
+  "relay.auth": "Authentifié"
 }

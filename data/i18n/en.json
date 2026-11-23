@@ -222,5 +222,6 @@
   "pe.nip05.hint": "Format name@domain; the domain must list you.",
   "pe.err.invalid": "Invalid value for “{field}”.",
   "pe.err.long": "“{field}” is too long.",
-  "pe.unavailable": "Could not read your current profile: no relay connected. Try again later so it isn't overwritten."
+  "pe.unavailable": "Could not read your current profile: no relay connected. Try again later so it isn't overwritten.",
+  "relay.auth": "Authenticated"
 }
