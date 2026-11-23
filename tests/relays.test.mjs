@@ -208,3 +208,90 @@ test('closeOnEose : les événements en cours de vérification sont livrés avan
   assert.equal(sub.closed, true);
   pool.closeAll();
 });
+
+test('NIP-42 : auth-required sur un REQ → authentification puis REQ renvoyé', async () => {
+  const { pool, ws } = setup(['wss://r1.example.com']);
+  pool.signer = async (tpl) => ({ ...tpl, id: 'a'.repeat(64), pubkey: 'b'.repeat(64), sig: 'c'.repeat(128) });
+  const sub = pool.subscribe([{ kinds: [1] }], {});
+  const subId = ws[0].sent[0][1];
+  ws[0].recv(['AUTH', 'defi-123']);
+  ws[0].recv(['CLOSED', subId, 'auth-required: connecte-toi']);
+  await tick(); await tick();
+  const auth = ws[0].sent.find((m) => m[0] === 'AUTH');
+  assert.ok(auth, 'AUTH envoyé');
+  assert.equal(auth[1].kind, 22242);
+  assert.deepEqual(auth[1].tags, [['relay', 'wss://r1.example.com'], ['challenge', 'defi-123']]);
+  ws[0].recv(['OK', 'a'.repeat(64), true, '']);
+  await tick(); await tick();
+  assert.equal(ws[0].sent.filter((m) => m[0] === 'REQ').length, 2, 'REQ renvoyé après authentification');
+  assert.equal(pool.status()[0].authenticated, true);
+  sub.close(); pool.closeAll();
+});
+
+test('NIP-42 : sans signeur, pas d\'authentification ; jamais à la simple réception du défi', async () => {
+  const { pool, ws } = setup(['wss://r1.example.com']);
+  ws[0].recv(['AUTH', 'defi']);
+  await tick();
+  assert.equal(ws[0].sent.filter((m) => m[0] === 'AUTH').length, 0);
+  const sub = pool.subscribe([{ kinds: [1] }], {});
+  ws[0].recv(['CLOSED', ws[0].sent[0][1], 'auth-required: x']);
+  await tick(); await tick();
+  assert.equal(ws[0].sent.filter((m) => m[0] === 'AUTH').length, 0);
+  sub.close(); pool.closeAll();
+});
+
+test('publication : auth-required → authentification → nouvel essai', async () => {
+  const { pool, ws } = setup(['wss://r1.example.com']);
+  pool.signer = async (tpl) => ({ ...tpl, id: 'a'.repeat(64), pubkey: 'b'.repeat(64), sig: 'c'.repeat(128) });
+  ws[0].recv(['AUTH', 'defi']);
+  const p = pool.publish(ev(5));
+  await tick();
+  ws[0].recv(['OK', ev(5).id, false, 'auth-required: authentifie-toi']);
+  await tick(); await tick();
+  ws[0].recv(['OK', 'a'.repeat(64), true, '']);
+  await tick(); await tick();
+  ws[0].recv(['OK', ev(5).id, true, '']);
+  const res = await p;
+  assert.deepEqual(res.map((r) => r.ok), [true]);
+  assert.equal(ws[0].sent.filter((m) => m[0] === 'EVENT').length, 2);
+  pool.closeAll();
+});
+
+test('relais de messagerie : connecté mais hors des abonnements généraux ; publication jamais dessus', async () => {
+  MockWS.all.length = 0;
+  const pool = new Pool({ verify });
+  pool.setRelays([{ url: 'wss://g.example.com', read: true, write: true }, { url: 'wss://dm.example.com', read: false, write: false, dm: true }]);
+  MockWS.all.forEach((w) => w.open());
+  const [g, d] = MockWS.all;
+  const general = pool.subscribe([{ kinds: [1] }], {});
+  const priv = pool.subscribe([{ kinds: [1059] }], { scope: 'dm' });
+  assert.equal(g.sent.filter((m) => m[0] === 'REQ').length, 1);
+  assert.equal(d.sent.filter((m) => m[0] === 'REQ').length, 1);
+  assert.equal(d.sent.find((m) => m[0] === 'REQ')[2].kinds[0], 1059);
+  const p = pool.publish(ev(7));
+  assert.equal(d.sent.filter((m) => m[0] === 'EVENT').length, 0);
+  g.recv(['OK', ev(7).id, true, '']);
+  assert.equal((await p).length, 1);
+  general.close(); priv.close(); pool.closeAll();
+});
+
+test('outbox : filtres propres à chaque relais, relais temporaires non publiés, comptes du compte intacts', async () => {
+  const { pool, ws } = setup(['wss://r1.example.com']);
+  const rf = new Map([['wss://r1.example.com', [{ kinds: [1], authors: ['a'.repeat(64)] }]], ['wss://autre.example.com', [{ kinds: [1], authors: ['b'.repeat(64)] }]]]);
+  const got = [];
+  const sub = pool.subscribe([{ kinds: [1] }], { relayFilters: rf, onevent: (e) => got.push(e.id) });
+  const extra = MockWS.all.find((w) => w.url === 'wss://autre.example.com');
+  assert.ok(extra, 'relais temporaire ouvert');
+  extra.open();
+  assert.deepEqual(extra.sent.find((m) => m[0] === 'REQ')[2].authors, ['b'.repeat(64)]);
+  assert.deepEqual(ws[0].sent.find((m) => m[0] === 'REQ')[2].authors, ['a'.repeat(64)]);
+  extra.recv(['EVENT', extra.sent[0][1], ev(8, { pubkey: 'b'.repeat(64) })]);
+  extra.recv(['EVENT', extra.sent[0][1], ev(9, { pubkey: 'a'.repeat(64) })]); // pas demandé à ce relais : écarté
+  await tick();
+  assert.deepEqual(got, [ev(8).id]);
+  const p = pool.publish(ev(10));
+  assert.equal(extra.sent.filter((m) => m[0] === 'EVENT').length, 0, 'jamais publié sur un relais temporaire');
+  ws[0].recv(['OK', ev(10).id, true, '']);
+  await p;
+  sub.close(); pool.closeAll();
+});
