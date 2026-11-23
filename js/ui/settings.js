@@ -84,6 +84,7 @@ function listsSection() {
     if (live) {
       meta.push(t(`relay.${live.state}`));
       if (live.state === 'open' && live.latency != null) meta.push(`${live.latency} ms`);
+      if (live.authenticated) meta.push(t('relay.auth'));
     }
     const body = el('div', { class: 'relay-body' }, el('span', { class: 'ident' }, r.url.replace(/^wss:\/\//, '')));
     if (key === 'pub' && !editable) meta.unshift(t(r.read && r.write ? 'role.rw' : r.read ? 'role.r' : 'role.w'));
@@ -138,10 +139,10 @@ function listsSection() {
       box.form.hidden = !editable;
       box.add.disabled = busy;
       box.input.disabled = busy;
-      const sig = JSON.stringify([info?.event?.id, editable, busy, key === 'pub' ? [...live.values()].map((r) => [r.url, r.state, r.latency]) : 0]);
+      const sig = JSON.stringify([info?.event?.id, editable, busy, key === 'pub' || key === 'dm' ? [...live.values()].map((r) => [r.url, r.state, r.latency, r.authenticated]) : 0]);
       if (sig === box.sig || (!force && box.ul.contains(document.activeElement))) continue; // pas de reconstruction pendant une saisie (sauf fin d'édition)
       box.sig = sig;
-      box.ul.replaceChildren(...(info?.relays ?? []).map((r) => row(key, box, r, key === 'pub' ? live.get(r.url) : null, editable)));
+      box.ul.replaceChildren(...(info?.relays ?? []).map((r) => row(key, box, r, key === 'pub' || key === 'dm' ? live.get(r.url) : null, editable)));
     }
   }
   const offs = [state.on('lists', () => drawAll()), state.on('listsProgress', () => drawAll()), pool.onChange(() => drawAll())];

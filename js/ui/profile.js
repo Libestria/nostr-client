@@ -10,6 +10,7 @@ import { getSigner } from '../auth.js';
 import { el, pageTitle, stateBlock, shortNpub } from './common.js';
 import { authorLink, noteCard, updateAuthors } from './note.js';
 import { profileEditor } from './profile-edit.js';
+import { planFor } from '../relays/outbox.js';
 
 const PAGE = 30;
 const PEOPLE_PAGE = 50;
@@ -208,10 +209,17 @@ export function renderProfile(main, params) {
           notes.set(ev.id, ev); oldest = Math.min(oldest, ev.created_at); holder.replaceChildren(); more.hidden = false;
           drawTimer ||= setTimeout(draw, 150);
         };
-        const page = (first) => {
+        // modèle outbox : les notes d'un compte sont lues sur ses relais d'écriture, en plus des relais du compte connecté
+        const page = async (first) => {
           more.disabled = true;
-          subs.push(pool.subscribe([{ kinds: [1], authors: [pubkey], limit: PAGE, ...(first ? {} : { until: oldest - 1 }) }], {
-            closeOnEose: true, onevent: add,
+          const mine = pool.status().filter((r) => r.read && r.scope === 'account').map((r) => r.url);
+          let urls = [];
+          try { urls = [...(await planFor([pubkey], { mine })).byRelay.keys()]; } catch { /* repli : relais du compte */ }
+          if (!live) return;
+          const filter = [{ kinds: [1], authors: [pubkey], limit: PAGE, ...(first ? {} : { until: oldest - 1 }) }];
+          const byRelay = new Map([...new Set([...urls, ...mine])].map((u) => [u, filter]));
+          subs.push(pool.subscribe(filter, {
+            closeOnEose: true, onevent: add, ...(byRelay.size ? { relayFilters: byRelay } : {}),
             oneose: () => { if (!notes.size) holder.replaceChildren(stateBlock('empty', 'profile.noNotes')); more.disabled = false; },
           }));
         };
