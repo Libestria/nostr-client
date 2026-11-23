@@ -16,11 +16,17 @@ import { renderGate } from './ui/gate.js';
 import { renderDms } from './ui/dms.js';
 import { initDms } from './dms.js';
 import { initWallet } from './wallet.js';
+import { initMute } from './mute.js';
+import { initNotifications } from './notifications.js';
+import { initQueue } from './queue.js';
+import { renderNotifications } from './ui/notifications.js';
+import { renderSearch } from './ui/search.js';
+import { unreadTotal } from './dms.js';
 
 const routes = {
   feed: renderFeed,
-  search: placeholder('nav.search'),
-  notifications: placeholder('nav.notifications'),
+  search: renderSearch,
+  notifications: renderNotifications,
   messages: renderDms,
   profile: renderProfile,
   note: renderThread,
@@ -127,6 +133,15 @@ async function boot() {
   });
   initDms();
   initWallet();
+  initMute();
+  initNotifications();
+  initQueue();
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+  const badges = () => {
+    const set = (route, n) => { const a = document.querySelector(`#nav a[data-route="${route}"]`); if (!a) return; if (n > 0) { a.dataset.count = n > 99 ? '99+' : String(n); a.setAttribute('aria-label', `${t(`nav.${route}`)} (${a.dataset.count})`); } else { delete a.dataset.count; a.removeAttribute('aria-label'); } };
+    set('notifications', state.get('notif').unread); set('messages', unreadTotal());
+  };
+  state.on('notif', badges); state.on('dm', badges); state.on('session', badges);
   const first = state.get('session');
   syncNav();
   if (first) loadAccountLists(first.pubkey);

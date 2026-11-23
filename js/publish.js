@@ -5,6 +5,7 @@ import { pool } from './relays/pool.js';
 import { putEvent } from './storage/db.js';
 import { bootRelays } from './account.js';
 import { publishToMany } from './relays/oneshot.js';
+import { enqueue } from './queue.js';
 
 const summarize = (event, results) => ({ event, results, ok: results.filter((r) => r.ok).length, total: results.length });
 
@@ -19,7 +20,12 @@ export async function publishEvent(template, opts) {
   return republishEvent(signed, opts);
 }
 
-export async function republishEvent(signed, { alsoBoot = false } = {}) {
+export async function republishEvent(signed, { alsoBoot = false, noQueue = false } = {}) {
+  // Hors ligne : l'événement signé est mis en file d'attente et partira au retour du réseau.
+  if (!noQueue && typeof navigator !== 'undefined' && navigator.onLine === false) {
+    enqueue(signed);
+    return { event: signed, results: [], ok: 0, total: 0, queued: true };
+  }
   const results = await pool.publish(signed);
   if (alsoBoot) {
     let boots = [];
