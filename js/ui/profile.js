@@ -11,6 +11,7 @@ import { el, pageTitle, stateBlock, shortNpub } from './common.js';
 import { authorLink, noteCard, updateAuthors } from './note.js';
 import { profileEditor } from './profile-edit.js';
 import { planFor } from '../relays/outbox.js';
+import { zapPanel } from './zap.js';
 
 const PAGE = 30;
 const PEOPLE_PAGE = 50;
@@ -154,6 +155,16 @@ export function renderProfile(main, params) {
     };
     if (me && me !== pubkey) {
       actions.append(follow);
+      if (getSigner()) {
+        let panel = null;
+        const zap = el('button', { type: 'button', class: 'btn' }, t('profile.zap'));
+        zap.addEventListener('click', () => {
+          if (panel) { panel.remove(); panel = null; return; }
+          panel = zapPanel({ recipient: pubkey, onClose: () => { panel = null; } });
+          actions.after(panel);
+        });
+        actions.append(zap);
+      }
       if (!getSigner()) actions.append(el('a', { class: 'btn', href: '#/login' }, t('profile.follow.needSigner')));
       const mineSub = loadReplaceable(3, me, (ev) => { mine = ev; paintFollow(); }, (ev, open) => { mineReady = true; mineRelays = open; paintFollow(); });
       stops.push(() => mineSub.close());

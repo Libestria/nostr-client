@@ -9,6 +9,7 @@ import { publishEvent } from '../publish.js';
 import { deleteEvent } from '../storage/db.js';
 import { el, shortNpub, timeAgo } from './common.js';
 import { composer, showResult, errorKey } from './composer.js';
+import { zapPanel, zapBadge } from './zap.js';
 
 // Remplit un lien d'auteur (nom + avatar) à partir du cache de profils.
 export function fillAuthor(node) {
@@ -99,6 +100,14 @@ function noteActions(ev, article) {
   const like = btn(done.reacted.has(ev.id) ? 'note.liked' : 'note.like', (b) => act(b, () => buildReaction(ev), () => done.reacted.add(ev.id), 'note.liked'), done.reacted.has(ev.id));
   const repost = btn(done.reposted.has(ev.id) ? 'note.reposted' : 'note.repost', (b) => act(b, () => buildRepost(ev), () => done.reposted.add(ev.id), 'note.reposted'), done.reposted.has(ev.id));
   const row = el('div', { class: 'note-actions' }, reply, like, repost);
+  if (ev.pubkey !== signer.pubkey) {
+    let panel = null;
+    row.append(btn('note.zap', () => {
+      if (panel) { panel.remove(); panel = null; return; }
+      panel = zapPanel({ recipient: ev.pubkey, event: ev, onClose: () => { panel = null; } });
+      article.append(panel);
+    }));
+  }
   if (ev.pubkey === signer.pubkey) {
     let armed = false;
     const del = btn('note.delete', async (b) => {
@@ -125,6 +134,7 @@ export function noteCard(ev, { via, author = true } = {}) {
       el('a', { class: 'note-time', href: noteHref(ev.id), 'aria-label': t('note.open') },
         el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, timeAgo(ev.created_at)))),
     el('p', { class: 'note-text' }, ...renderContent(text)),
+    el('p', { class: 'note-zaps' }, zapBadge(ev)),
     via ? el('p', { class: 'note-via' }, t('note.relay', { relay: via.replace(/^wss:\/\//, '') })) : null);
   const actions = noteActions(ev, article);
   if (actions) article.append(...actions);
