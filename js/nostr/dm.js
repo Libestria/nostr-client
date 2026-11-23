@@ -103,3 +103,23 @@ export function partnersOf(participants, me) {
   const others = participants.filter((p) => p !== me);
   return others.length ? others : [me];
 }
+
+// ---- Anciens messages NIP-04 (kind 4) : lecture seule
+// Regroupe des événements kind 4 par interlocuteur. Ne déchiffre rien. → Map(partner → [{ id, mine, created_at, content }])
+export function legacyGroup(events, me) {
+  const out = new Map();
+  const seen = new Set();
+  for (const ev of events ?? []) {
+    if (ev?.kind !== 4 || typeof ev.content !== 'string' || !Array.isArray(ev.tags) || seen.has(ev.id)) continue;
+    const to = ev.tags.find((t) => t[0] === 'p' && HEX64.test(t[1] ?? ''))?.[1];
+    if (!to) continue;
+    const mine = ev.pubkey === me;
+    const partner = mine ? to : ev.pubkey;
+    if (!mine && to !== me) continue;            // ne me concerne pas
+    seen.add(ev.id);
+    if (!out.has(partner)) out.set(partner, []);
+    out.get(partner).push({ id: ev.id, mine, created_at: ev.created_at, content: ev.content });
+  }
+  for (const list of out.values()) list.sort((a, b) => a.created_at - b.created_at);
+  return out;
+}
