@@ -4,14 +4,23 @@ import { replaceKey, isReplaceable, isAddressable } from '../nostr/events.js';
 let dbPromise = null;
 function open() {
   dbPromise ||= new Promise((resolve, reject) => {
-    const r = indexedDB.open('nostr-client', 1);
+    const r = indexedDB.open('nostr-client', 2);
     r.onupgradeneeded = () => {
       const db = r.result;
-      const ev = db.createObjectStore('events', { keyPath: 'id' });
-      ev.createIndex('kind', 'kind');
-      ev.createIndex('pubkey', 'pubkey');
-      ev.createIndex('created_at', 'created_at');
-      db.createObjectStore('replaceable', { keyPath: 'key' });
+      if (!db.objectStoreNames.contains('events')) {
+        const ev = db.createObjectStore('events', { keyPath: 'id' });
+        ev.createIndex('kind', 'kind');
+        ev.createIndex('pubkey', 'pubkey');
+        ev.createIndex('created_at', 'created_at');
+      }
+      if (!db.objectStoreNames.contains('replaceable')) db.createObjectStore('replaceable', { keyPath: 'key' });
+      // v2 : messages privés déchiffrés (par compte) et enveloppes déjà traitées
+      if (!db.objectStoreNames.contains('dms')) {
+        const dm = db.createObjectStore('dms', { keyPath: 'id' });
+        dm.createIndex('me', 'me');
+        dm.createIndex('conv', 'conv');
+      }
+      if (!db.objectStoreNames.contains('dmseen')) db.createObjectStore('dmseen', { keyPath: 'id' });
     };
     r.onsuccess = () => resolve(r.result);
     r.onerror = () => reject(r.error);
@@ -110,4 +119,34 @@ export function getEvent(id) {
     req.onsuccess = () => resolve(req.result ?? null);
     req.onerror = () => resolve(null);
   })).catch(() => null);
+}
+
+// ---- Messages privés (déchiffrés localement ; effacés à la déconnexion)
+const idb = (store, mode, fn) => open().then((db) => new Promise((resolve) => {
+  const tx = db.transaction(store, mode);
+  let out;
+  try { out = fn(tx.objectStore(store)); } catch { resolve(null); return; }
+  tx.oncomplete = () => resolve(typeof IDBRequest !== 'undefined' && out instanceof IDBRequest ? out.result : true);
+  tx.onerror = () => resolve(null);
+})).catch(() => null);
+
+export const putDm = (rec) => idb('dms', 'readwrite', (s) => s.put(rec));
+export const markDmSeen = (id) => idb('dmseen', 'readwrite', (s) => s.put({ id }));
+export const isDmSeen = (id) => idb('dmseen', 'readonly', (s) => s.get(id)).then((r) => !!r);
+
+// Tous les messages d'un compte (le plus récent d'abord)
+export function listDms(me) {
+  return open().then((db) => new Promise((resolve) => {
+    const req = db.transaction('dms').objectStore('dms').index('me').getAll(me);
+    req.onsuccess = () => resolve((req.result ?? []).sort((a, b) => b.created_at - a.created_at));
+    req.onerror = () => resolve([]);
+  })).catch(() => []);
+}
+
+export function clearDms() {
+  return open().then((db) => new Promise((resolve) => {
+    const tx = db.transaction(['dms', 'dmseen'], 'readwrite');
+    tx.objectStore('dms').clear(); tx.objectStore('dmseen').clear();
+    tx.oncomplete = () => resolve(true); tx.onerror = () => resolve(false);
+  })).catch(() => false);
 }
