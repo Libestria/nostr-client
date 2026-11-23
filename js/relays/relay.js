@@ -1,5 +1,7 @@
 // Une connexion WebSocket vers un relais : reconnexion (backoff exponentiel),
 // limite d'abonnements simultanés, plafond d'événements entrants par seconde.
+import { readJsonLimited } from '../nostr/http.js';
+
 const MAX_EVENTS_PER_SEC = 500;
 const MAX_MESSAGE_CHARS = 1_000_000;
 const BACKOFF_MAX_MS = 60_000;
@@ -217,7 +219,7 @@ export class Relay {
       const res = await fetch(this.url.replace(/^wss:/, 'https:'), {
         headers: { Accept: 'application/nostr+json' }, credentials: 'omit', referrerPolicy: 'no-referrer', signal: ctl.signal });
       if (!res.ok) return;
-      const j = await res.json();
+      const j = await readJsonLimited(res);
       const s = (v) => (typeof v === 'string' ? v.slice(0, 200) : undefined);
       this.info = { name: s(j.name), description: s(j.description), software: s(j.software) };
       const ms = j?.limitation?.max_subscriptions;
