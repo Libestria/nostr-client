@@ -93,3 +93,13 @@ test('export / import : aller-retour, nettoyage et plan', () => {
   for (const [txt, code] of [['pas du json', 'INVALID'], [JSON.stringify({ app: 'autre', version: 1 }), 'WRONG_APP'], [JSON.stringify({ ...b, note: 'nsec1' + 'q'.repeat(58) }), 'PRIVATE_KEY'], ['x'.repeat(400000), 'TOO_BIG']])
     assert.throws(() => parseBackup(txt), (e) => e instanceof BackupError && e.code === code);
 });
+
+import { groupOf, GROUPS } from '../js/nostr/notif.js';
+test('notifications : abonnés et groupes', () => {
+  const ME = 'a'.repeat(64), OTHER = 'b'.repeat(64);
+  const c = classify({ id: 'x', pubkey: OTHER, kind: 3, tags: [['p', ME]], content: '' }, ME);
+  assert.deepEqual(c, { type: 'follow', actor: OTHER, target: null });
+  assert.equal(classify({ id: 'x', pubkey: OTHER, kind: 3, tags: [['p', OTHER]], content: '' }, ME), null);
+  assert.deepEqual(['mention', 'reply', 'reaction', 'repost', 'zap', 'follow'].map(groupOf), ['mentions', 'mentions', 'reactions', 'reposts', 'zaps', 'follows']);
+  assert.equal(GROUPS.length, 5);
+});
