@@ -2,7 +2,8 @@
 import { parentId } from './thread.js';
 
 const HEX64 = /^[0-9a-f]{64}$/;
-export const emptyStats = () => ({ replies: 0, reposts: 0, reactions: 0, quotes: 0, reacted: false, reposted: false, seen: new Set() });
+const MAX_LIST = 500;
+export const emptyStats = () => ({ replies: 0, reposts: 0, reactions: 0, quotes: 0, reacted: false, reposted: false, seen: new Set(), reactors: [], reposters: [], quoted: [] });
 
 const refs = (ev, name) => (ev.tags ?? []).filter((t) => t[0] === name && HEX64.test(t[1] ?? '')).map((t) => t[1]);
 
@@ -18,20 +19,24 @@ export function addInteraction(stats, ev, targetId, me = null) {
   if (ev.kind === 7) {
     if (!refs(ev, 'e').includes(targetId) || ev.content === '-') return false;
     stats.reactions++; if (mine) stats.reacted = true;
+    if (stats.reactors.length < MAX_LIST) stats.reactors.push({ from: ev.pubkey, emoji: String(ev.content ?? '').slice(0, 20) || '+', at: ev.created_at });
   } else if (ev.kind === 6 || ev.kind === 16) {
     if (!refs(ev, 'e').includes(targetId)) return false;
     stats.reposts++; if (mine) stats.reposted = true;
+    if (stats.reposters.length < MAX_LIST) stats.reposters.push({ from: ev.pubkey, at: ev.created_at });
   } else if (ev.kind === 1) {
     if (ev.id === targetId) return false;
     if (parentId(ev) === targetId) stats.replies++;
-    else if (refs(ev, 'q').includes(targetId)) stats.quotes++;
+    else if (refs(ev, 'q').includes(targetId)) { stats.quotes++; if (stats.quoted.length < MAX_LIST) stats.quoted.push(ev); }
     else changed = false;
   } else return false;
   if (changed) stats.seen.add(ev.id);
   return changed;
 }
 
-export const snapshot = (s) => ({ replies: s.replies, reposts: s.reposts, reactions: s.reactions, quotes: s.quotes, reacted: s.reacted, reposted: s.reposted });
+const byDate = (a, b) => (b.at ?? b.created_at) - (a.at ?? a.created_at);
+export const snapshot = (s) => ({ replies: s.replies, reposts: s.reposts, reactions: s.reactions, quotes: s.quotes, reacted: s.reacted, reposted: s.reposted,
+  reactors: [...s.reactors].sort(byDate), reposters: [...s.reposters].sort(byDate), quoted: [...s.quoted].sort(byDate) });
 
 // Nombre compact : 1 234 → « 1,2 k ».
 export function compact(n, lang = 'fr') {
