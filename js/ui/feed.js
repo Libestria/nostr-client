@@ -40,7 +40,7 @@ export function renderFeed(main, params = []) {
   if (!session) extra.push(el('p', {}, el('a', { class: 'btn', href: '#/login' }, t('login.cta'))));
   const compose = session && getSigner() ? el('section', { class: 'composer-box' }, composer({})) : null;
   main.replaceChildren(pageTitle('nav.feed'),
-    session ? el('nav', { class: 'tabs', 'aria-label': t('feed.tabs') }, tab('#/feed', 'feed.following', following), tab('#/feed/global', 'feed.globalTab', !following))
+    session ? el('nav', { class: 'tabs', 'aria-label': t('feed.tabs') }, tab('#/feed', 'feed.following', following), tab('#/feed/global', 'feed.globalTab', !following), tab('#/bookmarks', 'nav.bookmarks', false))
       : el('p', {}, t('feed.global')),
     ...(compose ? [compose] : []), status, el('div', { class: 'row' }, reload), holder, list, more, ...extra);
 

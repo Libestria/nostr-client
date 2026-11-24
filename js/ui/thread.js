@@ -44,7 +44,7 @@ export function renderThread(main, params) {
     if (!roots.length) return;
     holder.replaceChildren();
     const render = (node) => {
-      const card = noteCard(node.event);
+      const card = noteCard(node.event, { detail: node.event.id === focusId });
       if (node.event.id === focusId) card.classList.add('note-focus');
       const li = el('li', { class: 'thread-item', 'data-depth': node.depth }, card);
       if (node.children.length) {
