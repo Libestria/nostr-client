@@ -1,3 +1,4 @@
+import { validTemplate } from '../nostr/linkpreview.js';
 // Réglages locaux : JSON versionné dans localStorage.
 const KEY = 'nostr-client:settings';
 const VERSION = 1;
@@ -9,6 +10,8 @@ export const defaults = () => ({
   theme: 'dark',
   lang: (navigator.language || '').startsWith('fr') ? 'fr' : 'en',
   loadMedia: true,
+  linkPreviews: true,
+  previewService: 'https://api.microlink.io/?url={url}',
   readOnly: false,
   browserNotify: false,
   muted: { pubkeys: [], words: [], events: [] },
@@ -22,6 +25,8 @@ function normalize(raw) {
     theme: THEMES.includes(s.theme) ? s.theme : d.theme,
     lang: LANGS.includes(s.lang) ? s.lang : d.lang,
     loadMedia: typeof s.loadMedia === 'boolean' ? s.loadMedia : d.loadMedia,
+    linkPreviews: typeof s.linkPreviews === 'boolean' ? s.linkPreviews : d.linkPreviews,
+    previewService: validTemplate(s.previewService) ? s.previewService : d.previewService,
     readOnly: typeof s.readOnly === 'boolean' ? s.readOnly : d.readOnly,
     browserNotify: typeof s.browserNotify === 'boolean' ? s.browserNotify : d.browserNotify,
     muted: {
