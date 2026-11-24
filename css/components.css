@@ -386,3 +386,76 @@ button.act:disabled { cursor: default; opacity: 1; }
 .avatar-sm { width: 22px; height: 22px; }
 .quote-text { white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
 .quote-slot .hint { margin: 0; }
+
+/* Pastille profil (repost / réponse), avatar et nom agrandis, favicon NIP-05, ligne de temps décalée */
+.ctx-pill { display: inline-flex; align-items: center; gap: .3rem; margin-inline: .35rem; padding: 1px 8px 1px 2px; border: 1px solid rgb(127 127 127 / .35); border-radius: 999px; background: rgb(127 127 127 / .1); color: var(--ink); font-weight: 600; text-decoration: none; line-height: 1.3; max-width: 60%; }
+.ctx-pill .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ctx-pill:hover, .ctx-pill:focus-visible { background: rgb(127 127 127 / .22); }
+.avatar-xs { width: 18px; height: 18px; border: 0; }
+.avatar-note { width: 56px; height: 56px; }
+.author-block .author-name { font-size: 1.12rem; }
+.n05-fav { width: 14px; height: 14px; vertical-align: -2px; border-radius: 3px; }
+.note-meta { padding-left: 20px; }
+
+/* ===== Fenêtres de type iOS (menu « … », détails, nouvelle note, menu latéral, zap) ===== */
+.note-menu, .stats-dialog, .compose-dialog, .drawer {
+  background: var(--sheet-solid); color: var(--ink);
+  border: 1px solid var(--sheet-edge); border-radius: 22px; box-shadow: var(--sheet-shadow);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .note-menu, .stats-dialog, .compose-dialog, .drawer { background: var(--sheet-bg); -webkit-backdrop-filter: blur(30px) saturate(1.6); backdrop-filter: blur(30px) saturate(1.6); }
+  .note-menu::backdrop, .stats-dialog::backdrop, .compose-dialog::backdrop, .drawer::backdrop { -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+}
+.note-menu::backdrop, .stats-dialog::backdrop, .compose-dialog::backdrop, .drawer::backdrop { background: rgb(0 0 0 / .35); }
+.drawer { border-radius: 0 22px 22px 0; border-left: 0; }
+
+/* Entrée en fondu + léger zoom depuis le bouton */
+@keyframes sheet-in { from { opacity: 0; transform: scale(.93); } to { opacity: 1; transform: none; } }
+.note-menu[open], .stats-dialog[open], .compose-dialog[open] { animation: sheet-in .16s ease-out; }
+@media (prefers-reduced-motion: reduce) { .note-menu[open], .stats-dialog[open], .compose-dialog[open] { animation: none; } }
+
+/* Menu « … » : titre actuel, puis liste groupée */
+.note-menu { width: min(78vw, 19rem); max-height: none; padding: 0; overflow-y: auto; overscroll-behavior: contain; }
+.note-menu .sd-head { padding: .7rem .75rem .7rem 1.1rem; border-bottom: 1px solid var(--sheet-sep); }
+.note-menu .sd-head h2 { font-size: 1rem; font-weight: 600; }
+.nm-list { list-style: none; margin: 0; padding: 0; }
+.nm-list li { margin: 0; }
+.nm-list li + li:not(.nm-gap) > :is(button, a) { border-top: 1px solid var(--sheet-sep); }
+.nm-list li.nm-gap + li > :is(button, a) { border-top: 0; }
+.nm-list :is(button, a) { display: flex; align-items: center; gap: .9rem; width: 100%; min-height: 50px; padding: 0 1.1rem; border: 0; border-radius: 0; background: none; color: var(--ink); font: inherit; font-size: 1.05rem; text-align: left; text-decoration: none; cursor: pointer; }
+.nm-list :is(button, a):hover, .nm-list :is(button, a):focus-visible { background: var(--sheet-hover); color: var(--ink); outline: none; }
+.nm-list :is(button, a):disabled { opacity: .5; }
+.nm-list .icon { color: var(--ink); flex: none; }
+.nm-gap { height: 7px; background: var(--sheet-gap); }
+.nm-list .nm-warn, .nm-list .nm-warn .icon { color: var(--sheet-danger) !important; }
+.nm-details { margin: 0; padding: .6rem 1.1rem; border: 0; border-top: 1px solid var(--sheet-sep); border-radius: 0; background: var(--sheet-gap); }
+.note-menu > .note-msg { margin: 0; padding: .6rem 1.1rem; border-top: 1px solid var(--sheet-sep); }
+
+/* En-têtes et boutons de fermeture des fenêtres */
+.stats-dialog .sd-bar, .compose-dialog .sd-head { background: none; border-bottom: 1px solid var(--sheet-sep); }
+:is(.note-menu .sd-head, .stats-dialog .sd-bar, .compose-dialog .sd-head) .btn { min-height: 32px; padding: 0 .85rem; border: 0; border-radius: 999px; background: var(--sheet-hover); color: var(--ink); }
+:is(.note-menu .sd-head, .stats-dialog .sd-bar, .compose-dialog .sd-head) .btn:hover { background: var(--sheet-sep); }
+.compose-dialog .sd-head .btn-primary { background: var(--accent); color: var(--accent-ink, #000); }
+
+/* Détails (réactions, reposts, citations, zaps) : liste groupée à filets */
+.stats-dialog { width: min(92vw, 28rem); overflow: hidden; }
+.stats-dialog[open] { display: flex; flex-direction: column; }
+.stats-dialog .sd-list { padding: 0; gap: 0; overflow-y: auto; }
+.stats-dialog .sd-item { padding: .7rem 1.1rem; border: 0; border-radius: 0; }
+.stats-dialog .sd-item + .sd-item { border-top: 1px solid var(--sheet-sep); }
+.stats-dialog .hint { padding: .9rem 1.1rem; margin: 0; }
+
+/* Menu latéral : mêmes couleurs, filets et survol */
+.drawer-list a, .drawer-logout { border-radius: 12px; }
+.drawer-list a:hover, .drawer-list a:focus-visible, .drawer-logout:hover, .drawer-logout:focus-visible { background: var(--sheet-hover); color: var(--ink); }
+.drawer-list .icon, .drawer-logout .icon { color: var(--ink); }
+.drawer-foot { border-top: 1px solid var(--sheet-sep); }
+.drawer-logout, .drawer-logout .icon, .drawer-logout:hover, .drawer-logout:focus-visible { color: var(--sheet-danger); }
+
+/* Panneau de zap (intégré à la note) : même style de bloc */
+.zap-panel { border: 1px solid var(--sheet-edge); border-radius: 18px; background: var(--sheet-solid); }
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) { .zap-panel { background: var(--sheet-bg); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); } }
+.drawer-close { min-height: 32px; min-width: 32px; padding: 0; border: 0; border-radius: 999px; background: rgb(0 0 0 / .4); color: #fff; }
+.zap-head { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+.zap-head h3 { margin: 0; }
+.zap-x { min-height: 32px; min-width: 32px; padding: 0; border: 0; border-radius: 999px; background: var(--sheet-hover); color: var(--ink); }

@@ -53,3 +53,10 @@
   --grad-title: linear-gradient(105deg, #d9a4ff 0%, #b45cff 25%, #f26adf 52%, #8e7bff 75%, #39c8ff 100%);
   --scrim: rgb(0 0 0 / 68%);
 }
+
+/* Fenêtres de type iOS : fond translucide, filets fins, rouge système pour les actions destructrices */
+:root { --sheet-bg: rgb(246 246 250 / .86); --sheet-solid: #f2f2f7; --sheet-sep: rgb(60 60 67 / .2); --sheet-edge: rgb(255 255 255 / .7); --sheet-hover: rgb(60 60 67 / .1); --sheet-gap: rgb(60 60 67 / .08); --sheet-danger: #ff3b30; --sheet-shadow: 0 12px 40px rgb(0 0 0 / .25); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --sheet-bg: rgb(44 44 46 / .82); --sheet-solid: #2c2c2e; --sheet-sep: rgb(255 255 255 / .14); --sheet-edge: rgb(255 255 255 / .12); --sheet-hover: rgb(255 255 255 / .1); --sheet-gap: rgb(0 0 0 / .22); --sheet-danger: #ff453a; --sheet-shadow: 0 12px 40px rgb(0 0 0 / .6); }
+}
+:root[data-theme="dark"] { --sheet-bg: rgb(44 44 46 / .82); --sheet-solid: #2c2c2e; --sheet-sep: rgb(255 255 255 / .14); --sheet-edge: rgb(255 255 255 / .12); --sheet-hover: rgb(255 255 255 / .1); --sheet-gap: rgb(0 0 0 / .22); --sheet-danger: #ff453a; --sheet-shadow: 0 12px 40px rgb(0 0 0 / .6); }
