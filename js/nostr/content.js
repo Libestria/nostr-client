@@ -3,7 +3,7 @@
 import { decode, noteEncode } from './nip19.js';
 
 // Pas de « lookbehind » (absent des anciens Safari) : le caractère qui précède est capturé puis rendu au texte.
-const TOKEN = /(^|[^a-z0-9])(?:nostr:)?((?:npub|nprofile|nevent|note)1[02-9ac-hj-np-z]{20,})|(https:\/\/[^\s<>"'`]+)|(^|[^\p{L}\p{N}_&#/])#([\p{L}\p{N}_]{1,60})/giu;
+const TOKEN = /(^|[^a-z0-9])(?:nostr:)?((?:npub|nprofile|nevent|note|naddr)1[02-9ac-hj-np-z]{20,})|(https:\/\/[^\s<>"'`]+)|(^|[^\p{L}\p{N}_&#/])#([\p{L}\p{N}_]{1,60})/giu;
 const IMAGE = /\.(?:jpe?g|png|gif|webp|avif)$/i;
 const TRAILING = /[.,;:!?)\]}»”’]+$/;
 
@@ -35,6 +35,7 @@ export function tokenizeContent(text) {
         else if (d.type === 'nprofile') token = { type: 'mention', pubkey: d.data.pubkey };
         else if (d.type === 'note') token = { type: 'note', id: d.data };
         else if (d.type === 'nevent') token = { type: 'note', id: d.data.id };
+        else if (d.type === 'naddr') token = { type: 'addr', kind: d.data.kind, pubkey: d.data.pubkey, identifier: d.data.identifier };
       } catch { /* référence invalide : laissée en texte */ }
     } else if (url) {
       const trimmed = url.replace(TRAILING, '');
@@ -48,6 +49,19 @@ export function tokenizeContent(text) {
     last = end;
   }
   pushText(src.slice(last));
+  return out;
+}
+
+// Références à afficher en carte sous la note : au plus 3, sans doublon → [{ id } | { kind, pubkey, identifier }]
+export function quoteRefs(tokens, max = 3) {
+  const seen = new Set(), out = [];
+  for (const tk of tokens) {
+    const ref = tk.type === 'note' ? { id: tk.id } : tk.type === 'addr' ? { kind: tk.kind, pubkey: tk.pubkey, identifier: tk.identifier } : null;
+    if (!ref) continue;
+    const key = ref.id ?? `${ref.kind}:${ref.pubkey}:${ref.identifier}`;
+    if (seen.has(key) || out.length >= max) continue;
+    seen.add(key); out.push(ref);
+  }
   return out;
 }
 

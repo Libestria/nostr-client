@@ -132,6 +132,15 @@ export function nprofileEncode({ pubkey, relays = [] }) {
   return bech32Encode('nprofile', Uint8Array.from(parts.flatMap((p) => [...p])));
 }
 
+export function naddrEncode({ identifier, pubkey, kind: k, relays = [] }) {
+  const enc = new TextEncoder();
+  const id = enc.encode(identifier);
+  const kb = Uint8Array.of((k >>> 24) & 255, (k >>> 16) & 255, (k >>> 8) & 255, k & 255);
+  const parts = [Uint8Array.of(0, id.length, ...id), Uint8Array.of(2, 32, ...need(pubkey)), Uint8Array.of(3, 4, ...kb)];
+  for (const r of relays) { const b = enc.encode(r); parts.push(Uint8Array.of(1, b.length, ...b)); }
+  return bech32Encode('naddr', Uint8Array.from(parts.flatMap((p) => [...p])));
+}
+
 // LNURL (LUD-01) : URL https encodée en bech32 (hrp « lnurl »), utilisée dans la demande de zap.
 export const lnurlEncode = (url) => bech32Encode('lnurl', new TextEncoder().encode(url));
 export function lnurlDecode(str) {
