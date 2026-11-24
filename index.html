@@ -12,10 +12,10 @@
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <meta name="apple-mobile-web-app-title" content="Nostr">
   <link rel="preload" href="fonts/exo-2-v26-latin-regular.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/themes.css?v=m9c">
-  <link rel="stylesheet" href="css/base.css?v=m9c">
-  <link rel="stylesheet" href="css/layout.css?v=m9c">
-  <link rel="stylesheet" href="css/components.css?v=m9c">
+  <link rel="stylesheet" href="css/themes.css?v=m11">
+  <link rel="stylesheet" href="css/base.css?v=m11">
+  <link rel="stylesheet" href="css/layout.css?v=m11">
+  <link rel="stylesheet" href="css/components.css?v=m11">
 </head>
 <body>
   <button type="button" class="skip" id="skip" data-i18n="skip">Aller au contenu</button>
@@ -24,13 +24,14 @@
     <nav id="nav" class="nav" aria-label="Navigation principale">
       <span class="brand" aria-hidden="true">nostr</span>
       <ul>
-        <li><a href="#/login" data-route="login" data-i18n="nav.login">Connexion</a></li>
-        <li><a href="#/feed" data-route="feed" data-i18n="nav.feed">Accueil</a></li>
-        <li><a href="#/search" data-route="search" data-i18n="nav.search">Recherche</a></li>
-        <li><a href="#/notifications" data-route="notifications" data-i18n="nav.notifications">Notifications</a></li>
-        <li><a href="#/messages" data-route="messages" data-i18n="nav.messages">Messages</a></li>
-        <li><a href="#/profile" data-route="profile" data-i18n="nav.profile">Profil</a></li>
-        <li><a href="#/settings" data-route="settings" data-i18n="nav.settings">Réglages</a></li>
+        <li><a href="#/login" data-route="login"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.login">Connexion</span></a></li>
+        <li><a href="#/feed" data-route="feed"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.feed">Accueil</span></a></li>
+        <li><a href="#/bookmarks" data-route="bookmarks"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.bookmarks">Favoris</span></a></li>
+        <li><a href="#/search" data-route="search"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.search">Recherche</span></a></li>
+        <li><a href="#/notifications" data-route="notifications"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.notifications">Notifications</span></a></li>
+        <li><a href="#/messages" data-route="messages"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.messages">Messages</span></a></li>
+        <li class="desk-only"><a href="#/profile" data-route="profile"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.profile">Profil</span></a></li>
+        <li class="desk-only"><a href="#/settings" data-route="settings"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.settings">Réglages</span></a></li>
       </ul>
     </nav>
     <main id="view" tabindex="-1"></main>
@@ -59,6 +60,7 @@
   <link rel="modulepreload" href="js/ui/profile.js">
   <link rel="modulepreload" href="js/ui/search.js">
   <link rel="modulepreload" href="js/ui/settings.js">
+  <link rel="modulepreload" href="js/ui/shell.js">
   <link rel="modulepreload" href="js/ui/thread.js">
   <link rel="modulepreload" href="js/wallet.js">
   <link rel="modulepreload" href="js/nostr/bookmarks.js">
@@ -91,6 +93,7 @@
   <link rel="modulepreload" href="js/storage/vault.js">
   <link rel="modulepreload" href="js/ui/backup.js">
   <link rel="modulepreload" href="js/ui/composer.js">
+  <link rel="modulepreload" href="js/ui/icons.js">
   <link rel="modulepreload" href="js/ui/mute.js">
   <link rel="modulepreload" href="js/ui/note.js">
   <link rel="modulepreload" href="js/ui/profile-edit.js">
@@ -104,9 +107,9 @@
   <link rel="modulepreload" href="js/nostr/stats.js">
   <link rel="modulepreload" href="js/nostr/verifier.js">
   <link rel="modulepreload" href="js/stats.js">
-  <link rel="modulepreload" href="js/ui/icons.js">
+  <link rel="modulepreload" href="js/ui/notemenu.js">
   <link rel="modulepreload" href="js/ui/statsdialog.js">
-  <script src="js/boot-check.js?v=m9c" defer></script>
-  <script type="module" src="js/main.js?v=m9c"></script>
+  <script src="js/boot-check.js?v=m11" defer></script>
+  <script type="module" src="js/main.js?v=m11"></script>
 </body>
 </html>
