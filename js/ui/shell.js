@@ -65,13 +65,13 @@ function buildTopbar() {
   }
 
   open.addEventListener('click', async () => {
-    const drawer = el('dialog', { class: 'drawer', 'aria-label': t('shell.account') });
+    const drawer = el('dialog', { class: 'drawer', 'aria-label': t('shell.account'), tabindex: '-1', autofocus: '' });
     await fill(drawer);
     drawer.addEventListener('click', (e) => { if (e.target === drawer) drawer.close(); });
     drawer.addEventListener('close', () => { drawer.remove(); open.focus(); });
     document.body.append(drawer);
     drawer.showModal?.() ?? drawer.setAttribute('open', '');
-    drawer.querySelector('a')?.focus();
+    drawer.focus();
   });
   state.on('session', refresh);
   onProfiles(refresh);

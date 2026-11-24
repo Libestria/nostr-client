@@ -7,7 +7,7 @@ import { buildDeletion } from '../nostr/compose.js';
 import { publishEvent } from '../publish.js';
 import { deleteEvent } from '../storage/db.js';
 import { editMute } from '../mute.js';
-import { el, anchorDialog } from './common.js';
+import { el } from './common.js';
 import { icon } from './icons.js';
 import { showResult, errorKey } from './composer.js';
 
@@ -19,10 +19,9 @@ async function copy(text) {
 
 // opts : { via, opener, onHidden(), onDeleted() }
 export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDeleted } = {}) {
-  let anchor = { place() {}, stop() {} };
   const signer = getSigner();
   const mine = !!signer && signer.pubkey === ev.pubkey;
-  const dlg = el('dialog', { class: 'note-menu', 'aria-label': t('menu.note') });
+  const dlg = el('dialog', { class: 'note-menu', 'aria-label': t('menu.note'), tabindex: '-1', autofocus: '' });
   const msg = el('div', { class: 'note-msg', role: 'status' });
   const close = el('button', { type: 'button', class: 'btn btn-small', 'aria-label': t('shell.menu.close') }, '✕');
   close.addEventListener('click', () => dlg.close());
@@ -41,6 +40,7 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
   };
   const say = (key) => msg.replaceChildren(t(key));
 
+  add('copy', t('note.copyText'), async () => say((await copy(ev.content)) ? 'note.copied' : 'compose.err.generic'), { group: 1 });
   add('copy', t('note.copyLink'), async () => say((await copy(linkOf(ev))) ? 'note.copied' : 'compose.err.generic'), { group: 1 });
   if (typeof navigator.share === 'function') add('repost', t('note.share'), async () => { try { await navigator.share({ url: linkOf(ev), text: `nostr:${noteEncode(ev.id)}` }); } catch { /* annulé */ } }, { group: 1 });
   add('copy', t('note.copyId'), async () => say((await copy(noteEncode(ev.id))) ? 'note.copied' : 'compose.err.generic'), { group: 1 });
@@ -53,7 +53,6 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
       ...row('note.d.date', new Date(ev.created_at * 1000).toLocaleString(document.documentElement.lang || 'fr')), ...row('note.d.kind', String(ev.kind)),
       ...(via ? row('note.d.relay', via.replace(/^wss:\/\//, '')) : []));
     detailsBox.hidden = false;
-    anchor.place();
   }, { group: 2 });
 
   if (signer && !mine) {
@@ -88,10 +87,8 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
   }
 
   dlg.append(el('div', { class: 'sd-head' }, el('h2', {}, t('menu.note')), close), list, detailsBox, msg);
-  dlg.addEventListener('close', () => { anchor.stop(); dlg.remove(); opener?.focus?.(); });
+  dlg.addEventListener('close', () => { dlg.remove(); opener?.focus?.(); });
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
   document.body.append(dlg);
   dlg.showModal?.() ?? dlg.setAttribute('open', '');
-  anchor = anchorDialog(dlg, opener);
-  list.querySelector('button, a')?.focus();
 }

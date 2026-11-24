@@ -62,6 +62,9 @@ export function authorLink(pk) {
   return a;
 }
 
+// Emplacements courants du favicon d'un site, essayés dans l'ordre.
+const FAVICONS = ['/favicon.ico', '/favicon.png', '/favicon.svg', '/apple-touch-icon.png', '/favicon-32x32.png', '/favicon-96x96.png'];
+
 // NIP-05 sous le nom : vert si vérifié, rouge si l'identifiant ne désigne pas ce compte, gris tant que la vérification n'a pas abouti.
 function nip05Line(pk) {
   const line = el('span', { class: 'nip05-line', 'data-pk': pk });
@@ -77,8 +80,11 @@ function nip05Line(pk) {
     if (st === 'ok' && state.get('settings')?.loadMedia !== false) {
       const dom = parseIdentifier(id)?.domain;
       if (dom) {
-        const fav = el('img', { class: 'n05-fav', src: `https://${dom}/favicon.ico`, alt: '', width: 14, height: 14, loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
-        fav.addEventListener('error', () => fav.remove());
+        const fav = el('img', { class: 'n05-fav', alt: '', width: 14, height: 14, decoding: 'async', referrerpolicy: 'no-referrer' });
+        const paths = FAVICONS.map((x) => `https://${dom}${x}`);
+        let i = 0;
+        fav.addEventListener('error', () => { if (++i < paths.length) fav.src = paths[i]; else fav.remove(); });
+        fav.src = paths[0];
         line.append(' ', fav);
       }
     }
@@ -347,6 +353,12 @@ function articleCard(ev, detail) {
   return detail ? [card, el('div', { class: 'article-body' }, ...renderContent(ev.content.slice(0, 20000)))] : [card];
 }
 
+// « Il y a 21 secondes » ; « À l'instant » reste seul.
+function agoLabel(ts) {
+  const now = t('time.now'), v = fullAgo(ts, undefined, now);
+  return v === now ? v : t('time.ago', { t: v });
+}
+
 // Note masquée (sourdine) : un bandeau avec la raison et un bouton pour l'afficher quand même.
 export function noteCard(ev, opts = {}) {
   const reason = opts.force ? null : isMuted(ev);
@@ -360,14 +372,14 @@ export function noteCard(ev, opts = {}) {
 
 function buildNoteCard(ev, { via, author = true, detail = false, repostedBy = null } = {}) {
   const moreBtn = el('button', { type: 'button', class: 'note-more', 'aria-haspopup': 'dialog', 'aria-label': t('menu.note.more'), title: t('menu.note.more') }, icon('more', 20));
+  const openBtn = el('a', { class: 'note-open', href: noteHref(ev.id), 'aria-label': t('note.open'), title: t('note.open') }, icon('open', 18));
   const text = ev.content.length > 600 ? `${ev.content.slice(0, 600)}…` : ev.content;
   const client = clientName(ev);
-  const article = el('article', { class: 'note' },
+  const article = el('article', { class: detail ? 'note note-detail' : 'note' },
     contextLine(ev, repostedBy, detail),
-    el('div', { class: 'note-head' }, author ? authorBlock(ev.pubkey) : el('span'), moreBtn),
+    el('div', { class: 'note-head' }, author ? authorBlock(ev.pubkey) : el('span'), detail ? null : openBtn, moreBtn),
     el('p', { class: 'note-meta' }, '• ',
-      el('a', { class: 'note-time', href: noteHref(ev.id), 'aria-label': t('note.open') },
-        el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, fullAgo(ev.created_at, undefined, t('time.now')))),
+      el('time', { class: 'note-time', datetime: new Date(ev.created_at * 1000).toISOString() }, agoLabel(ev.created_at)),
       client ? el('span', { class: 'note-client' }, ` ${t('note.via', { client })}`) : null),
     ...(ev.kind === ARTICLE_KIND ? articleCard(ev, detail) : [el('p', { class: 'note-text' }, ...renderContent(text, { hideRefs: true })), quoteCards(text), linkCard(text)]));
   moreBtn.addEventListener('click', () => openNoteMenu(ev, { via, opener: moreBtn,

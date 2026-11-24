@@ -25,7 +25,7 @@ export function openStatsDialog(key, getData, opener) {
   const list = el('ul', { class: 'sd-list' });
   const title = el('h2', { id: `sd-title-${key}` }, t(`note.stat.${key}`));
   const close = el('button', { type: 'button', class: 'btn btn-small', 'aria-label': t('zap.close') }, '✕');
-  const dlg = el('dialog', { class: 'stats-dialog', 'aria-labelledby': title.id }, el('div', { class: 'sd-bar' }, title, close), list);
+  const dlg = el('dialog', { class: 'stats-dialog', 'aria-labelledby': title.id, tabindex: '-1', autofocus: '' }, el('div', { class: 'sd-bar' }, title, close), list);
   const fill = () => {
     const items = BUILDERS[key](getData()).slice(0, MAX_SHOWN);
     list.replaceChildren(...(items.length ? items : [el('li', { class: 'hint' }, t('stats.empty'))]));
@@ -39,6 +39,6 @@ export function openStatsDialog(key, getData, opener) {
   document.body.append(dlg);
   fill();
   if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
-  close.focus();
+  dlg.focus();
   return { update: () => { if (dlg.isConnected) fill(); } };
 }
