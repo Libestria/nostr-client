@@ -19,7 +19,7 @@
 | 46 | Signeur distant | `bunker://` et `nostrconnect://` |
 | 47 | Nostr Wallet Connect | Secret chiffré par mot de passe (WebCrypto), plafond en sats |
 | 50 | Recherche | Relais de recherche, WebSocket temporaires |
-| 51 | Listes (sourdine kind 10000) | Partie privée chiffrée conservée |
+| 51 | Listes : sourdine (kind 10000), favoris (kind 10003) | Partie privée chiffrée conservée |
 | 57 | Zaps | Reçus vérifiés (clé du fournisseur, montant) |
 | 59 | Gift wrap | Clé éphémère par message |
 | 65 | Relais (kind 10002) | Modèle outbox |
