@@ -186,7 +186,7 @@
   "note.like": "J'aime",
   "note.liked": "Aimé",
   "note.repost": "Reposter",
-  "note.reposted": "Reposté",
+  "note.reposted": "a reposté",
   "note.delete": "Supprimer",
   "note.delete.confirm": "Confirmer la suppression",
   "note.delete.hint": "Une demande de suppression sera envoyée aux relais ; elle n'est pas garantie.",
@@ -455,5 +455,16 @@
   "settings.sec.wallet": "Portefeuille",
   "settings.sec.backup": "Sauvegarde",
   "settings.back": "← Réglages",
-  "profile.followsYou": "Vous suit"
+  "profile.followsYou": "Vous suit",
+  "shell.cancel": "Annuler",
+  "note.via": "via {client}",
+  "settings.previews": "Aperçus de liens",
+  "settings.previews.hint": "Affiche l'image et le titre des pages liées. Chaque adresse affichée est envoyée au service d'aperçu ci-dessous, qui voit ton adresse IP. Désactive si tu préfères ne rien envoyer.",
+  "settings.previewService": "Service d'aperçu",
+  "settings.previewService.hint": "Adresse https contenant {url}. Tu peux indiquer ton propre service.",
+  "settings.previewService.invalid": "Adresse invalide : https obligatoire, avec {url}.",
+  "link.preview": "Aperçu du lien",
+  "article.untitled": "Article sans titre",
+  "note.replyTo": "En réponse à",
+  "note.quote.loading": "Chargement de la note citée…"
 }
