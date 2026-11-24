@@ -10,14 +10,18 @@ import { searchRelays } from '../relays/search.js';
 import { acceptProfileEvent, requestProfile } from '../profiles.js';
 import { putEvent } from '../storage/db.js';
 import { el, pageTitle, stateBlock, shortNpub } from './common.js';
-import { noteCard, updateAuthors } from './note.js';
+import { noteCard, updateAuthors, avatarNode } from './note.js';
+import { icon } from './icons.js';
 import { onProfiles } from '../profiles.js';
 
 // #/search (formulaire) ou #/search/<saisie> : npub, nprofile, note, nevent, adresse NIP-05 ou texte (NIP-50).
 export function renderSearch(main, params = []) {
   const query = params.join('/');
   const input = el('input', { type: 'search', id: 'q', value: query, maxlength: 200, autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false' });
-  const form = el('form', { class: 'add-relay', role: 'search' }, el('label', { for: 'q' }, t('search.label')), input, el('button', { type: 'submit', class: 'btn' }, t('search.go')));
+  input.setAttribute('aria-label', t('search.label'));
+  input.setAttribute('placeholder', t('search.label'));
+  input.setAttribute('enterkeyhint', 'search');
+  const form = el('form', { class: 'searchbox', role: 'search' }, icon('search', 20), input, el('button', { type: 'submit', class: 'searchbox-go', 'aria-label': t('search.go'), title: t('search.go') }, icon('chevron', 20)));
   form.addEventListener('submit', (e) => { e.preventDefault(); const v = input.value.trim(); location.hash = v ? `#/search/${encodeURIComponent(v)}` : '#/search'; });
   const out = el('div', { class: 'search-results', 'aria-live': 'polite' });
   main.replaceChildren(pageTitle('nav.search'), form, out);
@@ -48,9 +52,10 @@ export function renderSearch(main, params = []) {
     notes.forEach((n) => requestProfile(n.pubkey));
     const status = el('p', { class: 'status', role: 'status' }, t('search.status', { ok: responded, total, n: notes.length + profiles.length }));
     const sections = [status];
-    if (profiles.length) sections.push(el('h2', {}, t('search.profiles')), el('ul', { class: 'dm-list' }, ...profiles.map(({ e, p }) => el('li', { class: 'card dm-item' },
-      el('a', { href: `#/profile/${npubEncode(e.pubkey)}` }, el('strong', {}, p.displayName || p.name || shortNpub(e.pubkey)), p.nip05 ? el('span', { class: 'ident' }, ` ${p.nip05}`) : null),
-      p.about ? el('p', {}, p.about.length > 140 ? `${p.about.slice(0, 140)}…` : p.about) : null))));
+    if (profiles.length) sections.push(el('h2', {}, t('search.profiles')), el('ul', { class: 'dm-list' }, ...profiles.map(({ e, p }) => el('li', { class: 'dm-row' },
+      el('a', { href: `#/profile/${npubEncode(e.pubkey)}` }, avatarNode(e.pubkey), el('span', { class: 'dm-body' },
+        el('span', { class: 'dm-top' }, el('strong', {}, p.displayName || p.name || shortNpub(e.pubkey)), p.nip05 ? el('span', { class: 'ident' }, p.nip05) : null),
+        p.about ? el('span', { class: 'dm-preview' }, p.about.length > 140 ? `${p.about.slice(0, 140)}…` : p.about) : null))))));
     if (notes.length) sections.push(el('h2', {}, t('search.notes')), el('div', { class: 'notes' }, ...notes.map((n) => noteCard(n))));
     if (!notes.length && !profiles.length) sections.push(stateBlock('empty', 'search.empty'));
     out.replaceChildren(...sections);

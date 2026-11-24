@@ -31,6 +31,22 @@ export function fillAuthor(node) {
   }
 }
 
+// Avatar seul (rond) pour les listes ; se met à jour avec updateAuthors().
+export function fillAvatar(av) {
+  const p = getCached(av.dataset.av);
+  if (p?.picture && state.get('settings')?.loadMedia && !av.firstChild) {
+    const img = el('img', { src: p.picture, alt: '', width: 44, height: 44, loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
+    img.addEventListener('error', () => img.remove());
+    av.append(img);
+  }
+}
+export function avatarNode(pk) {
+  requestProfile(pk);
+  const av = el('span', { class: 'avatar avatar-md', 'aria-hidden': 'true', 'data-av': pk });
+  fillAvatar(av);
+  return av;
+}
+
 export function authorLink(pk) {
   requestProfile(pk);
   const a = el('a', { class: 'author', href: `#/profile/${npubEncode(pk)}`, 'data-pk': pk },
@@ -45,6 +61,7 @@ function fillMention(node) {
 }
 export const updateAuthors = (root) => {
   root.querySelectorAll('.author[data-pk]').forEach(fillAuthor);
+  root.querySelectorAll('.avatar[data-av]').forEach(fillAvatar);
   root.querySelectorAll('.mention[data-pk]').forEach(fillMention);
 };
 

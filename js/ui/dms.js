@@ -7,6 +7,8 @@ import { conversations, conversationMessages, markRead, sendDm, startDms, dmStat
 import { pool } from '../relays/pool.js';
 import { partnersOf } from '../nostr/dm.js';
 import { el, pageTitle, stateBlock, shortNpub, timeAgo } from './common.js';
+import { avatarNode } from './note.js';
+import { icon } from './icons.js';
 
 const HEX64 = /^[0-9a-f]{64}$/;
 const nameOf = (pk) => { const p = getCached(pk); return p?.displayName || p?.name || shortNpub(pk); };
@@ -74,10 +76,10 @@ export function renderDms(main, params) {
     const parts = [title, el('p', {}, back), heading, el('div', { class: 'dm-banner' }, banner()), list];
     if (readOnlyGroup) parts.push(el('p', { class: 'status' }, t('dm.group')));
     else {
-      const ta = el('textarea', { id: 'dm-text', rows: 3, maxlength: 20000, 'aria-label': t('dm.input') });
-      const send = el('button', { type: 'submit', class: 'btn' }, t('dm.send'));
+      const ta = el('textarea', { id: 'dm-text', rows: 2, maxlength: 20000, 'aria-label': t('dm.input'), placeholder: t('dm.input') });
+      const send = el('button', { type: 'submit', class: 'btn dm-send', 'aria-label': t('dm.send'), title: t('dm.send') }, icon('send', 20));
       const result = el('p', { class: 'compose-result', role: 'status' });
-      const form = el('form', { class: 'composer' }, ta, el('div', {}, send), result);
+      const form = el('form', { class: 'composer dm-compose' }, el('div', { class: 'dm-inputrow' }, ta, send), result);
       form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const text = ta.value.trim();
@@ -125,10 +127,14 @@ export function renderDms(main, params) {
       list.replaceChildren(...convs.map((c) => {
         const group = c.participants.length > 2;
         const href = group ? `#/messages/group/${encodeURIComponent(c.conv)}` : `#/messages/${npubEncode(partnersOf(c.participants, me)[0])}`;
-        return el('li', { class: 'card dm-item' },
-          el('a', { href }, el('strong', {}, label(c.participants, me)), c.unread ? el('span', { class: 'badge' }, t('dm.unread', { n: c.unread })) : null),
-          el('p', {}, `${c.last.mine ? `${t('dm.me')} : ` : ''}${preview(c.last.content)}`),
-          el('time', { datetime: new Date(c.last.created_at * 1000).toISOString() }, timeAgo(c.last.created_at)));
+        const other = group ? c.participants.find((x) => x !== me) ?? c.participants[0] : partnersOf(c.participants, me)[0];
+        return el('li', { class: `dm-row${c.unread ? ' dm-unread' : ''}` },
+          el('a', { href, 'aria-label': c.unread ? `${label(c.participants, me)} (${t('dm.unread', { n: c.unread })})` : label(c.participants, me) },
+            avatarNode(other),
+            el('span', { class: 'dm-body' },
+              el('span', { class: 'dm-top' }, el('strong', {}, label(c.participants, me)), el('time', { datetime: new Date(c.last.created_at * 1000).toISOString() }, timeAgo(c.last.created_at))),
+              el('span', { class: 'dm-preview' }, `${c.last.mine ? `${t('dm.me')} : ` : ''}${preview(c.last.content)}`)),
+            c.unread ? el('span', { class: 'pill pill-inline', 'aria-hidden': 'true' }, c.unread > 99 ? '99+' : String(c.unread)) : null));
       }));
     };
     const legacyBox = el('details', { class: 'dm-legacy' }, el('summary', {}, t('dm.legacy.title')), el('p', { class: 'status' }, t('dm.legacy.warn')));
