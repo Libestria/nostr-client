@@ -394,5 +394,21 @@
   "backup.error.WRONG_APP": "This file was not created by this client.",
   "backup.error.INVALID": "Invalid file.",
   "compose.queued": "Offline: message queued, it will be published when the network is back.",
-  "state.queue": "{n} publication(s) queued"
+  "state.queue": "{n} publication(s) queued",
+  "note.stat.reactions": "reactions",
+  "note.stat.reposts": "reposts",
+  "note.stat.quotes": "quotes",
+  "note.stat.zaps": "zaps",
+  "note.stat.reactions.one": "reaction",
+  "note.stat.reposts.one": "repost",
+  "note.stat.quotes.one": "quote",
+  "note.stat.zaps.one": "zap",
+  "nav.bookmarks": "Bookmarks",
+  "bookmarks.empty": "No bookmarks yet. Use the bookmark icon under a note.",
+  "bookmarks.missing": "Note not found on your relays for now.",
+  "bookmark.add": "Add to bookmarks",
+  "bookmark.remove": "Remove from bookmarks",
+  "bookmark.notLoaded": "Your bookmark list is still loading, try again in a moment.",
+  "zaps.title": "Zaps",
+  "zaps.anon": "Anonymous"
 }

@@ -394,5 +394,21 @@
   "backup.error.WRONG_APP": "Ce fichier n'a pas été créé par ce client.",
   "backup.error.INVALID": "Fichier invalide.",
   "compose.queued": "Hors ligne : message mis en attente, il sera publié au retour du réseau.",
-  "state.queue": "{n} publication(s) en attente"
+  "state.queue": "{n} publication(s) en attente",
+  "note.stat.reactions": "réactions",
+  "note.stat.reposts": "reposts",
+  "note.stat.quotes": "citations",
+  "note.stat.zaps": "zaps",
+  "note.stat.reactions.one": "réaction",
+  "note.stat.reposts.one": "repost",
+  "note.stat.quotes.one": "citation",
+  "note.stat.zaps.one": "zap",
+  "nav.bookmarks": "Favoris",
+  "bookmarks.empty": "Aucun favori pour l'instant. Utilise l'icône marque-page sous une note.",
+  "bookmarks.missing": "Note introuvable sur tes relais pour le moment.",
+  "bookmark.add": "Ajouter aux favoris",
+  "bookmark.remove": "Retirer des favoris",
+  "bookmark.notLoaded": "Ta liste de favoris est en cours de chargement, réessaie dans un instant.",
+  "zaps.title": "Zaps",
+  "zaps.anon": "Anonyme"
 }
