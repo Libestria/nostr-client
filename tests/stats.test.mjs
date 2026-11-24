@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { emptyStats, addInteraction, targetsOf, compact } from '../js/nostr/stats.js';
+import { emptyStats, addInteraction, targetsOf, compact, snapshot } from '../js/nostr/stats.js';
 
 const H = (c) => c.repeat(64);
 const T = H('a'), ME = H('b'), OTHER = H('c');
@@ -35,3 +35,14 @@ test('événements sans rapport ou mal formés', () => {
   assert.deepEqual(targetsOf(ev({ tags: [['e', T], ['q', OTHER], ['e', 'x'], ['p', T]] })), [T, OTHER]);
 });
 test('compact', () => { assert.equal(compact(0), ''); assert.equal(compact(42), '42'); assert.match(compact(1234), /1,2/); });
+test('listes détaillées : auteurs, émojis, notes citées, triés du plus récent', () => {
+  const s = emptyStats();
+  addInteraction(s, ev({ id: H('1'), pubkey: H('5'), kind: 7, content: '🤙', tags: [['e', T]], created_at: 10 }), T);
+  addInteraction(s, ev({ id: H('2'), pubkey: H('6'), kind: 7, content: '+', tags: [['e', T]], created_at: 20 }), T);
+  addInteraction(s, ev({ id: H('3'), pubkey: H('7'), kind: 6, tags: [['e', T]], created_at: 5 }), T);
+  addInteraction(s, ev({ id: H('4'), kind: 1, content: 'cite', tags: [['q', T]], created_at: 7 }), T);
+  const snap = snapshot(s);
+  assert.deepEqual(snap.reactors.map((r) => r.emoji), ['+', '🤙']);
+  assert.equal(snap.reposters[0].from, H('7'));
+  assert.equal(snap.quoted[0].content, 'cite');
+});
