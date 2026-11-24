@@ -49,8 +49,11 @@ export function zapPanel({ recipient, event, onClose }) {
   const send = el('button', { type: 'submit', class: 'btn' }, t('zap.send'));
   const invoiceBox = el('div', { class: 'zap-invoice' });
   amountInput.addEventListener('input', () => { amount = Number(amountInput.value); });
-  const cancel = el('button', { type: 'button', class: 'btn btn-small' }, t('zap.close'));
-  cancel.addEventListener('click', () => { stop(); box.remove(); onClose?.(); });
+  const dismiss = () => { stop(); box.remove(); onClose?.(); };
+  const cancel = el('button', { type: 'button', class: 'btn btn-small' }, t('zap.cancel'));
+  cancel.addEventListener('click', dismiss);
+  const xBtn = el('button', { type: 'button', class: 'btn btn-small zap-x', 'aria-label': t('zap.close'), title: t('zap.close') }, '✕');
+  xBtn.addEventListener('click', dismiss);
 
   const load = async () => {
     lud16 = getCached(recipient)?.lud16;
@@ -123,7 +126,7 @@ export function zapPanel({ recipient, event, onClose }) {
     busy = false; send.disabled = false;
   });
 
-  box.append(el('h3', {}, t('zap.title')), el('div', { class: 'zap-chips' }, ...chips),
+  box.append(el('div', { class: 'zap-head' }, el('h3', {}, t('zap.title')), xBtn), el('div', { class: 'zap-chips' }, ...chips),
     el('label', {}, t('zap.amount'), amountInput), el('label', {}, t('zap.comment'), comment),
     el('div', {}, send, ' ', cancel), status, invoiceBox);
   return box;

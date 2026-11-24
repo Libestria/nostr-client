@@ -54,3 +54,37 @@ export function clientName(ev) {
   const name = tag?.[1].replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 40);
   return name || null;
 }
+
+// Temps écoulé en toutes lettres, sans « il y a » : « À l'instant », « 21 secondes », « 1 minute », « 3 heures », « 2 jours »…
+export function fullAgo(ts, lang = document.documentElement.lang || 'fr', nowLabel = "À l'instant") {
+  const s = Math.max(0, Math.floor(Date.now() / 1000) - ts);
+  if (s < 5) return nowLabel;
+  const [n, unit] = s < 60 ? [s, 'second'] : s < 3600 ? [Math.floor(s / 60), 'minute'] : s < 86400 ? [Math.floor(s / 3600), 'hour']
+    : s < 2592000 ? [Math.floor(s / 86400), 'day'] : s < 31536000 ? [Math.floor(s / 2592000), 'month'] : [Math.floor(s / 31536000), 'year'];
+  return new Intl.NumberFormat(lang, { style: 'unit', unit, unitDisplay: 'long' }).format(n);
+}
+
+// Ancre une fenêtre <dialog> (déjà ouverte) près de son bouton, alignée à droite, en dessous ou au-dessus selon la place.
+// Retourne { place, stop } : place() recalcule (après un changement de taille), stop() retire l'écouteur de redimensionnement.
+export function anchorDialog(dlg, opener, { gap = 6, margin = 8 } = {}) {
+  if (!opener?.getBoundingClientRect) return { place() {}, stop() {} };
+  const place = () => {
+    Object.assign(dlg.style, { position: 'fixed', inset: 'auto', margin: '0', height: 'auto', maxHeight: 'none', left: '0px', top: '0px' });
+    const r = opener.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const w = dlg.offsetWidth, h = dlg.offsetHeight;
+    const below = vh - r.bottom - gap - margin, above = r.top - gap - margin;
+    const useBelow = h <= below || below >= above;
+    const maxH = Math.max(120, useBelow ? below : above);
+    const hh = Math.min(h, maxH);
+    const top = useBelow ? r.bottom + gap : r.top - gap - hh;
+    Object.assign(dlg.style, {
+      left: `${Math.min(Math.max(r.right - w, margin), Math.max(margin, vw - w - margin))}px`,
+      top: `${Math.max(margin, top)}px`, maxHeight: `${maxH}px`,
+      transformOrigin: `${useBelow ? 'top' : 'bottom'} right`,
+    });
+  };
+  place();
+  window.addEventListener('resize', place);
+  return { place, stop: () => window.removeEventListener('resize', place) };
+}

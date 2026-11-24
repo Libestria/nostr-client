@@ -8,7 +8,8 @@ import { replyInfo } from '../nostr/noteinfo.js';
 import { fetchRef } from '../embed.js';
 import { buildReaction, buildRepost } from '../nostr/compose.js';
 import { publishEvent } from '../publish.js';
-import { el, shortNpub, shortAgo, clientName } from './common.js';
+import { el, shortNpub, fullAgo, clientName } from './common.js';
+import { parseIdentifier } from '../nostr/nip05.js';
 import { checkNip05, cachedNip05 } from '../nip05check.js';
 import { composer, showResult, errorKey } from './composer.js';
 import { zapPanel } from './zap.js';
@@ -73,6 +74,14 @@ function nip05Line(pk) {
     line.className = `nip05-line n05-${st ?? 'checking'}`;
     line.textContent = shown.length > 40 ? `${shown.slice(0, 40)}…` : shown;
     line.title = t(`nip05.${st ?? 'checking'}`);
+    if (st === 'ok' && state.get('settings')?.loadMedia !== false) {
+      const dom = parseIdentifier(id)?.domain;
+      if (dom) {
+        const fav = el('img', { class: 'n05-fav', src: `https://${dom}/favicon.ico`, alt: '', width: 14, height: 14, loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
+        fav.addEventListener('error', () => fav.remove());
+        line.append(' ', fav);
+      }
+    }
     if (!st && state.get('settings')?.loadMedia !== false && line.dataset.id !== id) {
       line.dataset.id = id;
       checkNip05(pk, id).then(() => { if (line.isConnected) paint(); });
@@ -93,7 +102,7 @@ function authorBlock(pk) {
     const p = getCached(pk);
     name.textContent = p?.displayName || p?.name || shortNpub(pk);
     if (p?.picture && state.get('settings')?.loadMedia && !av.firstChild) {
-      const img = el('img', { src: p.picture, alt: '', width: 48, height: 48, loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
+      const img = el('img', { src: p.picture, alt: '', width: 56, height: 56, loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
       img.addEventListener('error', () => img.remove());
       av.append(img);
     }
@@ -277,7 +286,7 @@ function quoteCards(text) {
       if (ev.kind === ARTICLE_KIND) { slot.replaceChildren(...articleCard(ev, false)); updateAuthors(slot); return; }
       const body = ev.content.length > 280 ? `${ev.content.slice(0, 280)}…` : ev.content;
       slot.replaceChildren(el('a', { class: 'quote-card', href: noteHref(ev.id) },
-        el('span', { class: 'quote-head' }, authorBlockSmall(ev.pubkey), el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, shortAgo(ev.created_at))),
+        el('span', { class: 'quote-head' }, authorBlockSmall(ev.pubkey), el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, fullAgo(ev.created_at, undefined, t('time.now')))),
         el('span', { class: 'quote-text' }, ...renderContent(body, { hideRefs: true }))));
       updateAuthors(slot);
     });
@@ -291,17 +300,21 @@ function authorBlockSmall(pk) {
   return el('span', { class: 'quote-author' }, av, el('strong', { class: 'who', 'data-pk': pk }, shortNpub(pk)));
 }
 
-// Ligne au-dessus d'une note : « X a reposté » ou « En réponse à X ».
+// Petit bouton arrondi : miniature + nom du profil.
+function profilePill(pk, href) {
+  requestProfile(pk);
+  const av = el('span', { class: 'avatar avatar-xs', 'aria-hidden': 'true', 'data-av': pk });
+  fillAvatar(av);
+  return el('a', { class: 'ctx-pill', href }, av, el('span', { class: 'who', 'data-pk': pk }, shortNpub(pk)));
+}
+
+// Ligne au-dessus d'une note : « [pastille] a reposté » ou « En réponse à [pastille] ».
 function contextLine(ev, repostedBy, detail) {
-  if (repostedBy) {
-    requestProfile(repostedBy);
-    return el('p', { class: 'note-context' }, icon('repost', 14), el('a', { class: 'who', 'data-pk': repostedBy, href: `#/profile/${npubEncode(repostedBy)}` }, shortNpub(repostedBy)), ` ${t('note.reposted')}`);
-  }
+  if (repostedBy) return el('p', { class: 'note-context' }, icon('repost', 14), profilePill(repostedBy, `#/profile/${npubEncode(repostedBy)}`), t('note.reposted'));
   const r = !detail && replyInfo(ev);
   if (!r) return null;
-  if (r.parentAuthor) requestProfile(r.parentAuthor);
-  return el('p', { class: 'note-context' }, icon('reply', 14), `${t('note.replyTo')} `,
-    r.parentAuthor ? el('a', { class: 'who', 'data-pk': r.parentAuthor, href: noteHref(r.parentId) }, shortNpub(r.parentAuthor)) : el('a', { href: noteHref(r.parentId) }, t('note.ref')));
+  return el('p', { class: 'note-context' }, icon('reply', 14), t('note.replyTo'),
+    r.parentAuthor ? profilePill(r.parentAuthor, noteHref(r.parentId)) : el('a', { class: 'ctx-pill', href: noteHref(r.parentId) }, t('note.ref')));
 }
 
 // Carte d'aperçu du premier lien web de la note : image en haut, titre puis description. Absente si le service n'a rien renvoyé.
@@ -352,9 +365,9 @@ function buildNoteCard(ev, { via, author = true, detail = false, repostedBy = nu
   const article = el('article', { class: 'note' },
     contextLine(ev, repostedBy, detail),
     el('div', { class: 'note-head' }, author ? authorBlock(ev.pubkey) : el('span'), moreBtn),
-    el('p', { class: 'note-meta' },
+    el('p', { class: 'note-meta' }, '• ',
       el('a', { class: 'note-time', href: noteHref(ev.id), 'aria-label': t('note.open') },
-        el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, shortAgo(ev.created_at))),
+        el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, fullAgo(ev.created_at, undefined, t('time.now')))),
       client ? el('span', { class: 'note-client' }, ` ${t('note.via', { client })}`) : null),
     ...(ev.kind === ARTICLE_KIND ? articleCard(ev, detail) : [el('p', { class: 'note-text' }, ...renderContent(text, { hideRefs: true })), quoteCards(text), linkCard(text)]));
   moreBtn.addEventListener('click', () => openNoteMenu(ev, { via, opener: moreBtn,

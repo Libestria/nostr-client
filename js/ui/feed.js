@@ -55,6 +55,7 @@ export function renderFeed(main, params = []) {
     reposts.forEach((r, key) => { if (r) entries.push({ ...r, key }); });
     entries.sort((a, b) => b.at - a.at || (a.key < b.key ? -1 : 1));
     list.replaceChildren(...entries.slice(0, MAX_SHOWN).map((e) => noteCard(e.ev, { via: via.get(e.ev.id), repostedBy: e.by })));
+    updateAuthors(list);
   }
 
   function add(ev, relay) {

@@ -7,7 +7,7 @@ import { buildDeletion } from '../nostr/compose.js';
 import { publishEvent } from '../publish.js';
 import { deleteEvent } from '../storage/db.js';
 import { editMute } from '../mute.js';
-import { el } from './common.js';
+import { el, anchorDialog } from './common.js';
 import { icon } from './icons.js';
 import { showResult, errorKey } from './composer.js';
 
@@ -19,6 +19,7 @@ async function copy(text) {
 
 // opts : { via, opener, onHidden(), onDeleted() }
 export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDeleted } = {}) {
+  let anchor = { place() {}, stop() {} };
   const signer = getSigner();
   const mine = !!signer && signer.pubkey === ev.pubkey;
   const dlg = el('dialog', { class: 'note-menu', 'aria-label': t('menu.note') });
@@ -28,7 +29,10 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
   const list = el('ul', { class: 'drawer-list nm-list' });
   const detailsBox = el('dl', { class: 'nm-details', hidden: true });
 
-  const add = (ic, label, run, { href = null, warn = false } = {}) => {
+  let lastGroup = null;
+  const add = (ic, label, run, { href = null, warn = false, group = 0 } = {}) => {
+    if (lastGroup !== null && group !== lastGroup) list.append(el('li', { class: 'nm-gap', role: 'presentation' }));
+    lastGroup = group;
     const node = href ? el('a', { href }, icon(ic, 20), el('span', {}, label)) : el('button', { type: 'button', class: warn ? 'nm-warn' : '' }, icon(ic, 20), el('span', {}, label));
     if (!href) node.addEventListener('click', () => run(node));
     else node.addEventListener('click', () => dlg.close());
@@ -37,11 +41,11 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
   };
   const say = (key) => msg.replaceChildren(t(key));
 
-  add('copy', t('note.copyLink'), async () => say((await copy(linkOf(ev))) ? 'note.copied' : 'compose.err.generic'));
-  if (typeof navigator.share === 'function') add('repost', t('note.share'), async () => { try { await navigator.share({ url: linkOf(ev), text: `nostr:${noteEncode(ev.id)}` }); } catch { /* annulé */ } });
-  add('copy', t('note.copyId'), async () => say((await copy(noteEncode(ev.id))) ? 'note.copied' : 'compose.err.generic'));
-  add('copy', t('note.copyJson'), async () => say((await copy(JSON.stringify(ev))) ? 'note.copied' : 'compose.err.generic'));
-  add('reply', t('note.thread'), null, { href: noteHref(ev.id) });
+  add('copy', t('note.copyLink'), async () => say((await copy(linkOf(ev))) ? 'note.copied' : 'compose.err.generic'), { group: 1 });
+  if (typeof navigator.share === 'function') add('repost', t('note.share'), async () => { try { await navigator.share({ url: linkOf(ev), text: `nostr:${noteEncode(ev.id)}` }); } catch { /* annulé */ } }, { group: 1 });
+  add('copy', t('note.copyId'), async () => say((await copy(noteEncode(ev.id))) ? 'note.copied' : 'compose.err.generic'), { group: 1 });
+  add('copy', t('note.copyJson'), async () => say((await copy(JSON.stringify(ev))) ? 'note.copied' : 'compose.err.generic'), { group: 1 });
+  add('reply', t('note.thread'), null, { href: noteHref(ev.id), group: 2 });
   add('settings', t('note.details'), () => {
     if (!detailsBox.hidden) { detailsBox.hidden = true; return; }
     const row = (k, v) => [el('dt', {}, t(k)), el('dd', {}, v)];
@@ -49,7 +53,8 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
       ...row('note.d.date', new Date(ev.created_at * 1000).toLocaleString(document.documentElement.lang || 'fr')), ...row('note.d.kind', String(ev.kind)),
       ...(via ? row('note.d.relay', via.replace(/^wss:\/\//, '')) : []));
     detailsBox.hidden = false;
-  });
+    anchor.place();
+  }, { group: 2 });
 
   if (signer && !mine) {
     add('mute', t('mute.account'), async (b) => {
@@ -58,14 +63,14 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
         const res = await editMute([{ type: 'add', kind: 'pubkey', value: ev.pubkey }]);
         if (res.ok) { dlg.close(); onHidden?.('mute.done'); } else { b.disabled = false; msg.replaceChildren(t('lists.publish.failed', { ok: res.ok, total: res.total })); }
       } catch { b.disabled = false; say('compose.err.generic'); }
-    });
+    }, { group: 3 });
     add('mute', t('note.muteThread'), async (b) => {
       b.disabled = true; say('lists.publishing');
       try {
         const res = await editMute([{ type: 'add', kind: 'event', value: ev.id }]);
         if (res.ok) { dlg.close(); onHidden?.('mute.threadDone'); } else { b.disabled = false; msg.replaceChildren(t('lists.publish.failed', { ok: res.ok, total: res.total })); }
       } catch { b.disabled = false; say('compose.err.generic'); }
-    });
+    }, { group: 3 });
   }
   if (mine) {
     let armed = false, busy = false;
@@ -79,13 +84,14 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
         showResult(msg, res, () => publishEvent(build()));
         if (res.ok) { deleteEvent(ev.id); dlg.close(); onDeleted?.(); } else { armed = false; b.disabled = false; b.querySelector('span').textContent = t('note.deleteMine'); }
       } catch (e) { msg.replaceChildren(el('span', { class: 'status status-error' }, t(errorKey(e)))); armed = false; b.disabled = false; b.querySelector('span').textContent = t('note.deleteMine'); } finally { busy = false; }
-    }, { warn: true });
+    }, { warn: true, group: 4 });
   }
 
   dlg.append(el('div', { class: 'sd-head' }, el('h2', {}, t('menu.note')), close), list, detailsBox, msg);
-  dlg.addEventListener('close', () => { dlg.remove(); opener?.focus?.(); });
+  dlg.addEventListener('close', () => { anchor.stop(); dlg.remove(); opener?.focus?.(); });
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
   document.body.append(dlg);
   dlg.showModal?.() ?? dlg.setAttribute('open', '');
+  anchor = anchorDialog(dlg, opener);
   list.querySelector('button, a')?.focus();
 }
