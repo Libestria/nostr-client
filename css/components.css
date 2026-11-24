@@ -325,3 +325,64 @@ button.act:disabled { cursor: default; opacity: 1; }
 .searchbox-go .icon { color: var(--accent); }
 .searchbox input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]) { border: 0; border-radius: 0; background: none; padding: 0; min-height: 44px; }
 .searchbox input:focus { outline: 0; }
+
+/* Fenêtre « Nouvelle note » : Annuler / Publier en haut, avatar à gauche, compteur */
+.compose-row { display: flex; align-items: flex-start; gap: .75rem; padding-top: .5rem; }
+.compose-row > .avatar { margin-top: .25rem; }
+.compose-row .composer { flex: 1; min-width: 0; margin-block: 0; }
+.compose-dialog .composer .row .btn { display: none; }
+.compose-dialog .composer textarea { border: 0; background: none; padding: .25rem 0; min-height: 8rem; resize: none; }
+.compose-count { margin-left: auto; color: var(--muted); font-size: .8rem; }
+.btn-primary { background: var(--accent); color: var(--accent-ink, #000); border-color: var(--accent); font-weight: 600; }
+
+/* Fil continu (style Nostur) : pas de cartes, un simple filet entre les notes */
+#view > .notes { margin-inline: 0; }
+.notes { display: block; }
+.notes > .note, .note { background: none; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; padding: 10px 5px 0; }
+.note-head { align-items: flex-start; gap: 8px; }
+.author-block { flex: 1; align-items: center; gap: 10px; }
+.avatar-note { width: 48px; height: 48px; }
+.author-text { display: grid; min-width: 0; line-height: 1.25; }
+.author-block .author-name { font-size: 1rem; }
+.nip05-line { font-size: .8rem; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.nip05-line:empty { display: none; }
+.n05-ok { color: var(--ok); }
+.n05-bad { color: var(--danger); }
+.note-more { margin: 0; min-width: 32px; min-height: 32px; width: 32px; height: 32px; background: rgb(127 127 127 / .12); border: 1px solid rgb(127 127 127 / .3); }
+.note-more:hover, .note-more:focus-visible { background: rgb(127 127 127 / .25); }
+.note-meta { margin: 6px 0 0; font-size: .8rem; color: var(--muted); }
+.note-meta .note-time { min-height: 0; padding: 0; }
+.note-text { margin-top: 4px; }
+.note-media { display: block; margin-top: .5rem; }
+.note-img { width: 100%; max-height: 32rem; object-fit: cover; border-radius: 12px; margin-top: 0; }
+.note-actions { margin-top: 2px; }
+.note-muted { padding-bottom: 10px; }
+
+/* Aperçu de lien : image en haut, texte dessous */
+.link-card-slot:empty { display: none; }
+.link-card { display: block; margin-top: .5rem; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); color: var(--ink); text-decoration: none; }
+.link-card:hover, .link-card:focus-visible { border-color: var(--line-hover, var(--accent)); }
+.lc-img { display: block; width: 100%; max-height: 16rem; aspect-ratio: 1.91 / 1; object-fit: cover; background: var(--line); }
+.lc-body { display: grid; gap: .25rem; padding: .6rem .75rem .75rem; }
+.lc-title { font-size: 1rem; line-height: 1.3; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.lc-desc { color: var(--muted); font-size: .85rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.lc-host { color: var(--muted); font-size: .75rem; }
+
+/* Article long (NIP-23) */
+.article-card { margin-top: .5rem; }
+.lc-title-big { font-size: 1.25rem; -webkit-line-clamp: 4; }
+.chips { display: flex; gap: .5rem; margin: .25rem 0 0; padding: 0; list-style: none; overflow-x: auto; scrollbar-width: none; }
+.chips li { flex: none; padding: .35rem .8rem; border-radius: 999px; background: rgb(127 127 127 / .18); color: var(--muted); font-size: .85rem; }
+.article-body { margin-top: .75rem; white-space: pre-wrap; overflow-wrap: anywhere; padding-inline: 0; }
+
+/* Ligne de contexte (repost / réponse) et notes citées */
+.note-context { display: flex; align-items: center; gap: .35rem; margin: 0 0 4px 2px; font-size: .8rem; color: var(--muted); }
+.note-context .who { color: inherit; font-weight: 600; text-decoration: none; }
+.quotes { display: grid; gap: .5rem; margin-top: .5rem; }
+.quote-card { display: grid; gap: .35rem; padding: .6rem .75rem; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; }
+.quote-card:hover, .quote-card:focus-visible { border-color: var(--line-hover, var(--accent)); }
+.quote-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; font-size: .8rem; color: var(--muted); }
+.quote-author { display: inline-flex; align-items: center; gap: .4rem; min-width: 0; color: var(--ink); }
+.avatar-sm { width: 22px; height: 22px; }
+.quote-text { white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical; overflow: hidden; }
+.quote-slot .hint { margin: 0; }
