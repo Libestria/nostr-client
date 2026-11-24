@@ -15,6 +15,7 @@ import { watchStats, bumpStat } from '../stats.js';
 import { isBookmarked, setBookmark } from '../bookmarks.js';
 import { compact } from '../nostr/stats.js';
 import { icon } from './icons.js';
+import { openStatsDialog } from './statsdialog.js';
 import { isMuted, editMute } from '../mute.js';
 
 // Remplit un lien d'auteur (nom + avatar) à partir du cache de profils.
@@ -91,24 +92,18 @@ function actionItem({ name, label, interactive, onClick }) {
   return { node, setCount, text };
 }
 
-// Ligne de compteurs au-dessus des boutons (note ouverte) : réactions, reposts, citations, zaps.
-function statsRow() {
-  const cell = (key) => { const n = el('span', { class: 'stat-n' }, '0'); const lbl = el('span', {}, t(`note.stat.${key}`)); return { n, lbl, key, node: el('span', { class: 'stat' }, n, ' ', lbl) }; };
+// Ligne de statistiques au-dessus des boutons (note ouverte) : chaque statistique ouvre une fenêtre de détail.
+function statsRow(onOpen) {
+  const cell = (key) => {
+    const n = el('span', { class: 'stat-n' }, '0');
+    const lbl = el('span', {}, t(`note.stat.${key}`));
+    const node = el('button', { type: 'button', class: 'stat', 'aria-haspopup': 'dialog' }, n, ' ', lbl);
+    node.addEventListener('click', () => onOpen(key, node));
+    return { n, lbl, key, node };
+  };
   const show = (c, v) => { c.n.textContent = String(v); c.lbl.textContent = t(`note.stat.${c.key}${v === 1 ? '.one' : ''}`); };
   const c = { reactions: cell('reactions'), reposts: cell('reposts'), quotes: cell('quotes'), zaps: cell('zaps') };
   return { node: el('div', { class: 'note-stats' }, c.reactions.node, c.reposts.node, c.quotes.node, c.zaps.node), c, show };
-}
-
-// Liste de tous les zaps reçus par la note : expéditeur, montant et message (texte brut).
-function zapList() {
-  const box = el('section', { class: 'zap-list', 'aria-label': t('zaps.title'), hidden: true });
-  const fill = (list) => {
-    box.hidden = !list.length;
-    box.replaceChildren(...list.slice(0, 200).map((z) => el('div', { class: 'zap-item' },
-      el('div', { class: 'zap-item-head' }, authorLink(z.from), el('span', { class: 'zap-item-sats' }, `⚡ ${compact(z.sats, document.documentElement.lang || 'fr') || z.sats} sats`)),
-      z.comment ? el('p', { class: 'zap-item-msg' }, z.comment) : null)));
-  };
-  return { node: box, fill };
 }
 
 // Répondre / Reposter / J'aime / Zap, puis Masquer ou Supprimer. Les compteurs s'affichent même sans signeur.
@@ -146,8 +141,9 @@ function noteActions(ev, article, detail) {
   const row = el('div', { class: 'note-actions' }, reply.node, repost.node, like.node, zap.node);
 
   const lang = document.documentElement.lang || 'fr';
-  const stats = detail ? statsRow() : null;
-  const zl = detail ? zapList() : null;
+  const data = { reactors: [], reposters: [], quoted: [], zaps: [] };
+  let open = null;   // fenêtre de détail ouverte : { key, update }
+  const stats = detail ? statsRow((key, opener) => { open = { key, ...openStatsDialog(key, () => data, opener) }; }) : null;
   const markOn = (item, on, doneLabel) => {
     item.node.classList.toggle('act-on', on);
     if (live && item.node.tagName === 'BUTTON') { item.node.disabled = on; item.node.setAttribute('aria-pressed', on ? 'true' : 'false'); }
@@ -161,12 +157,15 @@ function noteActions(ev, article, detail) {
     like.setCount(compact(s.reactions, lang), String(s.reactions));
     markOn(like, s.reacted || done.reacted.has(ev.id), t('note.liked'));
     markOn(repost, s.reposted || done.reposted.has(ev.id), t('note.reposted'));
+    Object.assign(data, { reactors: s.reactors, reposters: s.reposters, quoted: s.quoted });
+    if (open && open.key !== 'zaps') open.update();
     if (stats) {
       stats.show(stats.c.reactions, s.reactions); stats.show(stats.c.reposts, s.reposts); stats.show(stats.c.quotes, s.quotes);
     }
   });
   watchZaps(ev, ({ sats, count, list }) => {
-    zl?.fill(list ?? []);
+    data.zaps = list ?? [];
+    if (open?.key === 'zaps') open.update();
     zap.setCount(count ? `${compact(sats, lang)} sats` : '', t('zap.count', { n: count }));
     if (stats) stats.show(stats.c.zaps, count);
   });
@@ -218,7 +217,7 @@ function noteActions(ev, article, detail) {
     } });
     row.append(del.node);
   }
-  return [stats?.node ?? null, zl?.node ?? null, row, msg];
+  return [stats?.node ?? null, row, msg];
 }
 
 // Note masquée (sourdine) : un bandeau avec la raison et un bouton pour l'afficher quand même.

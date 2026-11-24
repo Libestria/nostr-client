@@ -12,7 +12,7 @@ const PATHS = {
 
 export function icon(name) {
   const svg = document.createElementNS(NS, 'svg');
-  for (const [k, v] of Object.entries({ viewBox: '0 0 24 24', width: 22, height: 22, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', focusable: 'false', class: `icon icon-${name}` })) svg.setAttribute(k, String(v));
+  for (const [k, v] of Object.entries({ viewBox: '0 0 24 24', width: 16.5, height: 16.5, fill: 'none', stroke: 'currentColor', 'stroke-width': 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', focusable: 'false', class: `icon icon-${name}` })) svg.setAttribute(k, String(v));
   for (const d of PATHS[name] ?? []) { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); svg.append(p); }
   return svg;
 }
