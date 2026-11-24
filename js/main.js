@@ -17,6 +17,8 @@ import { renderDms } from './ui/dms.js';
 import { initDms } from './dms.js';
 import { initWallet } from './wallet.js';
 import { initMute } from './mute.js';
+import { initBookmarks } from './bookmarks.js';
+import { renderBookmarks } from './ui/bookmarks.js';
 import { initNotifications } from './notifications.js';
 import { initQueue } from './queue.js';
 import { renderNotifications } from './ui/notifications.js';
@@ -30,6 +32,7 @@ const routes = {
   messages: renderDms,
   profile: renderProfile,
   note: renderThread,
+  bookmarks: renderBookmarks,
   settings: renderSettings,
   login: renderLogin,
 };
@@ -134,6 +137,7 @@ async function boot() {
   initDms();
   initWallet();
   initMute();
+  initBookmarks();
   initNotifications();
   initQueue();
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});

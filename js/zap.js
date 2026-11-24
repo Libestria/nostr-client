@@ -74,7 +74,7 @@ const totals = new Map();       // eventId → { sats, count, receipts:Set }
 const watchers = new Map();     // eventId → Set(callbacks)
 const targets = new Map();      // eventId → pubkey du destinataire
 let timer = null;
-const emit = (id) => { const t = totals.get(id); if (t) for (const cb of watchers.get(id) ?? []) cb({ sats: t.sats, count: t.count }); };
+const emit = (id) => { const t = totals.get(id); if (t) for (const cb of watchers.get(id) ?? []) cb({ sats: t.sats, count: t.count, list: t.list }); };
 
 async function nostrPubkeyOf(pubkey) {
   let lud16 = getCached(pubkey)?.lud16;
@@ -106,11 +106,15 @@ async function flush() {
     const recipient = targets.get(id);
     if (!providers.has(recipient)) providers.set(recipient, await nostrPubkeyOf(recipient));
     const np = providers.get(recipient);
-    const total = totals.get(id) ?? { sats: 0, count: 0, receipts: new Set() };
+    const total = totals.get(id) ?? { sats: 0, count: 0, receipts: new Set(), list: [] };
     if (np) for (const r of receipts) {
       if (total.receipts.has(r.id) || !r.tags.some((t) => t[0] === 'e' && t[1] === id)) continue;
       const ok = checkReceipt(r, { recipient, nostrPubkey: np });
-      if (ok && ok.eventId === id) { total.receipts.add(r.id); total.sats += ok.sats; total.count++; }
+      if (ok && ok.eventId === id) {
+        total.receipts.add(r.id); total.sats += ok.sats; total.count++;
+        total.list.push({ id: r.id, sats: ok.sats, from: ok.from, comment: ok.comment, at: r.created_at });
+        total.list.sort((a, b) => b.sats - a.sats || b.at - a.at);
+      }
     }
     total.loaded = true;
     totals.set(id, total);
