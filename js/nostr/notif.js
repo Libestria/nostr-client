@@ -6,7 +6,12 @@ const rootOrReply = (tags) => {
   return (e.find((t) => t[3] === 'reply') ?? e.at(-1))?.[1] ?? null;
 };
 
-export const NOTIF_KINDS = [1, 6, 7, 16, 9735];
+export const NOTIF_KINDS = [1, 3, 6, 7, 16, 9735];
+
+// Onglets de la page Notifications : type → groupe.
+export const GROUPS = ['mentions', 'reactions', 'reposts', 'zaps', 'follows'];
+const GROUP_OF = { mention: 'mentions', reply: 'mentions', reaction: 'reactions', repost: 'reposts', zap: 'zaps', follow: 'follows' };
+export const groupOf = (type) => GROUP_OF[type] ?? 'mentions';
 
 // → { type: 'mention'|'reply'|'repost'|'reaction'|'zap', actor, target, emoji? } ou null
 // (les zaps doivent encore être vérifiés auprès du fournisseur Lightning).
@@ -21,6 +26,7 @@ export function classify(ev, me) {
       return { type: 'reaction', actor: ev.pubkey, target: lastE(ev.tags), emoji };
     }
     case 9735: return { type: 'zap', actor: ev.pubkey, target: lastE(ev.tags) };
+    case 3: return { type: 'follow', actor: ev.pubkey, target: null };   // liste de suivis qui contient l'utilisateur
     default: return null;
   }
 }
