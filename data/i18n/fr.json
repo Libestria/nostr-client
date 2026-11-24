@@ -410,5 +410,6 @@
   "bookmark.remove": "Retirer des favoris",
   "bookmark.notLoaded": "Ta liste de favoris est en cours de chargement, réessaie dans un instant.",
   "zaps.title": "Zaps",
-  "zaps.anon": "Anonyme"
+  "zaps.anon": "Anonyme",
+  "stats.empty": "Rien à afficher pour l'instant."
 }

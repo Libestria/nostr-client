@@ -410,5 +410,6 @@
   "bookmark.remove": "Remove from bookmarks",
   "bookmark.notLoaded": "Your bookmark list is still loading, try again in a moment.",
   "zaps.title": "Zaps",
-  "zaps.anon": "Anonymous"
+  "zaps.anon": "Anonymous",
+  "stats.empty": "Nothing to show yet."
 }
