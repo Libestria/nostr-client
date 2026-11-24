@@ -12,10 +12,10 @@
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <meta name="apple-mobile-web-app-title" content="Nostr">
   <link rel="preload" href="fonts/exo-2-v26-latin-regular.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/themes.css?v=m9">
-  <link rel="stylesheet" href="css/base.css?v=m9">
-  <link rel="stylesheet" href="css/layout.css?v=m9">
-  <link rel="stylesheet" href="css/components.css?v=m9">
+  <link rel="stylesheet" href="css/themes.css?v=m9b">
+  <link rel="stylesheet" href="css/base.css?v=m9b">
+  <link rel="stylesheet" href="css/layout.css?v=m9b">
+  <link rel="stylesheet" href="css/components.css?v=m9b">
 </head>
 <body>
   <button type="button" class="skip" id="skip" data-i18n="skip">Aller au contenu</button>
@@ -38,6 +38,7 @@
   <noscript><p>JavaScript est nécessaire pour utiliser ce client.</p></noscript>
   <link rel="modulepreload" href="js/account.js">
   <link rel="modulepreload" href="js/auth.js">
+  <link rel="modulepreload" href="js/bookmarks.js">
   <link rel="modulepreload" href="js/dms.js">
   <link rel="modulepreload" href="js/i18n.js">
   <link rel="modulepreload" href="js/mute.js">
@@ -48,6 +49,7 @@
   <link rel="modulepreload" href="js/storage/db.js">
   <link rel="modulepreload" href="js/storage/session.js">
   <link rel="modulepreload" href="js/storage/settings.js">
+  <link rel="modulepreload" href="js/ui/bookmarks.js">
   <link rel="modulepreload" href="js/ui/common.js">
   <link rel="modulepreload" href="js/ui/dms.js">
   <link rel="modulepreload" href="js/ui/feed.js">
@@ -59,6 +61,7 @@
   <link rel="modulepreload" href="js/ui/settings.js">
   <link rel="modulepreload" href="js/ui/thread.js">
   <link rel="modulepreload" href="js/wallet.js">
+  <link rel="modulepreload" href="js/nostr/bookmarks.js">
   <link rel="modulepreload" href="js/nostr/contacts.js">
   <link rel="modulepreload" href="js/nostr/content.js">
   <link rel="modulepreload" href="js/nostr/dm.js">
@@ -98,8 +101,11 @@
   <link rel="modulepreload" href="js/nostr/backup.js">
   <link rel="modulepreload" href="js/nostr/compose.js">
   <link rel="modulepreload" href="js/nostr/http.js">
+  <link rel="modulepreload" href="js/nostr/stats.js">
   <link rel="modulepreload" href="js/nostr/verifier.js">
-  <script src="js/boot-check.js?v=m9" defer></script>
-  <script type="module" src="js/main.js?v=m9"></script>
+  <link rel="modulepreload" href="js/stats.js">
+  <link rel="modulepreload" href="js/ui/icons.js">
+  <script src="js/boot-check.js?v=m9b" defer></script>
+  <script type="module" src="js/main.js?v=m9b"></script>
 </body>
 </html>
