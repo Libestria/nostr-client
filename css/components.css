@@ -295,3 +295,33 @@ button.act:disabled { cursor: default; opacity: 1; }
 .p-id-over { margin-top: -40px; padding-left: 12px; align-items: flex-end; }
 .p-id-over .avatar { border: 3px solid var(--bg); background-color: var(--bg); }
 .follows-you { display: inline-block; margin: 2px 0 0; padding: 1px 8px; border-radius: 999px; background: var(--line); color: var(--ink-2); font-size: .8rem; }
+
+/* Messages : liste à la Nostur (avatar, nom, aperçu, heure, pastille) et bulles */
+.avatar-md { width: 44px; height: 44px; }
+.dm-row { list-style: none; border-bottom: 1px solid var(--line); }
+.dm-row a { display: flex; align-items: center; gap: .75rem; padding: .6rem .25rem; min-height: 64px; text-decoration: none; color: var(--ink); }
+.dm-row a:hover, .dm-row a:focus-visible { background: var(--nav-hover-bg); }
+.dm-body { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.dm-top { display: flex; justify-content: space-between; gap: .5rem; align-items: baseline; }
+.dm-top time { color: var(--muted); font-size: .8rem; white-space: nowrap; }
+.dm-preview { color: var(--muted); font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dm-unread .dm-preview { color: var(--ink); font-weight: 600; }
+.pill-inline { position: static; flex: none; }
+.dm-msg { border: 0; border-radius: 18px; padding: .5rem .9rem; }
+.dm-msg:not(.dm-mine) { border-bottom-left-radius: 4px; background: var(--surface); }
+.dm-mine { border-bottom-right-radius: 4px; background: var(--accent); color: var(--accent-ink, #000); }
+.dm-mine time { opacity: .8; }
+.dm-inputrow { display: flex; align-items: flex-end; gap: .5rem; }
+.dm-inputrow textarea { flex: 1; border-radius: 22px; padding: .6rem 1rem; }
+.dm-send { min-width: 44px; padding: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--accent); }
+[data-route="messages"] .fab { display: none; }
+
+/* Recherche : une seule barre arrondie */
+.searchbox { display: flex; align-items: center; gap: .5rem; padding: 0 .5rem 0 1rem; border: 1px solid var(--field-border); border-radius: 999px; background: var(--surface); }
+.searchbox:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+.searchbox input { flex: 1; min-height: 44px; border: 0; outline: 0; background: none; color: var(--ink); font: inherit; }
+.searchbox .icon { color: var(--muted); flex: none; }
+.searchbox-go { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0; background: none; border: 0; border-radius: 50%; cursor: pointer; }
+.searchbox-go .icon { color: var(--accent); }
+.searchbox input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="button"]) { border: 0; border-radius: 0; background: none; padding: 0; min-height: 44px; }
+.searchbox input:focus { outline: 0; }
