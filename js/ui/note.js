@@ -4,9 +4,8 @@ import { npubEncode } from '../nostr/nip19.js';
 import { getCached, requestProfile } from '../profiles.js';
 import { getSigner } from '../auth.js';
 import { tokenizeContent, noteHref } from '../nostr/content.js';
-import { buildReaction, buildRepost, buildDeletion } from '../nostr/compose.js';
+import { buildReaction, buildRepost } from '../nostr/compose.js';
 import { publishEvent } from '../publish.js';
-import { deleteEvent } from '../storage/db.js';
 import { el, shortNpub, timeAgo } from './common.js';
 import { composer, showResult, errorKey } from './composer.js';
 import { zapPanel } from './zap.js';
@@ -16,7 +15,8 @@ import { isBookmarked, setBookmark } from '../bookmarks.js';
 import { compact } from '../nostr/stats.js';
 import { icon } from './icons.js';
 import { openStatsDialog } from './statsdialog.js';
-import { isMuted, editMute } from '../mute.js';
+import { openNoteMenu } from './notemenu.js';
+import { isMuted } from '../mute.js';
 
 // Remplit un lien d'auteur (nom + avatar) à partir du cache de profils.
 export function fillAuthor(node) {
@@ -191,32 +191,6 @@ function noteActions(ev, article, detail) {
     const stop = state.on('bookmarks', () => { if (fav.node.isConnected) paintFav(); else stop(); });
     row.append(fav.node);
   }
-  if (signer && ev.pubkey !== signer.pubkey) {
-    const hide = actionItem({ name: 'mute', label: t('mute.account'), interactive: true, onClick: async (b) => {
-      b.disabled = true; msg.replaceChildren(t('lists.publishing'));
-      try {
-        const res = await editMute([{ type: 'add', kind: 'pubkey', value: ev.pubkey }]);
-        if (res.ok) article.replaceChildren(el('p', { class: 'hint' }, t('mute.done')));
-        else { b.disabled = false; msg.replaceChildren(t('lists.publish.failed', { ok: res.ok, total: res.total })); }
-      } catch { b.disabled = false; msg.replaceChildren(t('compose.err.generic')); }
-    } });
-    row.append(hide.node);
-  }
-  if (signer && ev.pubkey === signer.pubkey) {
-    let armed = false;
-    const del = actionItem({ name: 'trash', label: t('note.delete'), interactive: true, onClick: async (b) => {
-      if (!armed) { armed = true; del.text.textContent = t('note.delete.confirm'); b.classList.add('act-warn'); msg.replaceChildren(t('note.delete.hint')); return; }
-      if (busy) return;
-      busy = true; b.disabled = true; msg.replaceChildren(t('lists.publishing'));
-      try {
-        const res = await publishEvent(buildDeletion(ev, signer.pubkey));
-        showResult(msg, res, () => publishEvent(buildDeletion(ev, signer.pubkey)));
-        if (res.ok) { deleteEvent(ev.id); article.classList.add('note-deleted'); article.replaceChildren(el('p', { class: 'hint' }, t('note.deleted'))); }
-        else { armed = false; b.disabled = false; del.text.textContent = ''; b.classList.remove('act-warn'); }
-      } catch (e) { msg.replaceChildren(el('span', { class: 'status status-error' }, t(errorKey(e)))); armed = false; b.disabled = false; del.text.textContent = ''; b.classList.remove('act-warn'); } finally { busy = false; }
-    } });
-    row.append(del.node);
-  }
   return [stats?.node ?? null, row, msg];
 }
 
@@ -232,14 +206,19 @@ export function noteCard(ev, opts = {}) {
 }
 
 function buildNoteCard(ev, { via, author = true, detail = false } = {}) {
+  const moreBtn = el('button', { type: 'button', class: 'note-more', 'aria-haspopup': 'dialog', 'aria-label': t('menu.note.more'), title: t('menu.note.more') }, icon('more', 20));
   const text = ev.content.length > 600 ? `${ev.content.slice(0, 600)}…` : ev.content;
   const article = el('article', { class: 'note' },
     el('div', { class: 'note-head' },
       author ? authorLink(ev.pubkey) : el('span'),
       el('a', { class: 'note-time', href: noteHref(ev.id), 'aria-label': t('note.open') },
-        el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, timeAgo(ev.created_at)))),
+        el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, timeAgo(ev.created_at))),
+      moreBtn),
     el('p', { class: 'note-text' }, ...renderContent(text)),
     via ? el('p', { class: 'note-via' }, t('note.relay', { relay: via.replace(/^wss:\/\//, '') })) : null);
+  moreBtn.addEventListener('click', () => openNoteMenu(ev, { via, opener: moreBtn,
+    onHidden: (key) => article.replaceChildren(el('p', { class: 'hint' }, t(key))),
+    onDeleted: () => { article.classList.add('note-deleted'); article.replaceChildren(el('p', { class: 'hint' }, t('note.deleted'))); } }));
   const actions = noteActions(ev, article, detail);
   article.append(...actions.filter(Boolean));
   return article;

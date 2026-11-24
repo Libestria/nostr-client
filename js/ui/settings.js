@@ -10,6 +10,7 @@ import { walletSection } from './wallet.js';
 import { muteSection } from './mute.js';
 import { backupSection } from './backup.js';
 import { el, pageTitle } from './common.js';
+import { icon } from './icons.js';
 
 function select(id, labelKey, options, value, onChange) {
   const sel = el('select', { id, name: id },
@@ -167,30 +168,55 @@ function accountSection() {
       ...(caps.nip44 === 'no' ? [el('p', { class: 'hint' }, t('settings.signer.nip44.missing'))] : [])]), out);
 }
 
-export function renderSettings(main) {
+// Rubriques des réglages (comme Nostur) : une liste, puis une page par rubrique.
+const SECTIONS = [
+  { id: 'account', icon: 'user', needs: null },
+  { id: 'appearance', icon: 'settings', needs: null },
+  { id: 'general', icon: 'search', needs: null },
+  { id: 'relays', icon: 'repost', needs: 'session' },
+  { id: 'mute', icon: 'mute', needs: 'session' },
+  { id: 'wallet', icon: 'wallet', needs: 'signer' },
+  { id: 'backup', icon: 'copy', needs: 'session' },
+];
+const available = (sec) => sec.needs === null || (sec.needs === 'session' ? !!state.get('session') : !!getSigner());
+
+export function renderSettings(main, params = []) {
   const s = state.get('settings');
+  const sec = SECTIONS.find((x) => x.id === params[0] && available(x));
+  if (!sec) {
+    main.replaceChildren(pageTitle('nav.settings'), el('ul', { class: 'drawer-list settings-menu' },
+      ...SECTIONS.filter(available).map((x) => el('li', {}, el('a', { href: `#/settings/${x.id}` }, icon(x.icon, 20), el('span', {}, t(`settings.sec.${x.id}`)), icon('chevron', 18))))));
+    return undefined;
+  }
   const status = el('p', { class: 'status', role: 'status' });
   const save = (patch) => {
     state.set('settings', updateSettings(patch));
     status.textContent = t('settings.saved');
   };
-  const form = el('form', { class: 'form' },
+  const form = (...fields) => { const f = el('form', { class: 'form' }, ...fields, status); f.addEventListener('submit', (e) => e.preventDefault()); return f; };
+  let stop = null;
+  let body;
+  if (sec.id === 'account') body = accountSection();
+  else if (sec.id === 'appearance') body = form(
     select('theme', 'settings.theme', [['auto', 'theme.auto'], ['light', 'theme.light'], ['dark', 'theme.dark']], s.theme, (v) => save({ theme: v })),
-    select('lang', 'settings.lang', [['fr', 'lang.fr'], ['en', 'lang.en']], s.lang, (v) => save({ lang: v })),
-    checkbox('loadMedia', 'settings.media', 'settings.media.hint', s.loadMedia, (v) => save({ loadMedia: v })),
-    checkbox('readOnly', 'settings.readOnly', 'settings.readOnly.hint', s.readOnly, (v) => save({ readOnly: v })),
-    ...(typeof Notification !== 'undefined' ? [checkbox('browserNotify', 'settings.notify', 'settings.notify.hint', s.browserNotify, async (v) => {
-      if (v && Notification.permission !== 'granted') {
-        let perm = 'denied';
-        try { perm = await Notification.requestPermission(); } catch { /* refusé */ }
-        if (perm !== 'granted') { status.textContent = t('settings.notify.denied'); const box = form.querySelector('input[name=browserNotify]'); if (box) box.checked = false; return; }
-      }
-      save({ browserNotify: v });
-    })] : []),
-    status);
-  form.addEventListener('submit', (e) => e.preventDefault());
-  const lists = state.get('session') ? listsSection() : null;
-  const mute = state.get('session') ? muteSection() : null;
-  main.replaceChildren(pageTitle('nav.settings'), accountSection(), form, ...(lists ? [lists.node] : []), ...(mute ? [mute.node] : []), ...(getSigner() ? [walletSection()] : []), ...(state.get('session') ? [backupSection()] : []));
-  return () => { lists?.stop?.(); mute?.stop(); };
+    select('lang', 'settings.lang', [['fr', 'lang.fr'], ['en', 'lang.en']], s.lang, (v) => save({ lang: v })));
+  else if (sec.id === 'general') {
+    const f = form(
+      checkbox('loadMedia', 'settings.media', 'settings.media.hint', s.loadMedia, (v) => save({ loadMedia: v })),
+      checkbox('readOnly', 'settings.readOnly', 'settings.readOnly.hint', s.readOnly, (v) => save({ readOnly: v })),
+      ...(typeof Notification !== 'undefined' ? [checkbox('browserNotify', 'settings.notify', 'settings.notify.hint', s.browserNotify, async (v) => {
+        if (v && Notification.permission !== 'granted') {
+          let perm = 'denied';
+          try { perm = await Notification.requestPermission(); } catch { /* refusé */ }
+          if (perm !== 'granted') { status.textContent = t('settings.notify.denied'); const box = f.querySelector('input[name=browserNotify]'); if (box) box.checked = false; return; }
+        }
+        save({ browserNotify: v });
+      })] : []));
+    body = f;
+  } else if (sec.id === 'relays') { const l = listsSection(); body = l.node; stop = l.stop; }
+  else if (sec.id === 'mute') { const m = muteSection(); body = m.node; stop = m.stop; }
+  else if (sec.id === 'wallet') body = walletSection();
+  else body = backupSection();
+  main.replaceChildren(pageTitle(`settings.sec.${sec.id}`), el('p', {}, el('a', { class: 'btn', href: '#/settings' }, t('settings.back'))), body);
+  return () => stop?.();
 }

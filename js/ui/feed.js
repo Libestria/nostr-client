@@ -8,8 +8,6 @@ import { el, pageTitle, stateBlock } from './common.js';
 import { noteCard, updateAuthors } from './note.js';
 import { planFor } from '../relays/outbox.js';
 import { chunkAuthors } from '../nostr/outbox.js';
-import { composer } from './composer.js';
-import { getSigner } from '../auth.js';
 
 const PAGE = 30;
 const MAX_SHOWN = 300;
@@ -38,11 +36,10 @@ export function renderFeed(main, params = []) {
   more.hidden = true;
   const extra = [];
   if (!session) extra.push(el('p', {}, el('a', { class: 'btn', href: '#/login' }, t('login.cta'))));
-  const compose = session && getSigner() ? el('section', { class: 'composer-box' }, composer({})) : null;
   main.replaceChildren(pageTitle('nav.feed'),
-    session ? el('nav', { class: 'tabs', 'aria-label': t('feed.tabs') }, tab('#/feed', 'feed.following', following), tab('#/feed/global', 'feed.globalTab', !following), tab('#/bookmarks', 'nav.bookmarks', false))
+    session ? el('nav', { class: 'tabs', 'aria-label': t('feed.tabs') }, tab('#/feed', 'feed.following', following), tab('#/feed/global', 'feed.globalTab', !following))
       : el('p', {}, t('feed.global')),
-    ...(compose ? [compose] : []), status, el('div', { class: 'row' }, reload), holder, list, more, ...extra);
+    status, el('div', { class: 'row' }, reload), holder, list, more, ...extra);
 
   const setHolder = (kind, key) => holder.replaceChildren(...(kind ? [stateBlock(kind, key)] : []));
   const scheduleDraw = () => { drawTimer ||= setTimeout(draw, 150); };

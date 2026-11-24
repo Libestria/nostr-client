@@ -84,7 +84,7 @@ export function renderProfile(main, params) {
     body.replaceChildren(head, actions, msg, tabbar, panel);
 
     // ---- en-tête et NIP-05
-    let nip05State = null, nip05For = null, shown = undefined;
+    let nip05State = null, nip05For = null, shown = undefined, followsMe = false;
     const paintHead = () => {
       const p = getCached(pubkey);
       const media = state.get('settings')?.loadMedia;
@@ -97,7 +97,7 @@ export function renderProfile(main, params) {
         el('span', { class: `badge badge-${nip05State ?? 'checking'}` }, t(`nip05.${nip05State ?? 'checking'}`)), ' ', el('span', { class: 'ident' }, nip05Label(p.nip05))) : null;
       head.replaceChildren(
         ...(media && p?.banner ? [el('img', { class: 'p-banner', src: p.banner, alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' })] : []),
-        el('div', { class: 'p-id' }, av, el('div', {}, el('h2', { class: 'p-name' }, name), badge)),
+        el('div', { class: `p-id${media && p?.banner ? ' p-id-over' : ''}` }, av, el('div', {}, el('h2', { class: 'p-name' }, name), followsMe ? el('p', { class: 'follows-you' }, t('profile.followsYou')) : null, badge)),
         p?.about ? el('p', { class: 'p-about' }, p.about) : null,
         p?.lud16 ? el('p', { class: 'ident' }, `⚡ ${p.lud16}`) : null,
         el('p', { class: 'ident' }, npub));
@@ -204,7 +204,7 @@ export function renderProfile(main, params) {
     let theirs = null;
     const tabs = {};
     const countLabel = (key, n) => (n == null ? t(key) : `${t(key)} (${n})`);
-    const theirSub = loadReplaceable(3, pubkey, (ev) => { theirs = ev; tabs.follows.textContent = countLabel('profile.tab.follows', parseContacts(ev).length); if (current === 'follows') show('follows'); });
+    const theirSub = loadReplaceable(3, pubkey, (ev) => { theirs = ev; if (me && me !== pubkey) { const f = parseContacts(ev).includes(me); if (f !== followsMe) { followsMe = f; paintHead(); } } tabs.follows.textContent = countLabel('profile.tab.follows', parseContacts(ev).length); if (current === 'follows') show('follows'); });
     stops.push(() => theirSub.close());
 
     // ---- panneaux
