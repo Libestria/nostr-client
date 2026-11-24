@@ -197,19 +197,27 @@ button.act:disabled { cursor: default; opacity: 1; }
 .act-warn { color: var(--danger, #b91c1c); }
 .act-mute, .act-trash { color: var(--muted); }
 .note-stats { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem .75rem; margin-top: .75rem; padding: .5rem 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--muted); font-size: .9rem; }
+.stat { background: none; border: 0; padding: .35rem .25rem; min-height: 44px; font: inherit; color: inherit; cursor: pointer; border-radius: var(--r-lg); }
+.stat:hover, .stat:focus-visible { background: var(--line); }
 .stat-n { color: var(--ink); font-weight: 600; }
 
 .act-bookmark.act-on { color: var(--act-like); }
 .act-bookmark.act-on .icon { fill: currentColor; }
 
-/* Liste des zaps (note ouverte) */
-.zap-list { margin-top: .75rem; display: grid; gap: .5rem; }
-.zap-item { padding: .5rem .75rem; border: 1px solid var(--line); border-radius: var(--r-lg); }
-.zap-item-head { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
-.zap-item-sats { color: var(--accent); font-weight: 600; white-space: nowrap; }
-.zap-item-msg { margin: .35rem 0 0; max-width: none; white-space: pre-wrap; overflow-wrap: anywhere; }
-.zap-list[hidden] { display: none; }
+
 .note-actions { flex-wrap: nowrap; }
 .act { padding: 0 .3rem; min-width: 40px; gap: .25rem; justify-content: center; }
 .act-count, .act-label { white-space: nowrap; }
 @media (max-width: 380px) { .act-zap .act-count { font-size: .8rem; } .act { min-width: 34px; padding: 0 .2rem; } }
+
+/* Fenêtre de détail d'une statistique */
+.stats-dialog { width: min(92vw, 30rem); max-height: 80vh; padding: 0; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); color: var(--ink); }
+.stats-dialog::backdrop { background: rgb(0 0 0 / .6); }
+.sd-bar { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .75rem 1rem; background: var(--surface); border-bottom: 1px solid var(--line); }
+.sd-bar h2 { margin: 0; font-size: 1.05rem; }
+.sd-list { list-style: none; margin: 0; padding: .5rem 1rem 1rem; display: grid; gap: .5rem; }
+.sd-item { padding: .5rem .75rem; border: 1px solid var(--line); border-radius: var(--r-lg); }
+.sd-head { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+.sd-right { color: var(--accent); font-weight: 600; white-space: nowrap; }
+.sd-text { margin: .35rem 0 0; max-width: none; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sd-bar h2::first-letter { text-transform: uppercase; }
