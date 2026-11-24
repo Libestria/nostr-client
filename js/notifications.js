@@ -2,7 +2,7 @@
 import { state } from './state.js';
 import { pool } from './relays/pool.js';
 import { getCached, requestProfile } from './profiles.js';
-import { classify, NOTIF_KINDS } from './nostr/notif.js';
+import { classify, NOTIF_KINDS, GROUPS, groupOf } from './nostr/notif.js';
 import { checkReceipt } from './nostr/nip57.js';
 import { lnurlInfo } from './zap.js';
 import { muteReason } from './nostr/mute.js';
@@ -10,16 +10,19 @@ import { t } from './i18n.js';
 
 const MAX_ITEMS = 200;
 const WEEK = 7 * 86400;
-const seenKey = (pk) => `nostr-client:notif-seen:${pk}`;
-const readSeen = (pk) => { try { const v = Number(localStorage.getItem(seenKey(pk))); return Number.isFinite(v) && v > 0 ? v : null; } catch { return null; } };
-const writeSeen = (pk, v) => { try { localStorage.setItem(seenKey(pk), String(v)); } catch { /* indisponible */ } };
+const seenKey = (pk, g) => `nostr-client:notif-seen:${pk}${g ? `:${g}` : ''}`;
+const readSeen = (pk, g) => { try { const v = Number(localStorage.getItem(seenKey(pk, g))); return Number.isFinite(v) && v > 0 ? v : null; } catch { return null; } };
+const writeSeen = (pk, g, v) => { try { localStorage.setItem(seenKey(pk, g), String(v)); } catch { /* indisponible */ } };
 
-let me = null, sub = null, items = new Map(), lastSeen = 0, live = false, startedAt = 0, gen = 0;
-state.set('notif', { items: [], unread: 0 });
+let me = null, sub = null, items = new Map(), seen = {}, live = false, startedAt = 0, gen = 0;
+const zeroBy = () => Object.fromEntries(GROUPS.map((g) => [g, 0]));
+state.set('notif', { items: [], unread: 0, by: zeroBy() });
 
 const publish = () => {
   const list = [...items.values()].sort((a, b) => b.created_at - a.created_at).slice(0, MAX_ITEMS);
-  state.set('notif', { items: list, unread: list.filter((n) => n.created_at > lastSeen).length });
+  const by = zeroBy();
+  for (const n of list) if (n.created_at > (seen[groupOf(n.type)] ?? 0)) by[groupOf(n.type)]++;
+  state.set('notif', { items: list, unread: GROUPS.reduce((a, g) => a + by[g], 0), by });
 };
 
 async function verifyZap(ev) {
@@ -32,6 +35,14 @@ async function take(ev, run) {
   if (items.has(ev.id)) return;
   const c = classify(ev, me);
   if (!c) return;
+  if (c.type === 'follow') {   // un seul « nouvel abonné » par compte (la liste de suivis est republiée à chaque modification)
+    const key = `follow-${c.actor}`;
+    if (items.has(key) && items.get(key).created_at >= ev.created_at) return;
+    if (run !== gen || muteReason({ pubkey: c.actor, id: ev.id, kind: 3, tags: [], content: '' }, state.get('mute'))) return;
+    items.set(key, { id: key, ...c, created_at: ev.created_at, content: '' });
+    requestProfile(c.actor); publish();
+    return;
+  }
   const mute = state.get('mute');
   let n = { id: ev.id, ...c, created_at: ev.created_at, content: String(ev.content ?? '').slice(0, 300) };
   if (c.type === 'zap') {
@@ -61,8 +72,14 @@ export function startNotifications() {
   if (!s || state.get('lists').status !== 'ready') return;
   const run = ++gen;
   me = s.pubkey; startedAt = Math.floor(Date.now() / 1000); live = false;
-  const seen = readSeen(me);
-  if (seen == null) { writeSeen(me, startedAt); lastSeen = startedAt; } else lastSeen = seen;
+  // « vu » par onglet ; au premier lancement tout ce qui existe déjà est considéré comme vu
+  const legacy = readSeen(me);
+  seen = {};
+  for (const g of GROUPS) {
+    const v = readSeen(me, g) ?? legacy ?? startedAt;
+    seen[g] = v;
+    if (readSeen(me, g) == null) writeSeen(me, g, v);
+  }
   sub = pool.subscribe([{ kinds: NOTIF_KINDS, '#p': [me], since: startedAt - WEEK, limit: 150 }], {
     onevent: (ev) => { take(ev, run); }, oneose: () => { live = true; },
   });
@@ -70,17 +87,17 @@ export function startNotifications() {
 
 export function stopNotifications(clear = true) {
   gen++; sub?.close(); sub = null;
-  if (clear) { items = new Map(); me = null; lastSeen = 0; state.set('notif', { items: [], unread: 0 }); }
+  if (clear) { items = new Map(); me = null; seen = {}; state.set('notif', { items: [], unread: 0, by: zeroBy() }); }
 }
 
-// Appelé à l'ouverture de la page : tout ce qui est affiché est considéré comme vu.
-export function markNotificationsSeen() {
-  if (!me) return;
-  lastSeen = Math.max(lastSeen, Math.floor(Date.now() / 1000));
-  writeSeen(me, lastSeen);
+// Appelé quand un onglet est affiché : ses notifications sont considérées comme vues.
+export function markNotificationsSeen(group) {
+  if (!me || !GROUPS.includes(group)) return;
+  seen[group] = Math.max(seen[group] ?? 0, Math.floor(Date.now() / 1000));
+  writeSeen(me, group, seen[group]);
   publish();
 }
-export const seenAt = () => lastSeen;
+export const seenAt = (group) => seen[group] ?? 0;
 
 export function initNotifications() {
   let lastStatus = '', owner = null;

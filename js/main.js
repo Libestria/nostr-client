@@ -18,6 +18,7 @@ import { initDms } from './dms.js';
 import { initWallet } from './wallet.js';
 import { initMute } from './mute.js';
 import { initBookmarks } from './bookmarks.js';
+import { initShell } from './ui/shell.js';
 import { renderBookmarks } from './ui/bookmarks.js';
 import { initNotifications } from './notifications.js';
 import { initQueue } from './queue.js';
@@ -138,6 +139,7 @@ async function boot() {
   initWallet();
   initMute();
   initBookmarks();
+  initShell();
   initNotifications();
   initQueue();
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
