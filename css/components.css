@@ -459,3 +459,29 @@ button.act:disabled { cursor: default; opacity: 1; }
 .zap-head { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
 .zap-head h3 { margin: 0; }
 .zap-x { min-height: 32px; min-width: 32px; padding: 0; border: 0; border-radius: 999px; background: var(--sheet-hover); color: var(--ink); }
+
+/* Fenêtres : en haut de l'écran, marge de 10 px à gauche, à droite et en haut, 4 coins arrondis */
+.note-menu, .stats-dialog, .compose-dialog {
+  position: fixed; inset: max(10px, env(safe-area-inset-top, 0px)) 10px auto 10px; margin: 0; width: auto; max-width: none; height: auto;
+  max-height: calc(100dvh - 20px); border: 1px solid var(--sheet-edge); border-radius: 22px; padding-top: 0;
+}
+@media (min-width: 48rem) { .note-menu, .stats-dialog, .compose-dialog { inset-inline: 0; margin-inline: auto; width: min(calc(100% - 20px), 34rem); } }
+@keyframes sheet-top { from { opacity: 0; transform: translateY(-24px); } to { opacity: 1; transform: none; } }
+.note-menu[open], .stats-dialog[open], .compose-dialog[open] { animation: sheet-top .2s ease-out; }
+@media (prefers-reduced-motion: reduce) { .note-menu[open], .stats-dialog[open], .compose-dialog[open] { animation: none; } }
+.note-menu { overflow-y: auto; }
+
+/* Repost / réponse décalés, temps non cliquable, appui long sur une note */
+.note-context { padding-left: 20px; }
+.note-meta .note-time { cursor: default; }
+.note-meta .note-time:hover { text-decoration: none; }
+
+/* Bouton « ouvrir le fil » à gauche du « … » */
+.note-open { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 32px; height: 32px; border-radius: 50%; background: rgb(127 127 127 / .12); border: 1px solid rgb(127 127 127 / .3); color: var(--muted); text-decoration: none; }
+.note-open:hover, .note-open:focus-visible { background: rgb(127 127 127 / .25); color: var(--ink); }
+.note-head { gap: 8px; }
+
+/* Focus clavier : visible uniquement au clavier, trait fin aux couleurs du client ; jamais sur les fenêtres elles-mêmes */
+dialog:focus, dialog:focus-visible { outline: none; }
+.fab:focus-visible { outline-width: 2px; }
+.searchbox:focus-within { outline-width: 1.5px; }
