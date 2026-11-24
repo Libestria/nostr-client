@@ -66,6 +66,7 @@ async function render(focus = false) {
     else a.removeAttribute('aria-current');
   });
   document.title = `${t(view ? `nav.${name}` : 'state.notFound')} – Nostr`;
+  document.body.dataset.route = name;
   main.replaceChildren(stateBlock('loading', 'state.loading'));
   try {
     if (!view) main.replaceChildren(stateBlock('error', 'state.notFound'));
