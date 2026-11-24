@@ -42,8 +42,11 @@ export function composer({ reply = null, onPublished } = {}) {
   area.addEventListener('input', () => saveDraft(id, area.value));
   const send = el('button', { type: 'submit', class: 'btn' }, t(reply ? 'compose.reply.send' : 'compose.send'));
   const out = el('div', { class: 'compose-result', role: 'status' });
-  const form = el('form', { class: 'composer' },
-    el('label', { for: area.id, class: 'sr-only' }, t(reply ? 'compose.reply.label' : 'compose.label')), area, el('div', { class: 'row' }, send), out);
+  const count = el('span', { class: 'compose-count', 'aria-hidden': 'true' });
+  const paintCount = () => { count.textContent = `${[...area.value].length} / ${MAX_NOTE_CHARS}`; };
+  area.addEventListener('input', paintCount); paintCount();
+  const form = el('form', { class: 'composer', id: `composer-form-${id}` },
+    el('label', { for: area.id, class: 'sr-only' }, t(reply ? 'compose.reply.label' : 'compose.label')), area, el('div', { class: 'row' }, send, count), out);
   let busy = false;
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -54,7 +57,7 @@ export function composer({ reply = null, onPublished } = {}) {
     try {
       const res = await publishEvent(tpl);
       showResult(out, res, () => republishEvent(res.event));
-      if (res.ok || res.queued) { area.value = ''; saveDraft(id, ''); if (res.ok) onPublished?.(res); }
+      if (res.ok || res.queued) { area.value = ''; saveDraft(id, ''); paintCount(); if (res.ok) onPublished?.(res); }
     } catch (err) { showError(err); } finally { busy = false; send.disabled = false; }
   });
   function showError(err) { out.replaceChildren(el('span', { class: 'status status-error' }, t(errorKey(err)))); }

@@ -3,10 +3,13 @@ import { state } from '../state.js';
 import { npubEncode } from '../nostr/nip19.js';
 import { getCached, requestProfile } from '../profiles.js';
 import { getSigner } from '../auth.js';
-import { tokenizeContent, noteHref } from '../nostr/content.js';
+import { tokenizeContent, noteHref, quoteRefs } from '../nostr/content.js';
+import { replyInfo } from '../nostr/noteinfo.js';
+import { fetchRef } from '../embed.js';
 import { buildReaction, buildRepost } from '../nostr/compose.js';
 import { publishEvent } from '../publish.js';
-import { el, shortNpub, timeAgo } from './common.js';
+import { el, shortNpub, shortAgo, clientName } from './common.js';
+import { checkNip05, cachedNip05 } from '../nip05check.js';
 import { composer, showResult, errorKey } from './composer.js';
 import { zapPanel } from './zap.js';
 import { watchZaps } from '../zap.js';
@@ -17,6 +20,9 @@ import { icon } from './icons.js';
 import { openStatsDialog } from './statsdialog.js';
 import { openNoteMenu } from './notemenu.js';
 import { isMuted } from '../mute.js';
+import { getPreview, previewsEnabled } from '../linkpreview.js';
+import { firstLinkUrl } from '../nostr/linkpreview.js';
+import { ARTICLE_KIND, articleMeta } from '../nostr/article.js';
 
 // Remplit un lien d'auteur (nom + avatar) à partir du cache de profils.
 export function fillAuthor(node) {
@@ -55,18 +61,63 @@ export function authorLink(pk) {
   return a;
 }
 
+// NIP-05 sous le nom : vert si vérifié, rouge si l'identifiant ne désigne pas ce compte, gris tant que la vérification n'a pas abouti.
+function nip05Line(pk) {
+  const line = el('span', { class: 'nip05-line', 'data-pk': pk });
+  const paint = () => {
+    const p = getCached(pk);
+    const id = p?.nip05;
+    if (typeof id !== 'string' || !id) { line.replaceChildren(); line.className = 'nip05-line'; line.removeAttribute('data-id'); return; }
+    const shown = id.startsWith('_@') ? id.slice(2) : id;
+    const st = cachedNip05(pk, id);
+    line.className = `nip05-line n05-${st ?? 'checking'}`;
+    line.textContent = shown.length > 40 ? `${shown.slice(0, 40)}…` : shown;
+    line.title = t(`nip05.${st ?? 'checking'}`);
+    if (!st && state.get('settings')?.loadMedia !== false && line.dataset.id !== id) {
+      line.dataset.id = id;
+      checkNip05(pk, id).then(() => { if (line.isConnected) paint(); });
+    }
+  };
+  line._paint = paint;
+  paint();
+  return line;
+}
+
+// En-tête : grand avatar, nom et NIP-05 l'un sous l'autre, alignés avec l'avatar.
+function authorBlock(pk) {
+  requestProfile(pk);
+  const av = el('span', { class: 'avatar avatar-note', 'aria-hidden': 'true' });
+  const name = el('span', { class: 'author-name' });
+  const link = el('a', { class: 'author author-block', href: `#/profile/${npubEncode(pk)}`, 'data-pk': pk }, av, el('span', { class: 'author-text' }, name, nip05Line(pk)));
+  const fill = () => {
+    const p = getCached(pk);
+    name.textContent = p?.displayName || p?.name || shortNpub(pk);
+    if (p?.picture && state.get('settings')?.loadMedia && !av.firstChild) {
+      const img = el('img', { src: p.picture, alt: '', width: 48, height: 48, loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
+      img.addEventListener('error', () => img.remove());
+      av.append(img);
+    }
+    link.querySelector('.nip05-line')?._paint?.();
+  };
+  link.classList.add('author-fill');
+  link._fill = fill;
+  fill();
+  return link;
+}
+
 function fillMention(node) {
   const p = getCached(node.dataset.pk);
   node.textContent = `@${p?.displayName || p?.name || shortNpub(node.dataset.pk)}`;
 }
 export const updateAuthors = (root) => {
-  root.querySelectorAll('.author[data-pk]').forEach(fillAuthor);
+  root.querySelectorAll('.author[data-pk]').forEach((n) => (n._fill ? n._fill() : fillAuthor(n)));
   root.querySelectorAll('.avatar[data-av]').forEach(fillAvatar);
   root.querySelectorAll('.mention[data-pk]').forEach(fillMention);
+  root.querySelectorAll('.who[data-pk]').forEach((n) => { const p = getCached(n.dataset.pk); n.textContent = p?.displayName || p?.name || shortNpub(n.dataset.pk); });
 };
 
 // Texte d'une note : liens https, mentions, références de notes et hashtags ; le reste est du texte brut.
-export function renderContent(text) {
+export function renderContent(text, { hideRefs = false } = {}) {
   const media = !!state.get('settings')?.loadMedia;
   const nodes = tokenizeContent(text).map((tk) => {
     switch (tk.type) {
@@ -75,7 +126,7 @@ export function renderContent(text) {
         if (!tk.image || !media) return a;
         const img = el('img', { class: 'note-img', src: tk.url, alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
         img.addEventListener('error', () => img.remove());
-        return el('span', { class: 'note-media' }, a, img);
+        return el('a', { class: 'note-media', href: tk.url, target: '_blank', rel: 'noopener noreferrer nofollow ugc' }, img);
       }
       case 'mention': {
         requestProfile(tk.pubkey);
@@ -83,7 +134,8 @@ export function renderContent(text) {
         fillMention(a);
         return a;
       }
-      case 'note': return el('a', { class: 'note-ref', href: noteHref(tk.id) }, t('note.ref'));
+      case 'note': return hideRefs ? null : el('a', { class: 'note-ref', href: noteHref(tk.id) }, t('note.ref'));
+      case 'addr': return hideRefs ? null : t('note.ref');
       case 'hashtag': return el('span', { class: 'hashtag' }, `#${tk.tag}`);
       default: return tk.text;
     }
@@ -211,6 +263,77 @@ function noteActions(ev, article, detail) {
   return [stats?.node ?? null, row, msg];
 }
 
+// Cartes des notes et articles cités (nostr:nevent, note, naddr) : compactes, sans citations imbriquées.
+function quoteCards(text) {
+  const refs = quoteRefs(tokenizeContent(text));
+  if (!refs.length) return null;
+  const box = el('div', { class: 'quotes' });
+  refs.forEach((ref) => {
+    const slot = el('div', { class: 'quote-slot' }, el('p', { class: 'hint' }, t('note.quote.loading')));
+    box.append(slot);
+    fetchRef(ref).then((ev) => {
+      if (!slot.isConnected) return;
+      if (!ev || isMuted(ev)) { slot.replaceChildren(el('a', { class: 'note-ref', href: ref.id ? noteHref(ref.id) : '#/feed' }, t('note.ref'))); return; }
+      if (ev.kind === ARTICLE_KIND) { slot.replaceChildren(...articleCard(ev, false)); updateAuthors(slot); return; }
+      const body = ev.content.length > 280 ? `${ev.content.slice(0, 280)}…` : ev.content;
+      slot.replaceChildren(el('a', { class: 'quote-card', href: noteHref(ev.id) },
+        el('span', { class: 'quote-head' }, authorBlockSmall(ev.pubkey), el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, shortAgo(ev.created_at))),
+        el('span', { class: 'quote-text' }, ...renderContent(body, { hideRefs: true }))));
+      updateAuthors(slot);
+    });
+  });
+  return box;
+}
+function authorBlockSmall(pk) {
+  requestProfile(pk);
+  const av = el('span', { class: 'avatar avatar-sm', 'aria-hidden': 'true', 'data-av': pk });
+  fillAvatar(av);
+  return el('span', { class: 'quote-author' }, av, el('strong', { class: 'who', 'data-pk': pk }, shortNpub(pk)));
+}
+
+// Ligne au-dessus d'une note : « X a reposté » ou « En réponse à X ».
+function contextLine(ev, repostedBy, detail) {
+  if (repostedBy) {
+    requestProfile(repostedBy);
+    return el('p', { class: 'note-context' }, icon('repost', 14), el('a', { class: 'who', 'data-pk': repostedBy, href: `#/profile/${npubEncode(repostedBy)}` }, shortNpub(repostedBy)), ` ${t('note.reposted')}`);
+  }
+  const r = !detail && replyInfo(ev);
+  if (!r) return null;
+  if (r.parentAuthor) requestProfile(r.parentAuthor);
+  return el('p', { class: 'note-context' }, icon('reply', 14), `${t('note.replyTo')} `,
+    r.parentAuthor ? el('a', { class: 'who', 'data-pk': r.parentAuthor, href: noteHref(r.parentId) }, shortNpub(r.parentAuthor)) : el('a', { href: noteHref(r.parentId) }, t('note.ref')));
+}
+
+// Carte d'aperçu du premier lien web de la note : image en haut, titre puis description. Absente si le service n'a rien renvoyé.
+function linkCard(text) {
+  if (!previewsEnabled()) return null;
+  const url = firstLinkUrl(tokenizeContent(text));
+  if (!url) return null;
+  const slot = el('div', { class: 'link-card-slot' });
+  getPreview(url).then((p) => {
+    if (!p || !slot.isConnected) return;
+    const body = el('div', { class: 'lc-body' }, p.title ? el('strong', { class: 'lc-title' }, p.title) : null,
+      p.description ? el('span', { class: 'lc-desc' }, p.description) : null, p.host ? el('span', { class: 'lc-host' }, p.host) : null);
+    let img = null;
+    if (p.image) { img = el('img', { class: 'lc-img', src: p.image, alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' }); img.addEventListener('error', () => img.remove()); }
+    slot.append(el('a', { class: 'link-card', href: url, target: '_blank', rel: 'noopener noreferrer nofollow ugc', 'aria-label': `${t('link.preview')} : ${p.title || p.host}` }, img, body));
+  });
+  return slot;
+}
+
+// Article long (NIP-23) : image en haut, titre, résumé, puces de thèmes ; ouvert, il affiche aussi le texte.
+function articleCard(ev, detail) {
+  const m = articleMeta(ev);
+  const media = state.get('settings')?.loadMedia !== false;
+  let img = null;
+  if (m.image && media) { img = el('img', { class: 'lc-img', src: m.image, alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' }); img.addEventListener('error', () => img.remove()); }
+  const chips = m.tags.length ? el('ul', { class: 'chips' }, ...m.tags.map((x) => el('li', {}, x))) : null;
+  const body = el('div', { class: 'lc-body' }, el('strong', { class: 'lc-title lc-title-big' }, m.title || t('article.untitled')),
+    m.summary ? el('span', { class: 'lc-desc' }, m.summary) : null, chips);
+  const card = el(detail ? 'div' : 'a', { class: 'link-card article-card', ...(detail ? {} : { href: noteHref(ev.id), 'aria-label': m.title || t('article.untitled') }) }, img, body);
+  return detail ? [card, el('div', { class: 'article-body' }, ...renderContent(ev.content.slice(0, 20000)))] : [card];
+}
+
 // Note masquée (sourdine) : un bandeau avec la raison et un bouton pour l'afficher quand même.
 export function noteCard(ev, opts = {}) {
   const reason = opts.force ? null : isMuted(ev);
@@ -222,17 +345,18 @@ export function noteCard(ev, opts = {}) {
   return box;
 }
 
-function buildNoteCard(ev, { via, author = true, detail = false } = {}) {
+function buildNoteCard(ev, { via, author = true, detail = false, repostedBy = null } = {}) {
   const moreBtn = el('button', { type: 'button', class: 'note-more', 'aria-haspopup': 'dialog', 'aria-label': t('menu.note.more'), title: t('menu.note.more') }, icon('more', 20));
   const text = ev.content.length > 600 ? `${ev.content.slice(0, 600)}…` : ev.content;
+  const client = clientName(ev);
   const article = el('article', { class: 'note' },
-    el('div', { class: 'note-head' },
-      author ? authorLink(ev.pubkey) : el('span'),
+    contextLine(ev, repostedBy, detail),
+    el('div', { class: 'note-head' }, author ? authorBlock(ev.pubkey) : el('span'), moreBtn),
+    el('p', { class: 'note-meta' },
       el('a', { class: 'note-time', href: noteHref(ev.id), 'aria-label': t('note.open') },
-        el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, timeAgo(ev.created_at))),
-      moreBtn),
-    el('p', { class: 'note-text' }, ...renderContent(text)),
-    via ? el('p', { class: 'note-via' }, t('note.relay', { relay: via.replace(/^wss:\/\//, '') })) : null);
+        el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, shortAgo(ev.created_at))),
+      client ? el('span', { class: 'note-client' }, ` ${t('note.via', { client })}`) : null),
+    ...(ev.kind === ARTICLE_KIND ? articleCard(ev, detail) : [el('p', { class: 'note-text' }, ...renderContent(text, { hideRefs: true })), quoteCards(text), linkCard(text)]));
   moreBtn.addEventListener('click', () => openNoteMenu(ev, { via, opener: moreBtn,
     onHidden: (key) => article.replaceChildren(el('p', { class: 'hint' }, t(key))),
     onDeleted: () => { article.classList.add('note-deleted'); article.replaceChildren(el('p', { class: 'hint' }, t('note.deleted'))); } }));

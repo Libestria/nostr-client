@@ -6,6 +6,9 @@ import { parseContacts } from '../nostr/contacts.js';
 import { onProfiles } from '../profiles.js';
 import { el, pageTitle, stateBlock } from './common.js';
 import { noteCard, updateAuthors } from './note.js';
+import { ARTICLE_KIND, addressKey } from '../nostr/article.js';
+import { parseRepost } from '../nostr/noteinfo.js';
+import { verifyEvent } from '../nostr/verifier.js';
 import { planFor } from '../relays/outbox.js';
 import { chunkAuthors } from '../nostr/outbox.js';
 
@@ -31,10 +34,12 @@ export function renderFeed(main, params = []) {
   const status = el('p', { class: 'status', role: 'status' });
   const holder = el('div');
   const list = el('div', { class: 'notes' });
-  const reload = el('button', { type: 'button', class: 'btn' }, t('feed.refresh'));
+  const reload = el('button', { type: 'button', class: 'btn', 'data-refresh': '' }, t('feed.refresh'));
   const more = el('button', { type: 'button', class: 'btn' }, t('feed.more'));
   more.hidden = true;
   const extra = [];
+  const articles = new Map();
+  const reposts = new Map();   // id du repost -> { ev (note d'origine), by, at }
   if (!session) extra.push(el('p', {}, el('a', { class: 'btn', href: '#/login' }, t('login.cta'))));
   main.replaceChildren(pageTitle('nav.feed'),
     session ? el('nav', { class: 'tabs', 'aria-label': t('feed.tabs') }, tab('#/feed', 'feed.following', following), tab('#/feed/global', 'feed.globalTab', !following))
@@ -46,21 +51,48 @@ export function renderFeed(main, params = []) {
   function draw() {
     drawTimer = null;
     if (!alive) return;
-    const arr = [...notes.values()].sort((a, b) => b.created_at - a.created_at || (a.id < b.id ? -1 : 1)).slice(0, MAX_SHOWN);
-    list.replaceChildren(...arr.map((ev) => noteCard(ev, { via: via.get(ev.id) })));
+    const entries = [...notes.values()].map((ev) => ({ ev, at: ev.created_at, by: null, key: ev.id }));
+    reposts.forEach((r, key) => { if (r) entries.push({ ...r, key }); });
+    entries.sort((a, b) => b.at - a.at || (a.key < b.key ? -1 : 1));
+    list.replaceChildren(...entries.slice(0, MAX_SHOWN).map((e) => noteCard(e.ev, { via: via.get(e.ev.id), repostedBy: e.by })));
   }
 
   function add(ev, relay) {
-    if (!alive || ev.kind !== 1) return;
+    if (!alive) return;
+    if (ev.kind === 6 && following) return addRepost(ev, relay);
+    if (ev.kind !== 1 && !(following && ev.kind === ARTICLE_KIND)) return;
     if (following) {
       if (!authorSet?.has(ev.pubkey)) return;
       // le curseur de chaque groupe avance même pour un doublon reçu d'un autre relais
       if (relay) groups.forEach((g, i) => { if (g.url === relay && g.authors.has(ev.pubkey)) cursor[i] = cursor[i] == null ? ev.created_at : Math.min(cursor[i], ev.created_at); });
     }
     if (notes.has(ev.id)) return;
+    if (ev.kind === ARTICLE_KIND) {   // version la plus récente d'un même article
+      const key = addressKey(ev), old = articles.get(key);
+      if (old && old.created_at >= ev.created_at) return;
+      if (old) notes.delete(old.id);
+      articles.set(key, ev);
+    }
     if (!following) oldest = Math.min(oldest, ev.created_at);
     notes.set(ev.id, ev);
     if (relay) via.set(ev.id, relay);
+    got = true;
+    setHolder(null);
+    more.hidden = false;
+    scheduleDraw();
+  }
+
+  // Repost (kind 6) d'un compte suivi : la note d'origine est vérifiée avant d'être affichée.
+  async function addRepost(ev, relay) {
+    if (!authorSet?.has(ev.pubkey) || reposts.has(ev.id)) return;
+    const inner = parseRepost(ev);
+    if (!inner) return;
+    if (relay) groups.forEach((g, i) => { if (g.url === relay && g.authors.has(ev.pubkey)) cursor[i] = cursor[i] == null ? ev.created_at : Math.min(cursor[i], ev.created_at); });
+    reposts.set(ev.id, null);   // réserve : évite un double traitement pendant la vérification
+    const ok = await verifyEvent(inner).catch(() => false);
+    if (!alive) return;
+    if (!ok) { reposts.delete(ev.id); return; }
+    reposts.set(ev.id, { ev: inner, by: ev.pubkey, at: ev.created_at });
     got = true;
     setHolder(null);
     more.hidden = false;
@@ -81,12 +113,12 @@ export function renderFeed(main, params = []) {
     const byRelay = new Map();
     groups.forEach((g, i) => {
       if (only && !only.includes(i)) return;
-      const f = { kinds: [1], authors: [...g.authors], limit: PAGE, ...(!first && cursor[i] != null ? { until: cursor[i] - 1 } : {}) };
+      const f = { kinds: [1, 6, ARTICLE_KIND], authors: [...g.authors], limit: PAGE, ...(!first && cursor[i] != null ? { until: cursor[i] - 1 } : {}) };
       if (!byRelay.has(g.url)) byRelay.set(g.url, []);
       byRelay.get(g.url).push(f);
     });
     if (!byRelay.size) { reload.disabled = more.disabled = false; return; }
-    subs.push(pool.subscribe([{ kinds: [1] }], { closeOnEose: true, relayFilters: byRelay, onevent: add, oneose: done }));
+    subs.push(pool.subscribe([{ kinds: [1, 6, ARTICLE_KIND] }], { closeOnEose: true, relayFilters: byRelay, onevent: add, oneose: done }));
   }
 
   more.addEventListener('click', () => fetchPage(false));
@@ -124,7 +156,7 @@ export function renderFeed(main, params = []) {
       subs.splice(0).forEach((s) => s.close());
       groups = []; cursor = [];
       authorSet = new Set(authors);
-      latest({ kinds: [1], limit: 300 }).then((evs) => evs.filter((e) => authorSet.has(e.pubkey)).slice(0, PAGE).forEach((e) => add(e)));
+      latest({ kinds: [1, 6, ARTICLE_KIND], limit: 300 }).then((evs) => evs.filter((e) => authorSet.has(e.pubkey)).slice(0, PAGE).forEach((e) => add(e)));
       const mine = pool.status().filter((r) => r.read && r.scope === 'account').map((r) => r.url);
       // 1) affichage immédiat : tes relais de lecture pour tous les comptes suivis (comme avant)
       for (const url of mine) chunkAuthors(authors).forEach((c) => groups.push({ url, authors: new Set(c) }));

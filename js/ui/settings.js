@@ -1,3 +1,4 @@
+import { validTemplate } from '../nostr/linkpreview.js';
 import { t } from '../i18n.js';
 import { state } from '../state.js';
 import { updateSettings } from '../storage/settings.js';
@@ -24,6 +25,17 @@ function checkbox(id, labelKey, hintKey, checked, onChange) {
   box.addEventListener('change', () => onChange(box.checked));
   return el('div', { class: 'field check' }, box, el('label', { for: id }, t(labelKey)),
     el('p', { class: 'hint', id: `${id}-hint` }, t(hintKey)));
+}
+
+function previewServiceField(s, save, status) {
+  const input = el('input', { type: 'url', id: 'previewService', name: 'previewService', value: s.previewService, autocomplete: 'off', spellcheck: 'false', 'aria-describedby': 'previewService-hint' });
+  input.addEventListener('change', () => {
+    const v = input.value.trim();
+    if (!validTemplate(v)) { status.textContent = t('settings.previewService.invalid'); input.value = s.previewService; return; }
+    s = { ...s, previewService: v }; save({ previewService: v });
+  });
+  return el('div', { class: 'field' }, el('label', { for: 'previewService' }, t('settings.previewService')), input,
+    el('p', { class: 'hint', id: 'previewService-hint' }, t('settings.previewService.hint')));
 }
 
 const fmtDate = (ts) => new Intl.DateTimeFormat(document.documentElement.lang || 'fr', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(ts * 1000));
@@ -203,6 +215,8 @@ export function renderSettings(main, params = []) {
   else if (sec.id === 'general') {
     const f = form(
       checkbox('loadMedia', 'settings.media', 'settings.media.hint', s.loadMedia, (v) => save({ loadMedia: v })),
+      checkbox('linkPreviews', 'settings.previews', 'settings.previews.hint', s.linkPreviews !== false, (v) => save({ linkPreviews: v })),
+      previewServiceField(s, save, status),
       checkbox('readOnly', 'settings.readOnly', 'settings.readOnly.hint', s.readOnly, (v) => save({ readOnly: v })),
       ...(typeof Notification !== 'undefined' ? [checkbox('browserNotify', 'settings.notify', 'settings.notify.hint', s.browserNotify, async (v) => {
         if (v && Notification.permission !== 'granted') {

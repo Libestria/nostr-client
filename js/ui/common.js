@@ -36,3 +36,21 @@ export function timeAgo(ts) {
   if (s < 86400) return rtf.format(-Math.floor(s / 3600), 'hour');
   return rtf.format(-Math.floor(s / 86400), 'day');
 }
+
+// Temps écoulé abrégé, sans « il y a » : 12s, 5m, 3h, 2j (en anglais : d). Au-delà d'un an : 1a.
+export function shortAgo(ts, lang = document.documentElement.lang || 'fr') {
+  const s = Math.max(0, Math.floor(Date.now() / 1000) - ts);
+  const day = lang.startsWith('fr') ? 'j' : 'd', year = lang.startsWith('fr') ? 'a' : 'y';
+  if (s < 60) return `${s}s`;
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  if (s < 31536000) return `${Math.floor(s / 86400)}${day}`;
+  return `${Math.floor(s / 31536000)}${year}`;
+}
+
+// Nom du client indiqué par la note (étiquette ["client", nom, …]) ; texte brut, borné.
+export function clientName(ev) {
+  const tag = ev.tags?.find((x) => x[0] === 'client' && typeof x[1] === 'string');
+  const name = tag?.[1].replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 40);
+  return name || null;
+}

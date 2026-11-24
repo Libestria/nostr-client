@@ -60,7 +60,7 @@ export function renderThread(main, params) {
   }
 
   function add(ev) {
-    if (!alive || ev.kind !== 1 || events.has(ev.id) || events.size >= MAX_EVENTS) return;
+    if (!alive || (ev.kind !== 1 && !(ev.kind === 30023 && ev.id === focusId)) || events.has(ev.id) || events.size >= MAX_EVENTS) return;
     events.set(ev.id, ev);
     if (ev.id === focusId) askThread(ev);
     schedule();

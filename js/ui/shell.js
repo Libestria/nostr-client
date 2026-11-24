@@ -9,6 +9,7 @@ import { npubEncode } from '../nostr/nip19.js';
 import { el, shortNpub } from './common.js';
 import { icon } from './icons.js';
 import { composer } from './composer.js';
+import { avatarNode } from './note.js';
 
 const NAV_ICONS = { login: 'user', feed: 'home', bookmarks: 'bookmark', search: 'search', notifications: 'bell', messages: 'mail', profile: 'user', settings: 'settings' };
 const loadMedia = () => state.get('settings')?.loadMedia !== false;
@@ -84,9 +85,12 @@ function buildFab() {
   const refresh = () => { fab.hidden = !(state.get('session') && getSigner()); fab.setAttribute('aria-label', t('shell.newPost')); fab.title = t('shell.newPost'); };
   fab.addEventListener('click', () => {
     const dlg = el('dialog', { class: 'compose-dialog', 'aria-label': t('shell.newPost') });
-    const close = el('button', { type: 'button', class: 'btn btn-small', 'aria-label': t('shell.menu.close') }, '✕');
-    close.addEventListener('click', () => dlg.close());
-    dlg.append(el('div', { class: 'sd-head' }, el('h2', {}, t('shell.newPost')), close), composer({}));
+    const cancel = el('button', { type: 'button', class: 'btn btn-small' }, t('shell.cancel'));
+    cancel.addEventListener('click', () => dlg.close());
+    const form = composer({});
+    const publish = el('button', { type: 'submit', class: 'btn btn-small btn-primary', form: form.id }, t('compose.send'));
+    const me = state.get('session')?.pubkey;
+    dlg.append(el('div', { class: 'sd-head' }, cancel, publish), el('div', { class: 'compose-row' }, me ? avatarNode(me) : null, form));
     dlg.addEventListener('close', () => { dlg.remove(); fab.focus(); });
     dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
     document.body.append(dlg);
@@ -129,7 +133,23 @@ function buildSwipe() {
   }, { passive: true });
 }
 
+// ---------- tirer pour rafraîchir (accueil) : geste vers le bas en haut de page
+function buildPullToRefresh() {
+  const view = document.getElementById('view');
+  let start = null;
+  view.addEventListener('touchstart', (e) => { start = window.scrollY <= 0 && e.touches.length === 1 && !e.target.closest('dialog, textarea, input, select') ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
+  view.addEventListener('touchend', (e) => {
+    if (!start) return;
+    const tch = e.changedTouches[0], dy = tch.clientY - start.y, dx = Math.abs(tch.clientX - start.x);
+    start = null;
+    if (dy < 110 || dx > 60 || window.scrollY > 0) return;
+    const btn = view.querySelector('button[data-refresh]:not(:disabled)');
+    if (btn) btn.click();
+  }, { passive: true });
+}
+
 export function initShell() {
+  buildPullToRefresh();
   buildNav();
   buildTopbar();
   buildFab();
