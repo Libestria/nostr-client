@@ -466,5 +466,7 @@
   "link.preview": "Link preview",
   "article.untitled": "Untitled article",
   "note.replyTo": "Replying to",
-  "note.quote.loading": "Loading quoted note…"
+  "note.quote.loading": "Loading quoted note…",
+  "time.now": "Just now",
+  "zap.cancel": "Cancel"
 }
