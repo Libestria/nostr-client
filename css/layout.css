@@ -26,13 +26,13 @@
 .nav ul { display: flex; margin: 0; padding: 0; list-style: none; }
 .nav li { flex: 1 1 0; min-width: 0; }
 .nav a {
-  display: block; padding: .75rem .25rem; text-align: center; text-decoration: none;
-  color: var(--ink-2); font-size: .72rem; overflow: hidden; text-overflow: ellipsis;
-  border-top: 3px solid transparent; transition: background .2s, color .2s;
+  position: relative; display: flex; align-items: center; justify-content: center; gap: .6rem; min-height: 52px; padding: .5rem .25rem; text-decoration: none;
+  color: var(--ink-2); font-size: .72rem; border-top: 3px solid transparent; transition: background .2s, color .2s;
 }
-.nav a[aria-current="page"] {
-  color: var(--nav-hover-text); background: var(--nav-hover-bg); font-weight: 600; border-top-color: var(--focus);
-}
+.nav-icon { display: inline-flex; position: relative; }
+.nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }   /* visible seulement sur grand écran */
+.desk-only { display: none; }
+.nav a[aria-current="page"] { color: var(--accent); background: var(--nav-hover-bg); font-weight: 600; border-top-color: var(--accent); }
 @media (hover: hover) {
   .nav a:hover { background: var(--nav-hover-bg); color: var(--nav-hover-text); }
 }
@@ -51,8 +51,16 @@
     -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
   }
   .nav ul { flex-direction: column; gap: 3px; padding: 0 .75rem; }
-  .nav a { text-align: left; font-size: 1.05rem; padding: .6rem .75rem; border-top: 0; border-radius: var(--r-md); }
+  .nav a { justify-content: flex-start; font-size: 1.05rem; min-height: 0; padding: .6rem .75rem; border-top: 0; border-radius: var(--r-md); }
+  .nav-label { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
+  .desk-only { display: list-item; }
+  .topbar { display: none; }
   #view { margin: 1rem 1.5rem 0; min-height: calc(100vh - 1rem); min-height: calc(100dvh - 1rem); }
 }
 
-#nav a[data-count]::after { content: " (" attr(data-count) ")"; font-weight: 600; }
+/* Pastille de notifications non lues (rouge, texte blanc : contraste AA) */
+#nav a[data-count]::after {
+  content: attr(data-count); position: absolute; top: 5px; left: calc(50% + 4px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: #c62828; color: #fff; font-weight: 700; font-size: .7rem; line-height: 18px; text-align: center;
+}
+@media (min-width: 48rem) { #nav a[data-count]::after { position: static; margin-left: auto; } }
