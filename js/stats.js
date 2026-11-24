@@ -44,8 +44,10 @@ export function watchStats(eventId, cb) {
 // Après une action de l'utilisateur : met à jour tout de suite le compteur (sans attendre le relais).
 export function bumpStat(eventId, field) {
   const s = get(eventId);
-  if (field === 'reactions') { s.reactions++; s.reacted = true; }
-  if (field === 'reposts') { s.reposts++; s.reposted = true; }
+  const me = getSigner()?.pubkey;
+  const at = Math.floor(Date.now() / 1000);
+  if (field === 'reactions') { s.reactions++; s.reacted = true; if (me) s.reactors.unshift({ from: me, emoji: '+', at }); }
+  if (field === 'reposts') { s.reposts++; s.reposted = true; if (me) s.reposters.unshift({ from: me, at }); }
   if (field === 'replies') s.replies++;
   emit(eventId);
 }
