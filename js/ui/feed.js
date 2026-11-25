@@ -4,7 +4,7 @@ import { pool } from '../relays/pool.js';
 import { latest, getReplaceable } from '../storage/db.js';
 import { parseContacts } from '../nostr/contacts.js';
 import { onProfiles } from '../profiles.js';
-import { el, pageTitle, stateBlock } from './common.js';
+import { el, pageTitle, stateBlock, reconcile } from './common.js';
 import { noteCard, updateAuthors } from './note.js';
 import { ARTICLE_KIND, addressKey } from '../nostr/article.js';
 import { parseRepost } from '../nostr/noteinfo.js';
@@ -47,6 +47,7 @@ export function renderFeed(main, params = []) {
     status, el('div', { class: 'row' }, reload), holder, list, more, ...extra);
 
   const setHolder = (kind, key) => holder.replaceChildren(...(kind ? [stateBlock(kind, key)] : []));
+  const cards = new Map();   // clé -> carte déjà construite (réutilisée à chaque affichage)
   const scheduleDraw = () => { drawTimer ||= setTimeout(draw, 150); };
   function draw() {
     drawTimer = null;
@@ -54,7 +55,15 @@ export function renderFeed(main, params = []) {
     const entries = [...notes.values()].map((ev) => ({ ev, at: ev.created_at, by: null, key: ev.id }));
     reposts.forEach((r, key) => { if (r) entries.push({ ...r, key }); });
     entries.sort((a, b) => b.at - a.at || (a.key < b.key ? -1 : 1));
-    list.replaceChildren(...entries.slice(0, MAX_SHOWN).map((e) => noteCard(e.ev, { via: via.get(e.ev.id), repostedBy: e.by })));
+    const shown = entries.slice(0, MAX_SHOWN);
+    const nodes = shown.map((e) => {
+      let card = cards.get(e.key);
+      if (!card) { card = noteCard(e.ev, { via: via.get(e.ev.id), repostedBy: e.by, parent: true }); cards.set(e.key, card); }
+      return card;
+    });
+    const keep = new Set(shown.map((e) => e.key));
+    for (const k of cards.keys()) if (!keep.has(k)) cards.delete(k);
+    reconcile(list, nodes);
     updateAuthors(list);
   }
 

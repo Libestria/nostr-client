@@ -6,8 +6,8 @@ import { getEvent, putEvent, latest } from '../storage/db.js';
 import { decode } from '../nostr/nip19.js';
 import { buildThread, rootId, flatThread } from '../nostr/thread.js';
 import { onProfiles } from '../profiles.js';
-import { el, pageTitle, stateBlock } from './common.js';
-import { noteCard, noteRow, updateAuthors } from './note.js';
+import { el, pageTitle, stateBlock, reconcile } from './common.js';
+import { noteCard, updateAuthors } from './note.js';
 
 const HEX64 = /^[0-9a-f]{64}$/;
 const MAX_EVENTS = 400;
@@ -32,6 +32,8 @@ export function renderThread(main, params) {
   let alive = true, drawTimer = null, asked = null, scrolled = false;
   const holder = el('div');
   const tree = el('div', { class: 'thread' });
+  const flatBox = el('div', { class: 'thread-flatlist' });
+  const rows = new Map();   // id -> ligne ou carte déjà construite (affichage plat)
   const status = el('p', { class: 'status', role: 'status' });
   main.replaceChildren(title, el('p', {}, el('a', { class: 'btn', href: '#/feed' }, t('thread.back'))), holder, tree, status);
   holder.replaceChildren(stateBlock('loading', 'state.loading'));
@@ -46,7 +48,7 @@ export function renderThread(main, params) {
     if (!roots.length) return;
     holder.replaceChildren();
     const render = (node) => {
-      const card = noteCard(node.event, { detail: node.event.id === focusId });
+      const card = noteCard(node.event, { detail: node.event.id === focusId, nested: false });
       if (node.event.id === focusId) card.classList.add('note-focus');
       const li = el('li', { class: 'thread-item', 'data-depth': node.depth }, card);
       if (node.children.length) {
@@ -69,13 +71,19 @@ export function renderThread(main, params) {
     if (!items.length) return;
     holder.replaceChildren();
     const nodes = items.map((it) => {
-      if (it.event.id !== focusId) return noteRow(it.event, it);
-      const card = noteCard(it.event, { detail: true });
-      card.classList.add('note-focus');
-      if (it.linkedPrev) card.classList.add('linked-prev');
-      return card;
+      let node = rows.get(it.event.id);
+      if (!node) {
+        if (it.event.id !== focusId) node = noteCard(it.event, { nested: { row: true } });
+        else { node = noteCard(it.event, { detail: true }); node.classList.add('note-focus'); }
+        rows.set(it.event.id, node);
+      }
+      // le trait entre avatars dépend des voisines : mis à jour sans recréer la ligne
+      node.classList.toggle('link-prev', it.linkedPrev);
+      node.classList.toggle('link-next', it.event.id !== focusId && it.linkedNext);
+      return node;
     });
-    tree.replaceChildren(el('div', { class: 'thread-flatlist' }, ...nodes));
+    if (tree.firstChild !== flatBox) tree.replaceChildren(flatBox);
+    reconcile(flatBox, nodes);
     updateAuthors(tree);
     status.textContent = events.has(focusId) ? '' : t('thread.missing');
     if (!scrolled && focus && items.length > 1) { scrolled = true; tree.querySelector('.note-focus')?.scrollIntoView({ block: 'center' }); }

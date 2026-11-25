@@ -8,7 +8,7 @@ import { replyInfo } from '../nostr/noteinfo.js';
 import { fetchRef } from '../embed.js';
 import { buildReaction, buildRepost } from '../nostr/compose.js';
 import { publishEvent } from '../publish.js';
-import { el, shortNpub, shortAgo, fullAgo, clientName } from './common.js';
+import { el, shortNpub, fullAgo, clientName } from './common.js';
 import { checkNip05, cachedNip05 } from '../nip05check.js';
 import { composer, showResult, errorKey } from './composer.js';
 import { zapPanel } from './zap.js';
@@ -351,9 +351,29 @@ function agoLabel(ts) {
 }
 
 // Note masquée (sourdine) : un bandeau avec la raison et un bouton pour l'afficher quand même.
+// Réponse dans un fil : indication « En réponse à », note parente en ligne compacte reliée par un trait à la réponse.
+// La parente est chargée à part ; si elle est introuvable ou masquée, seule la réponse s'affiche.
+function replyChain(ev, r, opts) {
+  const slot = el('div', { class: 'chain-slot' });
+  const card = buildNoteCard(ev, { ...opts, context: false });
+  const box = el('div', { class: 'note-chain' }, contextLine(ev, null, false), slot, card);
+  fetchRef({ id: r.parentId }).then((parent) => {
+    if (!parent || parent.kind !== 1 || isMuted(parent)) return;
+    const row = buildNoteCard(parent, { nested: { row: true } });
+    row.classList.add('link-next');
+    slot.replaceChildren(row);
+    card.classList.add('link-prev');
+    updateAuthors(box);
+  });
+  return box;
+}
+
 export function noteCard(ev, opts = {}) {
   const reason = opts.force ? null : isMuted(ev);
-  if (!reason) return buildNoteCard(ev, opts);
+  if (!reason) {
+    const r = opts.parent && !opts.repostedBy && !opts.detail && ev.kind === 1 ? replyInfo(ev) : null;
+    return r ? replyChain(ev, r, opts) : buildNoteCard(ev, opts);
+  }
   const box = el('article', { class: 'note note-muted' });
   const show = el('button', { type: 'button', class: 'btn btn-small' }, t('mute.show'));
   show.addEventListener('click', () => box.replaceWith(buildNoteCard(ev, opts)));
@@ -361,7 +381,11 @@ export function noteCard(ev, opts = {}) {
   return box;
 }
 
-function buildNoteCard(ev, { via, author = true, detail = false, repostedBy = null } = {}) {
+// Options : detail (note ouverte), repostedBy, nested ({ row: true } : ligne compacte du fil plat ou note parente, contenu décalé,
+// sans barre d'actions), actions (barre d'actions), context (ligne « a reposté » / « En réponse à »).
+function buildNoteCard(ev, { via, author = true, detail = false, repostedBy = null, nested, actions: withActions = true, context = true } = {}) {
+  const row = !!nested?.row;
+  const indent = row;
   const moreBtn = el('button', { type: 'button', class: 'note-more', 'aria-haspopup': 'dialog', 'aria-label': t('menu.note.more'), title: t('menu.note.more') }, icon('more', 20));
   const openBtn = el('a', { class: 'note-open', href: noteHref(ev.id), 'aria-label': t('note.open'), title: t('note.open') }, icon('thread', 18));
   const text = ev.content.length > 600 ? `${ev.content.slice(0, 600)}…` : ev.content;
@@ -369,39 +393,15 @@ function buildNoteCard(ev, { via, author = true, detail = false, repostedBy = nu
   const meta = el('p', { class: 'note-meta' },
     el('time', { class: 'note-time', datetime: new Date(ev.created_at * 1000).toISOString() }, agoLabel(ev.created_at)),
     client ? el('span', { class: 'note-client' }, ` ${t('note.via', { client })}`) : null);
-  const article = el('article', { class: detail ? 'note note-detail' : 'note' },
-    contextLine(ev, repostedBy, detail),
+  const body = ev.kind === ARTICLE_KIND ? articleCard(ev, detail) : [el('p', { class: 'note-text' }, ...renderContent(text, { hideRefs: true })), quoteCards(text), linkCard(text)];
+  const article = el('article', { class: ['note', detail ? 'note-detail' : '', row ? 'note-row' : ''].filter(Boolean).join(' ') },
+    context ? contextLine(ev, repostedBy, detail || row) : null,
     el('div', { class: 'note-head' }, author ? authorBlock(ev.pubkey, meta) : el('span'), detail ? null : openBtn, moreBtn),
     author ? null : meta,
-    ...(ev.kind === ARTICLE_KIND ? articleCard(ev, detail) : [el('p', { class: 'note-text' }, ...renderContent(text, { hideRefs: true })), quoteCards(text), linkCard(text)]));
+    ...(indent ? [el('div', { class: 'note-content' }, ...body)] : body));
   moreBtn.addEventListener('click', () => openNoteMenu(ev, { via, opener: moreBtn,
     onHidden: (key) => article.replaceChildren(el('p', { class: 'hint' }, t(key))),
     onDeleted: () => { article.classList.add('note-deleted'); article.replaceChildren(el('p', { class: 'hint' }, t('note.deleted'))); } }));
-  const actions = noteActions(ev, article, detail);
-  article.append(...actions.filter(Boolean));
+  if (withActions && !row) article.append(...noteActions(ev, article, detail).filter(Boolean));
   return article;
-}
-
-// Ligne compacte du fil « plat » : avatar à gauche relié par un trait aux notes voisines du même échange,
-// nom + temps abrégé sur la première ligne, texte à droite de l'avatar. Pas de barre d'actions (ouvrir la note pour réagir).
-export function noteRow(ev, { linkedPrev = false, linkedNext = false } = {}) {
-  if (isMuted(ev)) return noteCard(ev, {});
-  const pk = ev.pubkey;
-  requestProfile(pk);
-  const href = `#/profile/${npubEncode(pk)}`;
-  const moreBtn = el('button', { type: 'button', class: 'note-more', 'aria-haspopup': 'dialog', 'aria-label': t('menu.note.more'), title: t('menu.note.more') }, icon('more', 20));
-  const text = ev.content.length > 600 ? `${ev.content.slice(0, 600)}…` : ev.content;
-  const seg = (cls, on) => el('span', { class: `fr-seg ${cls}`, 'data-on': on ? 'true' : 'false' });
-  const row = el('article', { class: 'fr' },
-    el('div', { class: 'fr-rail' }, seg('fr-up', linkedPrev), el('a', { href, tabindex: '-1', 'aria-hidden': 'true' }, avatarNode(pk)), seg('fr-down', linkedNext)),
-    el('div', { class: 'fr-body' },
-      el('div', { class: 'fr-head' },
-        el('a', { class: 'author fr-name', href, 'data-pk': pk }, el('span', { class: 'avatar', hidden: '' }), el('span', { class: 'author-name' }, shortNpub(pk))),
-        el('time', { class: 'fr-time', datetime: new Date(ev.created_at * 1000).toISOString(), title: new Date(ev.created_at * 1000).toLocaleString() }, shortAgo(ev.created_at)),
-        moreBtn),
-      el('p', { class: 'note-text' }, ...renderContent(text, { hideRefs: true })), quoteCards(text), linkCard(text)));
-  moreBtn.addEventListener('click', () => openNoteMenu(ev, { opener: moreBtn,
-    onHidden: (key) => row.replaceChildren(el('p', { class: 'hint' }, t(key))),
-    onDeleted: () => row.replaceChildren(el('p', { class: 'hint' }, t('note.deleted'))) }));
-  return row;
 }

@@ -70,3 +70,14 @@ export function fullAgo(ts, lang = document.documentElement.lang || 'fr', nowLab
     : s < 2592000 ? [Math.floor(s / 86400), 'day'] : s < 31536000 ? [Math.floor(s / 2592000), 'month'] : [Math.floor(s / 31536000), 'year'];
   return new Intl.NumberFormat(lang, { style: 'unit', unit, unitDisplay: 'long' }).format(n);
 }
+
+// Met à jour la liste d'un conteneur avec les nœuds voulus, dans l'ordre, en ne déplaçant ni ne recréant ceux déjà en place :
+// les images (avatars, aperçus) ne sont pas rechargées quand une nouvelle note arrive.
+export function reconcile(parent, nodes) {
+  let cur = parent.firstChild;
+  for (const node of nodes) {
+    if (cur === node) cur = cur.nextSibling;
+    else parent.insertBefore(node, cur);
+  }
+  while (cur) { const next = cur.nextSibling; cur.remove(); cur = next; }
+}
