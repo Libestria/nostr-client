@@ -519,7 +519,9 @@ dialog:focus, dialog:focus-visible { outline: none; }
 .note-row.link-next::after { content: ''; position: absolute; left: 32px; bottom: 0; width: 2px; height: 14px; background: rgb(127 127 127 / .45); }
 .thread-flatlist .note-focus { outline: none; }
 /* Espace entre l'indication (repost / réponse) et la note */
-.note-context { margin: 20px 0 18px 2px; }
+.note-context { margin: 0 0 10px 2px; }
+.note-chain > .note-context { margin-top: 20px; }
+.chain-slot .note-row { padding-top: 0; }
 
 .note-chain { display: block; }
 .chain-slot:empty { display: none; }
