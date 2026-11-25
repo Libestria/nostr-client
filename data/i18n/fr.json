@@ -470,5 +470,9 @@
   "time.now": "À l'instant",
   "zap.cancel": "Annuler",
   "time.ago": "il y a {t}",
-  "note.copyText": "Copier le texte"
+  "note.copyText": "Copier le texte",
+  "settings.threadMode": "Affichage des réponses",
+  "threadMode.flat": "Plat (ordre chronologique)",
+  "threadMode.nested": "Imbriqué (en arbre)",
+  "nip05.none": "Aucun NIP-05 renseigné"
 }

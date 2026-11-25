@@ -470,5 +470,9 @@
   "time.now": "Just now",
   "zap.cancel": "Cancel",
   "time.ago": "{t} ago",
-  "note.copyText": "Copy text"
+  "note.copyText": "Copy text",
+  "settings.threadMode": "Replies display",
+  "threadMode.flat": "Flat (chronological)",
+  "threadMode.nested": "Nested (tree)",
+  "nip05.none": "No NIP-05 set"
 }
