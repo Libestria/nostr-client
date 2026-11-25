@@ -2,6 +2,11 @@
 import { pool } from './relays/pool.js';
 import { getEvent, getReplaceable, putEvent } from './storage/db.js';
 
+const MAX_PARALLEL = 4;   // requêtes réseau simultanées (beaucoup de notes citées / parentes dans un fil)
+let busy = 0;
+const waiting = [];
+const acquire = () => (busy < MAX_PARALLEL ? (busy++, Promise.resolve()) : new Promise((r) => waiting.push(r)));
+const release = () => { const next = waiting.shift(); if (next) next(); else busy--; };
 const memory = new Map();
 const pending = new Map();
 
@@ -12,9 +17,11 @@ export function fetchRef(ref, timeout = 6000) {
   const p = (async () => {
     const cached = ref.id ? await getEvent(ref.id) : await getReplaceable(ref.kind, ref.pubkey, ref.identifier);
     if (cached) return cached;
+    await acquire();
     return new Promise((resolve) => {
       let best = null, sub = null;
-      const finish = () => { clearTimeout(timer); sub?.close(); resolve(best); };
+      let done = false;
+      const finish = () => { if (done) return; done = true; clearTimeout(timer); sub?.close(); release(); resolve(best); };
       const timer = setTimeout(finish, timeout);
       const filter = ref.id ? { ids: [ref.id], limit: 1 } : { kinds: [ref.kind], authors: [ref.pubkey], '#d': [ref.identifier], limit: 1 };
       sub = pool.subscribe([filter], { closeOnEose: true, oneose: finish, onevent: (ev) => {
