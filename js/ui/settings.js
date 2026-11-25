@@ -211,7 +211,8 @@ export function renderSettings(main, params = []) {
   if (sec.id === 'account') body = accountSection();
   else if (sec.id === 'appearance') body = form(
     select('theme', 'settings.theme', [['auto', 'theme.auto'], ['light', 'theme.light'], ['dark', 'theme.dark']], s.theme, (v) => save({ theme: v })),
-    select('lang', 'settings.lang', [['fr', 'lang.fr'], ['en', 'lang.en']], s.lang, (v) => save({ lang: v })));
+    select('lang', 'settings.lang', [['fr', 'lang.fr'], ['en', 'lang.en']], s.lang, (v) => save({ lang: v })),
+    select('threadMode', 'settings.threadMode', [['flat', 'threadMode.flat'], ['nested', 'threadMode.nested']], s.threadMode ?? 'flat', (v) => save({ threadMode: v })));
   else if (sec.id === 'general') {
     const f = form(
       checkbox('loadMedia', 'settings.media', 'settings.media.hint', s.loadMedia, (v) => save({ loadMedia: v })),

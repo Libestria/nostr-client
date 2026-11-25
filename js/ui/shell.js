@@ -28,12 +28,12 @@ function paintAvatar(box, pubkey, size) {
 function buildTopbar() {
   const avatar = el('span', { class: 'avatar', 'aria-hidden': 'true' });
   const open = el('button', { type: 'button', class: 'topbar-avatar', 'aria-haspopup': 'dialog' }, avatar);
-  const bar = el('header', { class: 'topbar' }, open, el('span', { class: 'brand-mobile', 'aria-hidden': 'true' }, 'nostr'));
+  const bar = el('header', { class: 'topbar' }, open, el('span', { class: 'topbar-title', 'aria-hidden': 'true' }));
   document.body.insertBefore(bar, document.querySelector('.app'));
 
   const refresh = () => {
     const s = state.get('session');
-    bar.hidden = !s;
+    open.hidden = !s;
     open.setAttribute('aria-label', t('shell.menu'));
     if (s) { requestProfile(s.pubkey); paintAvatar(avatar, s.pubkey, 34); }
   };
@@ -46,7 +46,7 @@ function buildTopbar() {
     const banner = el('div', { class: 'drawer-banner' });
     if (p?.banner && loadMedia()) { const img = el('img', { src: p.banner, alt: '', decoding: 'async', referrerpolicy: 'no-referrer' }); img.addEventListener('error', () => img.remove()); banner.append(img); }
     const pic = el('span', { class: 'avatar avatar-xl', 'aria-hidden': 'true' }); paintAvatar(pic, pk, 72);
-    const close = el('button', { type: 'button', class: 'btn btn-small drawer-close', 'aria-label': t('shell.menu.close') }, '✕');
+    const close = el('button', { type: 'button', class: 'sheet-x drawer-close', 'aria-label': t('shell.menu.close') }, '✕');
     const copy = el('button', { type: 'button', class: 'drawer-npub', title: t('shell.copyNpub'), 'aria-label': t('shell.copyNpub') }, el('span', {}, shortNpub(pk)), icon('copy', 14));
     copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(npub); copy.querySelector('span').textContent = t('shell.copied'); setTimeout(() => { copy.querySelector('span').textContent = shortNpub(pk); }, 1500); } catch { /* presse-papiers refusé */ } });
     const follows = el('p', { class: 'drawer-follows' });

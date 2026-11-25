@@ -4,10 +4,10 @@ import { state } from '../state.js';
 import { pool } from '../relays/pool.js';
 import { getEvent, putEvent, latest } from '../storage/db.js';
 import { decode } from '../nostr/nip19.js';
-import { buildThread, rootId } from '../nostr/thread.js';
+import { buildThread, rootId, flatThread } from '../nostr/thread.js';
 import { onProfiles } from '../profiles.js';
 import { el, pageTitle, stateBlock } from './common.js';
-import { noteCard, updateAuthors } from './note.js';
+import { noteCard, noteRow, updateAuthors } from './note.js';
 
 const HEX64 = /^[0-9a-f]{64}$/;
 const MAX_EVENTS = 400;
@@ -29,7 +29,7 @@ export function renderThread(main, params) {
 
   const events = new Map();
   const subs = [];
-  let alive = true, drawTimer = null, asked = null;
+  let alive = true, drawTimer = null, asked = null, scrolled = false;
   const holder = el('div');
   const tree = el('div', { class: 'thread' });
   const status = el('p', { class: 'status', role: 'status' });
@@ -40,6 +40,8 @@ export function renderThread(main, params) {
   function draw() {
     drawTimer = null;
     if (!alive) return;
+    const flat = state.get('settings')?.threadMode !== 'nested';
+    if (flat) return drawFlat();
     const { roots } = buildThread([...events.values()], focusId);
     if (!roots.length) return;
     holder.replaceChildren();
@@ -57,6 +59,26 @@ export function renderThread(main, params) {
     updateAuthors(tree);
     if (!events.has(focusId)) status.textContent = t('thread.missing');
     else status.textContent = '';
+  }
+
+  // Affichage plat : ordre chronologique, notes compactes reliées par un trait, note ciblée en grand avec ses actions.
+  function drawFlat() {
+    const items = flatThread([...events.values()]);
+    const focus = events.get(focusId);
+    if (focus && focus.kind !== 1) items.push({ event: focus, linkedPrev: false, linkedNext: false });
+    if (!items.length) return;
+    holder.replaceChildren();
+    const nodes = items.map((it) => {
+      if (it.event.id !== focusId) return noteRow(it.event, it);
+      const card = noteCard(it.event, { detail: true });
+      card.classList.add('note-focus');
+      if (it.linkedPrev) card.classList.add('linked-prev');
+      return card;
+    });
+    tree.replaceChildren(el('div', { class: 'thread-flatlist' }, ...nodes));
+    updateAuthors(tree);
+    status.textContent = events.has(focusId) ? '' : t('thread.missing');
+    if (!scrolled && focus && items.length > 1) { scrolled = true; tree.querySelector('.note-focus')?.scrollIntoView({ block: 'center' }); }
   }
 
   function add(ev) {

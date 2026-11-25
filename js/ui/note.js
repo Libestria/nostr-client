@@ -8,8 +8,7 @@ import { replyInfo } from '../nostr/noteinfo.js';
 import { fetchRef } from '../embed.js';
 import { buildReaction, buildRepost } from '../nostr/compose.js';
 import { publishEvent } from '../publish.js';
-import { el, shortNpub, fullAgo, clientName } from './common.js';
-import { parseIdentifier } from '../nostr/nip05.js';
+import { el, shortNpub, shortAgo, fullAgo, clientName } from './common.js';
 import { checkNip05, cachedNip05 } from '../nip05check.js';
 import { composer, showResult, errorKey } from './composer.js';
 import { zapPanel } from './zap.js';
@@ -31,7 +30,7 @@ export function fillAuthor(node) {
   const p = getCached(pk);
   node.querySelector('.author-name').textContent = p?.displayName || p?.name || shortNpub(pk);
   const av = node.querySelector('.avatar');
-  if (p?.picture && state.get('settings')?.loadMedia && !av.firstChild) {
+  if (av && !av.hidden && p?.picture && state.get('settings')?.loadMedia && !av.firstChild) {
     const img = el('img', { src: p.picture, alt: '', width: 32, height: 32, loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
     img.addEventListener('error', () => img.remove());
     av.append(img);
@@ -62,32 +61,23 @@ export function authorLink(pk) {
   return a;
 }
 
-// Emplacements courants du favicon d'un site, essayés dans l'ordre.
-const FAVICONS = ['/favicon.ico', '/favicon.png', '/favicon.svg', '/apple-touch-icon.png', '/favicon-32x32.png', '/favicon-96x96.png'];
-
-// NIP-05 sous le nom : vert si vérifié, rouge si l'identifiant ne désigne pas ce compte, gris tant que la vérification n'a pas abouti.
+// NIP-05 sous le nom : vert si vérifié, rouge si non vérifié (autre clé, inconnu ou domaine injoignable),
+// gris pendant la vérification ; « Aucun NIP-05 renseigné » en gris quand le profil n'en a pas.
 function nip05Line(pk) {
   const line = el('span', { class: 'nip05-line', 'data-pk': pk });
   const paint = () => {
     const p = getCached(pk);
     const id = p?.nip05;
-    if (typeof id !== 'string' || !id) { line.replaceChildren(); line.className = 'nip05-line'; line.removeAttribute('data-id'); return; }
+    if (typeof id !== 'string' || !id.trim()) {
+      line.className = 'nip05-line n05-none'; line.textContent = t('nip05.none'); line.removeAttribute('title'); line.removeAttribute('data-id');
+      return;
+    }
     const shown = id.startsWith('_@') ? id.slice(2) : id;
     const st = cachedNip05(pk, id);
-    line.className = `nip05-line n05-${st ?? 'checking'}`;
+    const kind = st === 'ok' ? 'ok' : st ? 'bad' : 'checking';
+    line.className = `nip05-line n05-${kind}`;
     line.textContent = shown.length > 40 ? `${shown.slice(0, 40)}…` : shown;
     line.title = t(`nip05.${st ?? 'checking'}`);
-    if (st === 'ok' && state.get('settings')?.loadMedia !== false) {
-      const dom = parseIdentifier(id)?.domain;
-      if (dom) {
-        const fav = el('img', { class: 'n05-fav', alt: '', width: 14, height: 14, decoding: 'async', referrerpolicy: 'no-referrer' });
-        const paths = FAVICONS.map((x) => `https://${dom}${x}`);
-        let i = 0;
-        fav.addEventListener('error', () => { if (++i < paths.length) fav.src = paths[i]; else fav.remove(); });
-        fav.src = paths[0];
-        line.append(' ', fav);
-      }
-    }
     if (!st && state.get('settings')?.loadMedia !== false && line.dataset.id !== id) {
       line.dataset.id = id;
       checkNip05(pk, id).then(() => { if (line.isConnected) paint(); });
@@ -98,13 +88,16 @@ function nip05Line(pk) {
   return line;
 }
 
-// En-tête : grand avatar, nom et NIP-05 l'un sous l'autre, alignés avec l'avatar.
-function authorBlock(pk) {
+// En-tête : grand avatar ; à sa droite le nom, le NIP-05 puis la ligne de temps (`meta`), alignés avec l'avatar.
+function authorBlock(pk, meta) {
   requestProfile(pk);
+  const href = `#/profile/${npubEncode(pk)}`;
   const av = el('span', { class: 'avatar avatar-note', 'aria-hidden': 'true' });
   const name = el('span', { class: 'author-name' });
-  const link = el('a', { class: 'author author-block', href: `#/profile/${npubEncode(pk)}`, 'data-pk': pk }, av, el('span', { class: 'author-text' }, name, nip05Line(pk)));
-  const fill = () => {
+  const block = el('div', { class: 'author author-block', 'data-pk': pk },
+    el('a', { href, tabindex: '-1', 'aria-hidden': 'true', class: 'author-av' }, av),
+    el('div', { class: 'author-text' }, el('a', { class: 'author-link', href }, name), nip05Line(pk), meta));
+  block._fill = () => {
     const p = getCached(pk);
     name.textContent = p?.displayName || p?.name || shortNpub(pk);
     if (p?.picture && state.get('settings')?.loadMedia && !av.firstChild) {
@@ -112,12 +105,10 @@ function authorBlock(pk) {
       img.addEventListener('error', () => img.remove());
       av.append(img);
     }
-    link.querySelector('.nip05-line')?._paint?.();
+    block.querySelector('.nip05-line')?._paint?.();
   };
-  link.classList.add('author-fill');
-  link._fill = fill;
-  fill();
-  return link;
+  block._fill();
+  return block;
 }
 
 function fillMention(node) {
@@ -372,15 +363,16 @@ export function noteCard(ev, opts = {}) {
 
 function buildNoteCard(ev, { via, author = true, detail = false, repostedBy = null } = {}) {
   const moreBtn = el('button', { type: 'button', class: 'note-more', 'aria-haspopup': 'dialog', 'aria-label': t('menu.note.more'), title: t('menu.note.more') }, icon('more', 20));
-  const openBtn = el('a', { class: 'note-open', href: noteHref(ev.id), 'aria-label': t('note.open'), title: t('note.open') }, icon('open', 18));
+  const openBtn = el('a', { class: 'note-open', href: noteHref(ev.id), 'aria-label': t('note.open'), title: t('note.open') }, icon('thread', 18));
   const text = ev.content.length > 600 ? `${ev.content.slice(0, 600)}…` : ev.content;
   const client = clientName(ev);
+  const meta = el('p', { class: 'note-meta' },
+    el('time', { class: 'note-time', datetime: new Date(ev.created_at * 1000).toISOString() }, agoLabel(ev.created_at)),
+    client ? el('span', { class: 'note-client' }, ` ${t('note.via', { client })}`) : null);
   const article = el('article', { class: detail ? 'note note-detail' : 'note' },
     contextLine(ev, repostedBy, detail),
-    el('div', { class: 'note-head' }, author ? authorBlock(ev.pubkey) : el('span'), detail ? null : openBtn, moreBtn),
-    el('p', { class: 'note-meta' }, '• ',
-      el('time', { class: 'note-time', datetime: new Date(ev.created_at * 1000).toISOString() }, agoLabel(ev.created_at)),
-      client ? el('span', { class: 'note-client' }, ` ${t('note.via', { client })}`) : null),
+    el('div', { class: 'note-head' }, author ? authorBlock(ev.pubkey, meta) : el('span'), detail ? null : openBtn, moreBtn),
+    author ? null : meta,
     ...(ev.kind === ARTICLE_KIND ? articleCard(ev, detail) : [el('p', { class: 'note-text' }, ...renderContent(text, { hideRefs: true })), quoteCards(text), linkCard(text)]));
   moreBtn.addEventListener('click', () => openNoteMenu(ev, { via, opener: moreBtn,
     onHidden: (key) => article.replaceChildren(el('p', { class: 'hint' }, t(key))),
@@ -388,4 +380,28 @@ function buildNoteCard(ev, { via, author = true, detail = false, repostedBy = nu
   const actions = noteActions(ev, article, detail);
   article.append(...actions.filter(Boolean));
   return article;
+}
+
+// Ligne compacte du fil « plat » : avatar à gauche relié par un trait aux notes voisines du même échange,
+// nom + temps abrégé sur la première ligne, texte à droite de l'avatar. Pas de barre d'actions (ouvrir la note pour réagir).
+export function noteRow(ev, { linkedPrev = false, linkedNext = false } = {}) {
+  if (isMuted(ev)) return noteCard(ev, {});
+  const pk = ev.pubkey;
+  requestProfile(pk);
+  const href = `#/profile/${npubEncode(pk)}`;
+  const moreBtn = el('button', { type: 'button', class: 'note-more', 'aria-haspopup': 'dialog', 'aria-label': t('menu.note.more'), title: t('menu.note.more') }, icon('more', 20));
+  const text = ev.content.length > 600 ? `${ev.content.slice(0, 600)}…` : ev.content;
+  const seg = (cls, on) => el('span', { class: `fr-seg ${cls}`, 'data-on': on ? 'true' : 'false' });
+  const row = el('article', { class: 'fr' },
+    el('div', { class: 'fr-rail' }, seg('fr-up', linkedPrev), el('a', { href, tabindex: '-1', 'aria-hidden': 'true' }, avatarNode(pk)), seg('fr-down', linkedNext)),
+    el('div', { class: 'fr-body' },
+      el('div', { class: 'fr-head' },
+        el('a', { class: 'author fr-name', href, 'data-pk': pk }, el('span', { class: 'avatar', hidden: '' }), el('span', { class: 'author-name' }, shortNpub(pk))),
+        el('time', { class: 'fr-time', datetime: new Date(ev.created_at * 1000).toISOString(), title: new Date(ev.created_at * 1000).toLocaleString() }, shortAgo(ev.created_at)),
+        moreBtn),
+      el('p', { class: 'note-text' }, ...renderContent(text, { hideRefs: true })), quoteCards(text), linkCard(text)));
+  moreBtn.addEventListener('click', () => openNoteMenu(ev, { opener: moreBtn,
+    onHidden: (key) => row.replaceChildren(el('p', { class: 'hint' }, t(key))),
+    onDeleted: () => row.replaceChildren(el('p', { class: 'hint' }, t('note.deleted'))) }));
+  return row;
 }

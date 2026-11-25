@@ -21,7 +21,14 @@ export function stateBlock(kind, key, vars) {
   return el('div', { class: `state state-${kind}`, role: kind === 'error' ? 'alert' : 'status' }, ...children);
 }
 
-export const pageTitle = (key) => el('h1', {}, t(key));
+// Titre de page : le <h1> reste dans le document (accessibilité) ; sur mobile il est masqué et le titre s'affiche dans la barre fixe du haut.
+export function pageTitle(key) {
+  const text = t(key);
+  const bar = document.querySelector('.topbar-title');
+  if (bar) bar.textContent = text;
+  document.title = `${text} · nostr`;
+  return el('h1', { class: 'page-title' }, text);
+}
 
 export function shortNpub(hex) {
   const n = npubEncode(hex);

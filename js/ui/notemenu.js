@@ -23,7 +23,7 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
   const mine = !!signer && signer.pubkey === ev.pubkey;
   const dlg = el('dialog', { class: 'note-menu', 'aria-label': t('menu.note'), tabindex: '-1', autofocus: '' });
   const msg = el('div', { class: 'note-msg', role: 'status' });
-  const close = el('button', { type: 'button', class: 'btn btn-small', 'aria-label': t('shell.menu.close') }, '✕');
+  const close = el('button', { type: 'button', class: 'sheet-x', 'aria-label': t('shell.menu.close') }, '✕');
   close.addEventListener('click', () => dlg.close());
   const list = el('ul', { class: 'drawer-list nm-list' });
   const detailsBox = el('dl', { class: 'nm-details', hidden: true });

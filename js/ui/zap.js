@@ -52,7 +52,7 @@ export function zapPanel({ recipient, event, onClose }) {
   const dismiss = () => { stop(); box.remove(); onClose?.(); };
   const cancel = el('button', { type: 'button', class: 'btn btn-small' }, t('zap.cancel'));
   cancel.addEventListener('click', dismiss);
-  const xBtn = el('button', { type: 'button', class: 'btn btn-small zap-x', 'aria-label': t('zap.close'), title: t('zap.close') }, '✕');
+  const xBtn = el('button', { type: 'button', class: 'sheet-x zap-x', 'aria-label': t('zap.close'), title: t('zap.close') }, '✕');
   xBtn.addEventListener('click', dismiss);
 
   const load = async () => {
