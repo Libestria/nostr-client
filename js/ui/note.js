@@ -310,7 +310,7 @@ function contextLine(ev, repostedBy, detail) {
   if (repostedBy) return el('p', { class: 'note-context' }, icon('repost', 14), profilePill(repostedBy, `#/profile/${npubEncode(repostedBy)}`), t('note.reposted'));
   const r = !detail && replyInfo(ev);
   if (!r) return null;
-  return el('p', { class: 'note-context' }, icon('reply', 14), t('note.replyTo'),
+  return el('p', { class: 'note-context' }, icon('reply', 14), profilePill(ev.pubkey, `#/profile/${npubEncode(ev.pubkey)}`), t('note.replyTo'),
     r.parentAuthor ? profilePill(r.parentAuthor, noteHref(r.parentId)) : el('a', { class: 'ctx-pill', href: noteHref(r.parentId) }, t('note.ref')));
 }
 
