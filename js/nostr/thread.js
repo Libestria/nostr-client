@@ -49,3 +49,16 @@ export function buildThread(events, focusId) {
   list.forEach((n) => mark(n, 0, seen));
   return { roots: list, byId };
 }
+
+// Affichage « plat » : toutes les notes du fil par ordre chronologique. linkedPrev / linkedNext indiquent
+// que la note précédente / suivante est son parent / sa réponse directe (un trait relie alors leurs avatars).
+export function flatThread(events) {
+  const seen = new Set();
+  const list = events.filter((ev) => ev.kind === 1 && !seen.has(ev.id) && seen.add(ev.id))
+    .sort((a, b) => a.created_at - b.created_at || (a.id < b.id ? -1 : 1));
+  return list.map((event, i) => ({
+    event,
+    linkedPrev: i > 0 && parentId(event) === list[i - 1].id,
+    linkedNext: i < list.length - 1 && parentId(list[i + 1]) === event.id,
+  }));
+}
