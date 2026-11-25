@@ -465,7 +465,7 @@
   "settings.previewService.invalid": "Adresse invalide : https obligatoire, avec {url}.",
   "link.preview": "Aperçu du lien",
   "article.untitled": "Article sans titre",
-  "note.replyTo": "En réponse à",
+  "note.replyTo": "a répondu à",
   "note.quote.loading": "Chargement de la note citée…",
   "time.now": "À l'instant",
   "zap.cancel": "Annuler",
