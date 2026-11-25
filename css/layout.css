@@ -1,19 +1,12 @@
 .app { min-height: 100vh; min-height: 100dvh; }
 
-/* Contenu : une « fenêtre » comme sur Libestria.fr (filet dégradé à gauche, barre de titre dégradée) */
-#view {
-  margin: .75rem 0 5.5rem; max-width: 56rem; outline: none; overflow: hidden;
-  border: solid transparent; border-width: 0 0 0 4px; border-radius: var(--r-xl) var(--r-xl) 0 0;
-  background: linear-gradient(var(--bg), var(--bg)) padding-box, var(--grad-side) border-box;
-  min-height: 50vh;
-}
-#view > h1 {
-  display: flex; align-items: center; min-height: 55px; margin: 0; padding: 12px 20px;
-  font: var(--font-win-title); color: var(--title);
-  background: linear-gradient(90deg, var(--stops));
-  border: 0 solid; border-bottom-width: var(--divider-width); border-image: var(--divider) 1;
-}
+/* Contenu : pleine page, sans cadre ni barre de titre (le titre est dans la barre fixe du haut sur mobile) */
+#view { margin: 0 0 5.5rem; max-width: 56rem; outline: none; overflow: hidden; min-height: 50vh; }
+#view > h1 { margin: 20px clamp(16px, 3vw, 32px) 0; font: var(--font-win-title); color: var(--title); }
 #view > :not(h1) { margin: 20px clamp(16px, 3vw, 32px); }
+@media (max-width: 47.99rem) {
+  #view > h1 { position: absolute; width: 1px; height: 1px; margin: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
 
 /* Navigation : barre basse sur mobile */
 .nav {
@@ -55,7 +48,7 @@
   .nav-label { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
   .desk-only { display: list-item; }
   .topbar { display: none; }
-  #view { margin: 1rem 1.5rem 0; min-height: calc(100vh - 1rem); min-height: calc(100dvh - 1rem); }
+  #view { margin: 0 1.5rem; min-height: 100vh; min-height: 100dvh; }
 }
 
 /* Pastille de notifications non lues (rouge, texte blanc : contraste AA) */
