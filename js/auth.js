@@ -54,15 +54,23 @@ export function setRemoteSession(info) {
 }
 
 // Au démarrage : reprise silencieuse de la session NIP-46 (onglet, ou connexion conservée sur cet appareil).
+async function notice(key) {
+  try { const { toast } = await import('./ui/toast.js'); const { t } = await import('./i18n.js'); toast(t(key), { error: true }); } catch { /* sans interface */ }
+}
+
 export async function restoreRemoteSession() {
   if (state.get('session')?.method !== 'nip46') return;
   let saved = loadNip46(), fromKept = false;
-  if (!saved) { saved = await loadKept(); fromKept = !!saved; }
-  if (!saved) { forgetNip46(); state.set('session', null); return; }   // clé de chiffrement perdue ou données altérées
+  if (!saved) {
+    const k = await loadKept();
+    if (k.error === 'storage') { notice('restore.storage'); return; }   // passager : on garde tout, un rechargement réessaiera
+    if (k.error) { forgetNip46(); state.set('session', null); notice(k.error === 'missing' ? 'restore.missing' : 'restore.key'); return; }
+    saved = k.saved; fromKept = true;
+  }
   try {
     remote = await restoreBunker(saved);
     if (fromKept) saveNip46(saved);
-  } catch { saveNip46(null); forgetNip46(); state.set('session', null); }
+  } catch { saveNip46(null); forgetNip46(); state.set('session', null); notice('restore.invalid'); }
 }
 
 // Case « Rester connecté sur cet appareil » (signeur distant uniquement)
