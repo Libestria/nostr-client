@@ -6,6 +6,7 @@ import { resolveNip05 } from '../nostr/nip05.js';
 import { hasExtension, connectExtension, readOnlySession, setSession, setRemoteSession, logout, takeReturnTo } from '../auth.js';
 import { connectBunker, startNostrConnect } from '../nostr/nip46.js';
 import { pool } from '../relays/pool.js';
+import { bootRelays } from '../account.js';
 
 const section = (titleKey, ...kids) => el('section', {}, el('h2', { class: 'section-title' }, t(titleKey)), ...kids);
 
@@ -72,9 +73,10 @@ export function renderLogin(main) {
   });
 
   main.replaceChildren(pageTitle('nav.login'),
-    section('login.ext.title', el('p', {}, t(hasExtension() ? 'login.ext.hint' : 'login.ext.missing')), extBtn),
     section('login.ro.title', form),
+    section('login.ext.title', el('p', { class: 'hint' }, t(hasExtension() ? 'login.ext.hint' : 'login.ext.missing')), extBtn),
     section('login.bunker.title', bunkerSection(setMsg)),
+    section('login.nc.title', nostrConnectSection(setMsg)),
     msg);
 }
 
@@ -100,13 +102,19 @@ function bunkerSection(setMsg) {
     } catch (err) { setMsg(t(errKey(err)), true); go.disabled = false; }
   });
 
+  return el('div', {}, form, el('p', { class: 'hint' }, t('login.sameDevice')));
+}
+
+function nostrConnectSection(setMsg) {
   // Connexion initiée ici : lien nostrconnect:// à ouvrir dans l'application de signature
   const linkBox = el('div');
   const gen = el('button', { type: 'button', class: 'btn' }, t('login.nc.button'));
   gen.addEventListener('click', async () => {
     gen.disabled = true; setMsg('');
     try {
-      const relays = pool.status().filter((r) => r.write).map((r) => r.url);
+      // Sans session, le pool n'a pas encore de relais d'écriture : on se replie sur les relais d'amorçage.
+      let relays = pool.status().filter((r) => r.write).map((r) => r.url);
+      if (!relays.length) { try { relays = await bootRelays(); } catch { relays = []; } }
       const mine = await startNostrConnect({ relays, name: 'Client Nostr Libestria', url: location.origin });
       const open = el('a', { class: 'btn', href: mine.uri }, t('login.nc.open'));
       const copy = el('button', { type: 'button', class: 'btn' }, t('login.nc.copy'));
@@ -124,5 +132,5 @@ function bunkerSection(setMsg) {
       gen.disabled = false;
     }
   });
-  return el('div', {}, form, el('p', { class: 'hint' }, t('login.sameDevice')), el('p', { class: 'hint' }, t('login.nc.or')), gen, linkBox);
+  return el('div', {}, el('p', { class: 'hint' }, t('login.nc.or')), gen, linkBox);
 }
