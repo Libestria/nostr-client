@@ -34,7 +34,7 @@ export function renderThread(main, params) {
   const tree = el('div', { class: 'thread' });
   const flatBox = el('div', { class: 'thread-flatlist' });
   const rows = new Map();   // id -> ligne ou carte déjà construite (affichage plat)
-  const status = el('p', { class: 'status', role: 'status' });
+  const status = el('p', { class: 'status', role: 'status', 'data-inline': '' });
   main.replaceChildren(title, el('p', {}, el('a', { class: 'btn', href: '#/feed' }, t('thread.back'))), holder, tree, status);
   holder.replaceChildren(stateBlock('loading', 'state.loading'));
 

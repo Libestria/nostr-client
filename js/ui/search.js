@@ -50,7 +50,7 @@ export function renderSearch(main, params = []) {
     const profiles = events.filter((e) => e.kind === 0).map((e) => ({ e, p: parseProfile(e) })).filter((x) => x.p);
     profiles.forEach((x) => acceptProfileEvent(x.e));
     notes.forEach((n) => requestProfile(n.pubkey));
-    const status = el('p', { class: 'status', role: 'status' }, t('search.status', { ok: responded, total, n: notes.length + profiles.length }));
+    const status = el('p', { class: 'status', role: 'status', 'data-inline': '' }, t('search.status', { ok: responded, total, n: notes.length + profiles.length }));
     const sections = [status];
     if (profiles.length) sections.push(el('h2', {}, t('search.profiles')), el('ul', { class: 'dm-list' }, ...profiles.map(({ e, p }) => el('li', { class: 'dm-row' },
       el('a', { href: `#/profile/${npubEncode(e.pubkey)}` }, avatarNode(e.pubkey), el('span', { class: 'dm-body' },

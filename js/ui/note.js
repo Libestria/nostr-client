@@ -95,7 +95,7 @@ function authorBlock(pk, meta) {
   const av = el('span', { class: 'avatar avatar-note', 'aria-hidden': 'true' });
   const name = el('span', { class: 'author-name' });
   const block = el('div', { class: 'author author-block', 'data-pk': pk },
-    el('a', { href, tabindex: '-1', 'aria-hidden': 'true', class: 'author-av' }, av),
+    el('a', { href, tabindex: '-1', 'aria-hidden': 'true', 'aria-label': t('nav.profile'), class: 'author-av' }, av),
     el('div', { class: 'author-text' }, el('a', { class: 'author-link', href }, name), nip05Line(pk), meta));
   block._fill = () => {
     const p = getCached(pk);

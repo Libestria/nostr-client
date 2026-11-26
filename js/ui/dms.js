@@ -37,7 +37,7 @@ export function renderDms(main, params) {
   const banner = () => {
     const s = status();
     if (s === 'nosigner' || s === 'norelays' || s === 'denied' || s === 'syncing') {
-      const box = el('p', { class: `status${s === 'syncing' ? '' : ' warn'}`, role: 'status' }, t(`dm.status.${s}`));
+      const box = el('p', { class: `status${s === 'syncing' ? '' : ' warn'}`, role: 'status', 'data-inline': '' }, t(`dm.status.${s}`));
       if (s === 'denied') { const b = el('button', { type: 'button', class: 'btn btn-small' }, t('dm.retry')); b.addEventListener('click', () => startDms()); box.append(' ', b); }
       return box;
     }

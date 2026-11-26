@@ -31,7 +31,7 @@ export function renderFeed(main, params = []) {
   let groups = [], cursor = [], authorSet = null, planToken = 0; // mode abonnements : groupes (relais, auteurs), curseur par groupe
   let contacts = null, followCount = 0, contactsDone = false, contactsSub = null;
 
-  const status = el('p', { class: 'status', role: 'status' });
+  const status = el('p', { class: 'status', role: 'status', 'data-inline': '' });
   const holder = el('div');
   const list = el('div', { class: 'notes' });
   const reload = el('button', { type: 'button', class: 'btn', 'data-refresh': '' }, t('feed.refresh'));

@@ -15,7 +15,7 @@ export function renderGate(main, routeName) {
     main.replaceChildren(title, stateBlock(st === 'empty' ? 'empty' : 'error', st === 'empty' ? 'lists.empty' : 'lists.error'), el('p', {}, retry));
     return undefined;
   }
-  const progress = el('p', { class: 'status', role: 'status' });
+  const progress = el('p', { class: 'status', role: 'status', 'data-inline': '' });
   const paint = (p) => { progress.textContent = p.total ? t('lists.progress', { done: p.done, total: p.total }) : ''; };
   paint(state.get('listsProgress'));
   main.replaceChildren(title, stateBlock('loading', 'lists.loading'), progress);
