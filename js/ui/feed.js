@@ -5,6 +5,7 @@ import { latest, getReplaceable } from '../storage/db.js';
 import { parseContacts } from '../nostr/contacts.js';
 import { onProfiles } from '../profiles.js';
 import { el, pageTitle, stateBlock, reconcile } from './common.js';
+import { mountFeedSwitcher } from './feedmenu.js';
 import { noteCard, updateAuthors } from './note.js';
 import { ARTICLE_KIND, addressKey } from '../nostr/article.js';
 import { parseRepost } from '../nostr/noteinfo.js';
@@ -16,7 +17,8 @@ const PAGE = 30;
 const MAX_SHOWN = 300;
 const MAX_AUTHORS = 1000; // 10 filtres au maximum par abonnement
 
-const tab = (href, key, active) => el('a', { class: 'tab', href, 'aria-current': active ? 'page' : false }, t(key));
+// Fils proposés dans la liste déroulante de la barre du haut
+const FEEDS = () => [{ id: 'following', href: '#/feed', icon: 'users', label: t('feed.following') }, { id: 'global', href: '#/feed/global', icon: 'globe', label: t('feed.globalTab') }];
 
 // Accueil : fil des comptes suivis (si connecté) ou flux global. Chargements ponctuels, jamais de flux continu.
 export function renderFeed(main, params = []) {
@@ -42,9 +44,10 @@ export function renderFeed(main, params = []) {
   const reposts = new Map();   // id du repost -> { ev (note d'origine), by, at }
   if (!session) extra.push(el('p', {}, el('a', { class: 'btn', href: '#/login' }, t('login.cta'))));
   main.replaceChildren(pageTitle('nav.feed'),
-    session ? el('nav', { class: 'tabs', 'aria-label': t('feed.tabs') }, tab('#/feed', 'feed.following', following), tab('#/feed/global', 'feed.globalTab', !following))
-      : el('p', {}, t('feed.global')),
+    ...(session ? [] : [el('p', {}, t('feed.global'))]),
     status, el('div', { class: 'row' }, reload), holder, list, more, ...extra);
+
+  if (session) mountFeedSwitcher(FEEDS(), following ? 'following' : 'global');
 
   const setHolder = (kind, key) => holder.replaceChildren(...(kind ? [stateBlock(kind, key)] : []));
   const cards = new Map();   // clé -> carte déjà construite (réutilisée à chaque affichage)

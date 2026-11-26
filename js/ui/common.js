@@ -25,7 +25,7 @@ export function stateBlock(kind, key, vars) {
 export function pageTitle(key) {
   const text = t(key);
   const bar = document.querySelector('.topbar-title');
-  if (bar) bar.textContent = text;
+  if (bar) { bar.textContent = text; bar.classList.remove('interactive'); bar.setAttribute('aria-hidden', 'true'); }   // les pages à liste déroulante la remontent ensuite
   document.title = `${text} · nostr`;
   return el('h1', { class: 'page-title' }, text);
 }

@@ -3,6 +3,7 @@ import { t } from '../i18n.js';
 import { state } from '../state.js';
 import { getSigner, logout, isRemoteKept, setRemoteKept } from '../auth.js';
 import { toast } from './toast.js';
+import { feedNeighbor } from './feedmenu.js';
 import { getCached, onProfiles, requestProfile } from '../profiles.js';
 import { getReplaceable } from '../storage/db.js';
 import { parseContacts } from '../nostr/contacts.js';
@@ -39,7 +40,8 @@ function buildTopbar() {
     if (s) { requestProfile(s.pubkey); paintAvatar(avatar, s.pubkey, 34); }
   };
 
-  async function fill(drawer) {
+  // Contenu du menu du compte : fenêtre latérale (dismiss = fermeture) ou barre latérale fixe des grands écrans (dismiss = null)
+  async function fill(drawer, dismiss) {
     const s = state.get('session');
     if (!s) return;
     const pk = s.pubkey, p = getCached(pk);
@@ -47,7 +49,7 @@ function buildTopbar() {
     const banner = el('div', { class: 'drawer-banner' });
     if (p?.banner && loadMedia()) { const img = el('img', { src: p.banner, alt: '', decoding: 'async', referrerpolicy: 'no-referrer' }); img.addEventListener('error', () => img.remove()); banner.append(img); }
     const pic = el('span', { class: 'avatar avatar-xl', 'aria-hidden': 'true' }); paintAvatar(pic, pk, 72);
-    const close = el('button', { type: 'button', class: 'sheet-x drawer-close', 'aria-label': t('shell.menu.close') }, '✕');
+    const close = dismiss ? el('button', { type: 'button', class: 'sheet-x drawer-close', 'aria-label': t('shell.menu.close') }, '✕') : null;
     const copy = el('button', { type: 'button', class: 'drawer-npub', title: t('shell.copyNpub'), 'aria-label': t('shell.copyNpub') }, el('span', {}, shortNpub(pk)), icon('copy', 14));
     copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(npub); copy.querySelector('span').textContent = t('shell.copied'); setTimeout(() => { copy.querySelector('span').textContent = shortNpub(pk); }, 1500); } catch { /* presse-papiers refusé */ } });
     const follows = el('p', { class: 'drawer-follows' });
@@ -57,7 +59,7 @@ function buildTopbar() {
     if (getSigner()) items.push(link('#/settings/wallet', 'wallet', t('menu.wallet')));
     items.push(link('#/settings/mute', 'mute', t('menu.mute')), link('#/settings', 'settings', t('nav.settings')));
     const out = el('button', { type: 'button', class: 'drawer-logout' }, icon('logout', 20), el('span', {}, t('menu.logout')));
-    out.addEventListener('click', () => { drawer.close(); logout(); location.hash = '#/login'; });
+    out.addEventListener('click', () => { dismiss?.(); logout(); location.hash = '#/login'; });
     // Signeur distant : option facultative pour rester connecté entre deux ouvertures du navigateur (clé de transport chiffrée)
     let keep = null;
     if (s.method === 'nip46') {
@@ -72,24 +74,39 @@ function buildTopbar() {
       });
     }
     const list = el('ul', { class: 'drawer-list' }, ...items);
-    list.addEventListener('click', (e) => { if (e.target.closest('a')) drawer.close(); });
-    close.addEventListener('click', () => drawer.close());
+    list.addEventListener('click', (e) => { if (e.target.closest('a')) dismiss?.(); });
+    close?.addEventListener('click', () => dismiss());
     drawer.replaceChildren(el('div', { class: 'drawer-head' }, banner, close, pic),
       el('div', { class: 'drawer-id' }, el('strong', {}, p?.displayName || p?.name || shortNpub(pk)), copy, follows), list, el('div', { class: 'drawer-foot' }, keep, out));
   }
 
   open.addEventListener('click', async () => {
     const drawer = el('dialog', { class: 'drawer', 'aria-label': t('shell.account'), tabindex: '-1', autofocus: '' });
-    await fill(drawer);
+    await fill(drawer, () => drawer.close());
     drawer.addEventListener('click', (e) => { if (e.target === drawer) drawer.close(); });
     drawer.addEventListener('close', () => { drawer.remove(); open.focus(); });
     document.body.append(drawer);
     drawer.showModal?.() ?? drawer.setAttribute('open', '');
     drawer.focus();
   });
-  state.on('session', refresh);
-  onProfiles(refresh);
+  // Grands écrans (CSS ≥ 75 rem) : même contenu que le menu glissant, en barre latérale fixe. Redessinée seulement si le compte
+  // ou son profil change (les profils des autres comptes arrivent en continu).
+  const side = el('aside', { class: 'drawer sidebar', id: 'sidebar', 'aria-label': t('shell.account') });
+  document.body.insertBefore(side, document.querySelector('.app'));
+  let sideKey = '';
+  const paintSide = () => {
+    const s = state.get('session');
+    document.body.classList.toggle('has-sidebar', !!s);
+    const p = s ? getCached(s.pubkey) : null;
+    const key = s ? [s.pubkey, s.method, p?.picture, p?.banner, p?.displayName, p?.name, !!getSigner(), state.get('settings')?.loadMedia].join('|') : '';
+    if (key === sideKey) return;
+    sideKey = key;
+    if (s) fill(side, null); else side.replaceChildren();
+  };
+  state.on('session', () => { refresh(); paintSide(); });
+  onProfiles(() => { refresh(); paintSide(); });
   refresh();
+  paintSide();
 }
 
 // ---------- bouton « + » flottant : ouvre le composeur dans une fenêtre
@@ -140,10 +157,8 @@ function buildSwipe() {
     const tch = e.changedTouches[0], dx = tch.clientX - start.x, dy = tch.clientY - start.y, dt = Date.now() - start.at;
     start = null;
     if (Math.abs(dx) < 70 || Math.abs(dy) > 45 || dt > 700) return;
-    const tabs = [...view.querySelectorAll('nav.tabs a.tab')];
-    const cur = tabs.findIndex((a) => a.getAttribute('aria-current') === 'page');
-    const next = tabs[cur + (dx < 0 ? 1 : -1)];
-    if (cur >= 0 && next) location.hash = next.getAttribute('href');
+    const next = feedNeighbor(dx < 0 ? 1 : -1);
+    if (next) location.hash = next;
   }, { passive: true });
 }
 
