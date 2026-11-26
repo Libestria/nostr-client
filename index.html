@@ -12,28 +12,28 @@
   <link rel="apple-touch-icon" href="icons/icon-180.png">
   <meta name="apple-mobile-web-app-title" content="Nostr">
   <link rel="preload" href="fonts/exo-2-v26-latin-regular.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="css/themes.css?v=m23">
-  <link rel="stylesheet" href="css/base.css?v=m23">
-  <link rel="stylesheet" href="css/layout.css?v=m23">
-  <link rel="stylesheet" href="css/components.css?v=m23">
+  <link rel="stylesheet" href="css/themes.css?v=m24">
+  <link rel="stylesheet" href="css/base.css?v=m24">
+  <link rel="stylesheet" href="css/layout.css?v=m24">
+  <link rel="stylesheet" href="css/components.css?v=m24">
 </head>
 <body>
   <button type="button" class="skip" id="skip" data-i18n="skip">Aller au contenu</button>
   <div id="offline" class="banner" role="status" hidden data-i18n="state.offline">Hors ligne : le cache reste lisible.</div>
+  <nav id="nav" class="nav" aria-label="Navigation principale">
+    <span class="brand" aria-hidden="true">nostr</span>
+    <ul>
+      <li><a href="#/login" data-route="login"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.login">Connexion</span></a></li>
+      <li><a href="#/feed" data-route="feed"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.feed">Accueil</span></a></li>
+      <li><a href="#/bookmarks" data-route="bookmarks"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.bookmarks">Favoris</span></a></li>
+      <li><a href="#/search" data-route="search"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.search">Recherche</span></a></li>
+      <li><a href="#/notifications" data-route="notifications"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.notifications">Notifications</span></a></li>
+      <li><a href="#/messages" data-route="messages"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.messages">Messages</span></a></li>
+      <li class="desk-only"><a href="#/profile" data-route="profile"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.profile">Profil</span></a></li>
+      <li class="desk-only"><a href="#/settings" data-route="settings"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.settings">Réglages</span></a></li>
+    </ul>
+  </nav>
   <div class="app">
-    <nav id="nav" class="nav" aria-label="Navigation principale">
-      <span class="brand" aria-hidden="true">nostr</span>
-      <ul>
-        <li><a href="#/login" data-route="login"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.login">Connexion</span></a></li>
-        <li><a href="#/feed" data-route="feed"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.feed">Accueil</span></a></li>
-        <li><a href="#/bookmarks" data-route="bookmarks"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.bookmarks">Favoris</span></a></li>
-        <li><a href="#/search" data-route="search"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.search">Recherche</span></a></li>
-        <li><a href="#/notifications" data-route="notifications"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.notifications">Notifications</span></a></li>
-        <li><a href="#/messages" data-route="messages"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.messages">Messages</span></a></li>
-        <li class="desk-only"><a href="#/profile" data-route="profile"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.profile">Profil</span></a></li>
-        <li class="desk-only"><a href="#/settings" data-route="settings"><span class="nav-icon" aria-hidden="true"></span><span class="nav-label" data-i18n="nav.settings">Réglages</span></a></li>
-      </ul>
-    </nav>
     <main id="view" tabindex="-1"></main>
   </div>
   <noscript><p>JavaScript est nécessaire pour utiliser ce client.</p></noscript>
@@ -98,6 +98,7 @@
   <link rel="modulepreload" href="js/ui/dms.js">
   <link rel="modulepreload" href="js/ui/feed.js">
   <link rel="modulepreload" href="js/ui/feedmenu.js">
+<link rel="modulepreload" href="js/ui/sheetnav.js">
   <link rel="modulepreload" href="js/ui/gate.js">
   <link rel="modulepreload" href="js/ui/icons.js">
   <link rel="modulepreload" href="js/ui/login.js">
@@ -119,7 +120,7 @@
   <link rel="modulepreload" href="js/ui/zap.js">
   <link rel="modulepreload" href="js/wallet.js">
   <link rel="modulepreload" href="js/zap.js">
-  <script src="js/boot-check.js?v=m23" defer></script>
-  <script type="module" src="js/main.js?v=m23"></script>
+  <script src="js/boot-check.js?v=m24" defer></script>
+  <script type="module" src="js/main.js?v=m24"></script>
 </body>
 </html>
