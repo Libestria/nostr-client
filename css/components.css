@@ -543,3 +543,16 @@ dialog:focus, dialog:focus-visible { outline: none; }
 .toast[data-state="out"] { animation: toast-out .2s ease-in forwards; }
 @media (min-width: 48rem) { .toast { inset: auto 0 1.5rem 0; margin-inline: auto; width: min(calc(100% - 20px), 34rem); } }
 @media (prefers-reduced-motion: reduce) { .toast[data-state] { animation: none; } }
+
+/* Code QR (Nostr Connect) : fond blanc imposé pour la lecture, quel que soit le thème */
+.qr { display: block; width: min(100%, 20rem); height: auto; aspect-ratio: 1; margin: .75rem auto; border-radius: 14px; }
+
+/* Fenêtre Nostr Connect (même gabarit que la fenêtre des détails) */
+.nc-body { display: grid; gap: .75rem; padding: .9rem 1.1rem 1.1rem; overflow-y: auto; }
+.nc-body .hint { margin: 0; }
+.nc-link { display: block; max-height: 4rem; overflow: auto; font-size: .75rem; overflow-wrap: anywhere; word-break: break-all; user-select: text; -webkit-user-select: text; }
+.nc-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.nc-actions .btn, .nc-body > .btn { width: 100%; justify-content: center; text-align: center; }
+.nc-qr:empty { display: none; }
+.nc-qr .qr { margin: 0 auto; width: min(100%, 14rem); }
+.nc-wait { text-align: center; color: var(--accent); }
