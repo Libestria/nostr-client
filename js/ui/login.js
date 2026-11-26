@@ -7,6 +7,7 @@ import { hasExtension, connectExtension, readOnlySession, setSession, setRemoteS
 import { connectBunker, startNostrConnect } from '../nostr/nip46.js';
 import { pool } from '../relays/pool.js';
 import { bootRelays } from '../account.js';
+import { qrSvg } from './qr.js';
 
 const section = (titleKey, ...kids) => el('section', {}, el('h2', { class: 'section-title' }, t(titleKey)), ...kids);
 
@@ -106,31 +107,50 @@ function bunkerSection(setMsg) {
 }
 
 function nostrConnectSection(setMsg) {
-  // Connexion initiée ici : lien nostrconnect:// à ouvrir dans l'application de signature
-  const linkBox = el('div');
+  // Connexion initiée ici : lien nostrconnect:// (et code QR) présenté dans une fenêtre en haut de l'écran.
+  // Fermer la fenêtre (✕, Annuler, Échap, clic sur le fond) abandonne la connexion en attente.
   const gen = el('button', { type: 'button', class: 'btn' }, t('login.nc.button'));
   gen.addEventListener('click', async () => {
     gen.disabled = true; setMsg('');
+    let dlg = null, mine = null, finished = false;
+    const end = () => { gen.disabled = false; dlg?.remove(); dlg = null; };
     try {
       // Sans session, le pool n'a pas encore de relais d'écriture : on se replie sur les relais d'amorçage.
       let relays = pool.status().filter((r) => r.write).map((r) => r.url);
       if (!relays.length) { try { relays = await bootRelays(); } catch { relays = []; } }
-      const mine = await startNostrConnect({ relays, name: 'Client Nostr Libestria', url: location.origin });
+      mine = await startNostrConnect({ relays, name: 'Client Nostr Libestria', url: location.origin });
+      const title = el('h2', { id: 'nc-title' }, t('login.nc.title'));
+      const x = el('button', { type: 'button', class: 'sheet-x', 'aria-label': t('zap.close') }, '✕');
       const open = el('a', { class: 'btn', href: mine.uri }, t('login.nc.open'));
       const copy = el('button', { type: 'button', class: 'btn' }, t('login.nc.copy'));
       copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(mine.uri); setMsg(t('profile.copied')); } catch { setMsg(t('profile.copyFail'), true); } });
       const cancel = el('button', { type: 'button', class: 'btn' }, t('login.nc.cancel'));
-      cancel.addEventListener('click', () => { mine.cancel(); linkBox.replaceChildren(); gen.disabled = false; setMsg(''); });
-      linkBox.replaceChildren(el('p', { class: 'hint' }, t('login.nc.hint')), el('div', { class: 'row' }, open, copy, cancel));
-      setMsg(t('login.nc.waiting'));
+      const qrSlot = el('div', { class: 'nc-qr' });
+      dlg = el('dialog', { class: 'stats-dialog nc-dialog', 'aria-labelledby': 'nc-title', tabindex: '-1', autofocus: '' },
+        el('div', { class: 'sd-bar' }, title, x),
+        el('div', { class: 'nc-body' },
+          el('p', { class: 'hint' }, t('login.nc.hint')), qrSlot,
+          el('code', { class: 'nc-link' }, mine.uri),
+          el('div', { class: 'nc-actions' }, open, copy),
+          el('p', { class: 'hint nc-wait', role: 'status', 'data-inline': '' }, t('login.nc.waiting')), cancel));
+      const closing = () => { if (!finished) mine.cancel(); setMsg(''); end(); };
+      x.addEventListener('click', () => dlg.close());
+      cancel.addEventListener('click', () => dlg.close());
+      dlg.addEventListener('close', closing);
+      dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });   // clic sur le fond
+      document.body.append(dlg);
+      dlg.showModal();
+      qrSvg(mine.uri, t('login.nc.qr')).then((svg) => { if (dlg) qrSlot.append(svg); }).catch(() => {});   // sans bibliothèque : lien seul
       const info = await mine.wait();
-      if (!linkBox.isConnected) { info.close?.(); return; } // annulé ou page quittée entre-temps
+      if (!dlg) { info.close?.(); return; }   // fermée entre-temps
+      finished = true;
+      dlg.close();
       setRemoteSession(info);
       location.hash = takeReturnTo();
     } catch (err) {
-      if (err?.code !== 'cancelled') { linkBox.replaceChildren(); setMsg(t(errKey(err)), true); }
-      gen.disabled = false;
+      if (err?.code !== 'cancelled') { setMsg(t(errKey(err)), true); }
+      end();
     }
   });
-  return el('div', {}, el('p', { class: 'hint' }, t('login.nc.or')), gen, linkBox);
+  return el('div', {}, el('p', { class: 'hint' }, t('login.nc.or')), gen);
 }
