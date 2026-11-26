@@ -619,3 +619,10 @@ dialog:focus, dialog:focus-visible { outline: none; }
 .section-title .icon { flex: none; color: var(--accent); }
 /* Connexion : même écart (.75rem) entre le texte explicatif et le champ ou le bouton, dans les quatre sections */
 .login-field { gap: .75rem; }
+
+/* Corps d'une note : tous les blocs (texte, image, vidéo, aperçu de lien, note citée…) sont séparés de 8 px, et de 8 px de l'en-tête et des boutons */
+.note-body { display: flex; flex-direction: column; gap: .5rem; margin-block: .5rem; min-width: 0; }
+.note-body > :is(.note-text, .note-media, .note-video, .quotes, .link-card-slot, .link-card, .article-card, p, div, a) { margin: 0; }
+.note-body > .link-card-slot:empty { display: none; }
+.note-video { display: block; width: 100%; max-height: 32rem; border-radius: 12px; background: #000; }
+.note-actions { margin-top: 0; }
