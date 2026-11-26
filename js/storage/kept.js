@@ -58,16 +58,24 @@ export async function keepNip46(saved) {
   localStorage.setItem(META, JSON.stringify({ pubkey: saved.pubkey, iv: b64(iv), ct: b64(ct) }));
 }
 
-// → saved déchiffré, ou null (absente, clé perdue, données altérées)
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// → { saved } ou { error } : 'missing' (rien de conservé), 'key' (clé de chiffrement absente), 'data' (données altérées),
+// 'storage' (IndexedDB indisponible, souvent passager au démarrage d'iOS : 3 essais avant d'abandonner).
 export async function loadKept() {
+  let m;
+  try { m = JSON.parse(localStorage.getItem(META)); } catch { m = null; }
+  if (!m) return { error: 'missing' };
+  let key = null;
+  for (let i = 0; i < 3; i++) {
+    try { key = await getKey(false); break; } catch { if (i < 2) await wait(400); else return { error: 'storage' }; }
+  }
+  if (!key) return { error: 'key' };
   try {
-    const m = JSON.parse(localStorage.getItem(META));
-    const key = await getKey(false);
-    if (!m || !key) return null;
     const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(m.iv) }, key, unb64(m.ct));
     const saved = JSON.parse(new TextDecoder().decode(plain));
-    return saved?.pubkey === m.pubkey ? saved : null;
-  } catch { return null; }
+    return saved?.pubkey === m.pubkey ? { saved } : { error: 'data' };
+  } catch { return { error: 'data' }; }
 }
 
 export async function forgetNip46() {
