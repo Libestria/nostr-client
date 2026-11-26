@@ -35,7 +35,10 @@ function buildTopbar() {
   // Hauteur réelle de la barre (zone sûre comprise) : les fenêtres du haut s'affichent dessous
   const syncHeight = () => document.documentElement.style.setProperty('--topbar-h', `${Math.round(bar.getBoundingClientRect().height)}px`);
   syncHeight();
-  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(syncHeight).observe(bar); else addEventListener('resize', syncHeight);
+  const nav = document.getElementById('nav');
+  const syncNav = () => nav && document.documentElement.style.setProperty('--nav-h', `${Math.round(nav.getBoundingClientRect().height)}px`);
+  syncNav();
+  if (typeof ResizeObserver !== 'undefined') { new ResizeObserver(syncHeight).observe(bar); if (nav) new ResizeObserver(syncNav).observe(nav); } else addEventListener('resize', () => { syncHeight(); syncNav(); });
 
   const refresh = () => {
     const s = state.get('session');

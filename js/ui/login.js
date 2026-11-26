@@ -8,8 +8,9 @@ import { connectBunker, startNostrConnect } from '../nostr/nip46.js';
 import { pool } from '../relays/pool.js';
 import { bootRelays } from '../account.js';
 import { qrSvg } from './qr.js';
+import { icon } from './icons.js';
 
-const section = (titleKey, ...kids) => el('section', {}, el('h2', { class: 'section-title' }, t(titleKey)), ...kids);
+const section = (titleKey, ic, ...kids) => el('section', {}, el('h2', { class: 'section-title' }, icon(ic, 20), el('span', {}, t(titleKey))), ...kids);
 
 function renderConnected(main, session) {
   const npub = npubEncode(session.pubkey);
@@ -42,11 +43,10 @@ export function renderLogin(main) {
   });
 
   // Lecture seule
-  const input = el('input', { type: 'text', id: 'ro-id', name: 'ro-id', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false', 'aria-describedby': 'ro-hint' });
+  const input = el('input', { type: 'text', id: 'ro-id', name: 'ro-id', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false', 'aria-label': t('login.ro.label'), 'aria-describedby': 'ro-hint' });
   const roBtn = el('button', { type: 'submit', class: 'btn' }, t('login.ro.button'));
   const form = el('form', { class: 'form' },
-    el('div', { class: 'field' },
-      el('label', { for: 'ro-id' }, t('login.ro.label')),
+    el('div', { class: 'field login-field' },
       el('p', { class: 'hint', id: 'ro-hint' }, t('login.ro.hint')),
       el('div', { class: 'row' }, input, roBtn)));
   form.addEventListener('submit', async (e) => {
@@ -74,20 +74,20 @@ export function renderLogin(main) {
   });
 
   main.replaceChildren(pageTitle('nav.login'),
-    section('login.ro.title', form),
-    section('login.ext.title', el('p', { class: 'hint' }, t(hasExtension() ? 'login.ext.hint' : 'login.ext.missing')), extBtn),
-    section('login.bunker.title', bunkerSection(setMsg)),
-    section('login.nc.title', nostrConnectSection(setMsg)),
+    section('login.ro.title', 'eye', form),
+    section('login.ext.title', 'puzzle', el('p', { class: 'hint' }, t(hasExtension() ? 'login.ext.hint' : 'login.ext.missing')), extBtn),
+    section('login.bunker.title', 'lock', bunkerSection(setMsg)),
+    section('login.nc.title', 'link', nostrConnectSection(setMsg)),
     msg);
 }
 
 const errKey = (e) => ({ invalid: 'login.bunker.invalid', 'no-relays': 'login.bunker.noRelays', timeout: 'login.bunker.timeout', unsupported: 'login.bunker.unsupported', cancelled: 'login.bunker.cancelled' })[e?.code] || 'login.bunker.failed';
 
 function bunkerSection(setMsg) {
-  const input = el('input', { type: 'text', id: 'bunker', name: 'bunker', placeholder: 'bunker://…', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false', 'aria-describedby': 'bunker-hint' });
+  const input = el('input', { type: 'text', id: 'bunker', name: 'bunker', placeholder: 'bunker://…', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false', 'aria-label': t('login.bunker.label'), 'aria-describedby': 'bunker-hint' });
   const go = el('button', { type: 'submit', class: 'btn' }, t('login.bunker.button'));
-  const form = el('form', { class: 'form' }, el('div', { class: 'field' },
-    el('label', { for: 'bunker' }, t('login.bunker.label')), el('p', { class: 'hint', id: 'bunker-hint' }, t('login.bunker.hint')),
+  const form = el('form', { class: 'form' }, el('div', { class: 'field login-field' },
+    el('p', { class: 'hint', id: 'bunker-hint' }, t('login.bunker.hint')),
     el('div', { class: 'row' }, input, go)));
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -132,7 +132,7 @@ function nostrConnectSection(setMsg) {
           el('p', { class: 'hint' }, t('login.nc.hint')), qrSlot,
           el('code', { class: 'nc-link' }, mine.uri),
           el('div', { class: 'nc-actions' }, open, copy),
-          el('p', { class: 'hint nc-wait', role: 'status', 'data-inline': '' }, t('login.nc.waiting')), cancel));
+          el('p', { class: 'hint nc-wait', role: 'status' }, t('login.nc.waiting')), cancel));
       const closing = () => { if (!finished) mine.cancel(); setMsg(''); end(); };
       x.addEventListener('click', () => dlg.close());
       cancel.addEventListener('click', () => dlg.close());

@@ -388,7 +388,7 @@ function buildNoteCard(ev, { via, author = true, detail = false, repostedBy = nu
   const indent = row;
   const moreBtn = el('button', { type: 'button', class: 'note-more', 'aria-haspopup': 'dialog', 'aria-label': t('menu.note.more'), title: t('menu.note.more') }, icon('more', 20));
   const openBtn = el('a', { class: 'note-open', href: noteHref(ev.id), 'aria-label': t('note.open'), title: t('note.open') }, icon('thread', 18));
-  const text = ev.content.length > 600 ? `${ev.content.slice(0, 600)}…` : ev.content;
+  const text = ev.content;   // contenu affiché en intégralité (flux comme fil)
   const client = clientName(ev);
   const meta = el('p', { class: 'note-meta' },
     el('time', { class: 'note-time', datetime: new Date(ev.created_at * 1000).toISOString() }, agoLabel(ev.created_at)),
