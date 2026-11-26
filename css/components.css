@@ -513,11 +513,14 @@ dialog:focus, dialog:focus-visible { outline: none; }
 .thread-flatlist { display: block; border-bottom: 1px solid var(--line); }
 .note { position: relative; }
 .note-content { position: relative; margin-left: 66px; }
-.note-row.link-next .note-content::before { content: ''; position: absolute; left: -39px; top: -4px; bottom: 0; width: 2px; background: rgb(127 127 127 / .45); }
 .note-row { border-bottom: 0; padding-bottom: 14px; }
-.note.link-prev::before { content: ''; position: absolute; left: 32px; top: 0; width: 2px; height: 10px; background: rgb(127 127 127 / .45); }
+.note-row.link-next { padding-bottom: 15px; margin-bottom: -1px; }   /* recouvre d'1 px la note suivante : pas de couture sur le trait */
+.note.link-prev::before { content: ''; position: absolute; left: 32px; top: -1px; width: 2px; height: 11px; background: rgb(127 127 127 / .45); }
 .note.link-prev { padding-top: 10px; }
-.note-row.link-next::after { content: ''; position: absolute; left: 32px; bottom: 0; width: 2px; height: 14px; background: rgb(127 127 127 / .45); }
+/* Trait de liaison d'une seule pièce : part du bas de l'avatar (56 px) et descend jusqu'au bas de la ligne (rognée par overflow: clip), sans coupure */
+.note-row.link-next { overflow: clip; }
+.note-row.link-next .note-head { position: relative; }
+.note-row.link-next .note-head::after { content: ''; position: absolute; left: 27px; top: 58px; width: 2px; height: 100vh; background: rgb(127 127 127 / .45); pointer-events: none; }
 .thread-flatlist .note-focus { outline: none; }
 /* Espace entre l'indication (repost / réponse) et la note */
 .note-context { margin: 0 0 10px 2px; }
