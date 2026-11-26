@@ -525,3 +525,4 @@ dialog:focus, dialog:focus-visible { outline: none; }
 
 .note-chain { display: block; }
 .chain-slot:empty { display: none; }
+.form ~ .hint { margin-top: .75rem; }
