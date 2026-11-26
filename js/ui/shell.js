@@ -8,7 +8,7 @@ import { getCached, onProfiles, requestProfile } from '../profiles.js';
 import { getReplaceable } from '../storage/db.js';
 import { parseContacts } from '../nostr/contacts.js';
 import { npubEncode } from '../nostr/nip19.js';
-import { el, shortNpub } from './common.js';
+import { el, shortNpub, returnFocus, scrollToTop, scrollTopNow } from './common.js';
 import { icon } from './icons.js';
 import { composer } from './composer.js';
 import { avatarNode } from './note.js';
@@ -32,6 +32,10 @@ function buildTopbar() {
   const open = el('button', { type: 'button', class: 'topbar-avatar', 'aria-haspopup': 'dialog' }, avatar);
   const bar = el('header', { class: 'topbar' }, open, el('span', { class: 'topbar-title', 'aria-hidden': 'true' }));
   document.body.insertBefore(bar, document.querySelector('.app'));
+  // Hauteur réelle de la barre (zone sûre comprise) : les fenêtres du haut s'affichent dessous
+  const syncHeight = () => document.documentElement.style.setProperty('--topbar-h', `${Math.round(bar.getBoundingClientRect().height)}px`);
+  syncHeight();
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(syncHeight).observe(bar); else addEventListener('resize', syncHeight);
 
   const refresh = () => {
     const s = state.get('session');
@@ -84,7 +88,7 @@ function buildTopbar() {
     const drawer = el('dialog', { class: 'drawer', 'aria-label': t('shell.account'), tabindex: '-1', autofocus: '' });
     await fill(drawer, () => drawer.close());
     drawer.addEventListener('click', (e) => { if (e.target === drawer) drawer.close(); });
-    drawer.addEventListener('close', () => { drawer.remove(); open.focus(); });
+    drawer.addEventListener('close', () => { drawer.remove(); returnFocus(open); });
     document.body.append(drawer);
     drawer.showModal?.() ?? drawer.setAttribute('open', '');
     drawer.focus();
@@ -122,7 +126,7 @@ function buildFab() {
     const publish = el('button', { type: 'submit', class: 'btn btn-small btn-primary', form: form.id }, t('compose.send'));
     const me = state.get('session')?.pubkey;
     dlg.append(el('div', { class: 'sd-head' }, cancel, publish), el('div', { class: 'compose-row' }, me ? avatarNode(me) : null, form));
-    dlg.addEventListener('close', () => { dlg.remove(); fab.focus(); });
+    dlg.addEventListener('close', () => { dlg.remove(); returnFocus(fab); });
     dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
     document.body.append(dlg);
     dlg.showModal?.() ?? dlg.setAttribute('open', '');
@@ -139,7 +143,7 @@ function buildNav() {
     if (slot && !slot.firstChild) slot.append(icon(NAV_ICONS[a.dataset.route] ?? 'home', 22));
     a.addEventListener('click', (e) => {
       const same = a.getAttribute('aria-current') === 'page' && location.hash.replace(/\/$/, '') === a.getAttribute('href');
-      if (same) { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      if (same) { e.preventDefault(); scrollToTop(); }
     });
   });
 }
@@ -166,12 +170,12 @@ function buildSwipe() {
 function buildPullToRefresh() {
   const view = document.getElementById('view');
   let start = null;
-  view.addEventListener('touchstart', (e) => { start = window.scrollY <= 0 && e.touches.length === 1 && !e.target.closest('dialog, textarea, input, select') ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
+  view.addEventListener('touchstart', (e) => { start = scrollTopNow() <= 0 && e.touches.length === 1 && !e.target.closest('dialog, textarea, input, select') ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
   view.addEventListener('touchend', (e) => {
     if (!start) return;
     const tch = e.changedTouches[0], dy = tch.clientY - start.y, dx = Math.abs(tch.clientX - start.x);
     start = null;
-    if (dy < 110 || dx > 60 || window.scrollY > 0) return;
+    if (dy < 110 || dx > 60 || scrollTopNow() > 0) return;
     const btn = view.querySelector('button[data-refresh]:not(:disabled)');
     if (btn) btn.click();
   }, { passive: true });

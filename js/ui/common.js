@@ -21,6 +21,25 @@ export function stateBlock(kind, key, vars) {
   return el('div', { class: `state state-${kind}`, role: kind === 'error' ? 'alert' : 'status' }, ...children);
 }
 
+// Conteneur de défilement : sur ordinateur (souris), la zone entre les barres fixes défile seule pour que la barre de défilement ne
+// passe pas sous les barres ; sur écran tactile, c'est la page (comportement natif de Safari).
+const innerScroll = typeof matchMedia === 'function' ? matchMedia('(hover: hover) and (pointer: fine)') : null;
+export const scroller = () => (innerScroll?.matches ? document.querySelector('.app') : null);
+export const scrollTopNow = () => scroller()?.scrollTop ?? window.scrollY;
+export function scrollToTop(smooth = true) {
+  const s = scroller(), opts = { top: 0, behavior: smooth ? 'smooth' : 'auto' };
+  if (s) s.scrollTo(opts); else window.scrollTo(opts);
+}
+
+// Retour du focus à l'élément d'origine après la fermeture d'une fenêtre : seulement si la fermeture s'est faite au clavier
+// (sinon le cadre de focus apparaît sur le bouton après un simple appui).
+let keyboardUsed = false;
+if (typeof addEventListener === 'function') {
+  addEventListener('keydown', () => { keyboardUsed = true; }, true);
+  addEventListener('pointerdown', () => { keyboardUsed = false; }, true);
+}
+export const returnFocus = (node) => { if (keyboardUsed) node?.focus?.(); };
+
 // Titre de page : le <h1> reste dans le document (accessibilité) ; sur mobile il est masqué et le titre s'affiche dans la barre fixe du haut.
 export function pageTitle(key) {
   const text = t(key);

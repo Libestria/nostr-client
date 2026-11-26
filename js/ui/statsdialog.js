@@ -2,7 +2,7 @@
 import { t } from '../i18n.js';
 import { onProfiles } from '../profiles.js';
 import { noteHref } from '../nostr/content.js';
-import { el, timeAgo } from './common.js';
+import { el, timeAgo, returnFocus } from './common.js';
 import { authorLink, updateAuthors, renderContent } from './note.js';
 import { compact } from '../nostr/stats.js';
 
@@ -32,7 +32,7 @@ export function openStatsDialog(key, getData, opener) {
     updateAuthors(list);
   };
   const stop = onProfiles(() => { if (dlg.isConnected) updateAuthors(list); });
-  const done = () => { stop(); dlg.remove(); opener?.focus?.(); };
+  const done = () => { stop(); dlg.remove(); returnFocus(opener); };
   close.addEventListener('click', () => dlg.close());
   dlg.addEventListener('close', done);
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });   // clic sur le fond

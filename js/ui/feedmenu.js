@@ -2,7 +2,7 @@
 // qui ouvre une fenêtre « verre » en haut de l'écran (même style que le menu « … » des notes). Les fils sont des itinéraires (#/feed…),
 // ce qui permettra d'en ajouter de personnalisés plus tard sans changer ce module.
 import { t } from '../i18n.js';
-import { el } from './common.js';
+import { el, returnFocus } from './common.js';
 import { icon } from './icons.js';
 
 let current = null;   // { feeds, activeId } du fil affiché
@@ -40,7 +40,7 @@ function openFeedMenu(feeds, activeId, opener) {
     list.append(el('li', {}, a));
   }
   dlg.append(el('div', { class: 'sd-head' }, el('h2', {}, t('feed.menu')), close), list);
-  dlg.addEventListener('close', () => { dlg.remove(); opener?.focus?.(); });
+  dlg.addEventListener('close', () => { dlg.remove(); returnFocus(opener); });
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
   document.body.append(dlg);
   dlg.showModal?.() ?? dlg.setAttribute('open', '');
