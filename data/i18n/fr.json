@@ -417,6 +417,7 @@
   "zaps.anon": "Anonyme",
   "stats.empty": "Rien à afficher pour l'instant.",
   "shell.menu": "Menu",
+  "menu.back": "Retour",
   "shell.menu.close": "Fermer le menu",
   "shell.newPost": "Nouvelle note",
   "shell.following": "{n} abonnements",
