@@ -250,7 +250,8 @@ button.act:disabled { cursor: default; opacity: 1; }
 .fab { position: fixed; z-index: 11; right: 1rem; bottom: calc(52px + 1rem + env(safe-area-inset-bottom, 0)); width: 56px; height: 56px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 28px; background: var(--accent); color: var(--accent-ink, #fff); box-shadow: 0 4px 14px rgba(0, 0, 0, .45); cursor: pointer; }
 .fab[hidden] { display: none; }
 .fab:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
-@media (min-width: 48rem) { .fab { bottom: 1.5rem; right: 1.5rem; } }
+/* « + » : à droite de la colonne centrée */
+.fab { right: max(1rem, calc((100vw - 40rem) / 2 + 1rem)); }
 .compose-dialog { width: min(94vw, 34rem); max-height: 90dvh; padding: 0 1rem 1rem; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); color: var(--ink); overflow-y: auto; }
 .compose-dialog::backdrop { background: rgba(0, 0, 0, .65); }
 .compose-dialog .sd-head { margin: 0 -1rem .5rem; }
@@ -487,15 +488,13 @@ dialog:focus, dialog:focus-visible { outline: none; }
 
 /* Barre du haut (titre centré) et barre du bas : verre translucide façon iOS, le contenu défile dessous */
 .topbar { position: sticky; top: 0; z-index: 9; justify-content: flex-start; }
-.topbar-title { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); display: flex; align-items: center; height: 52px; max-width: calc(100% - 120px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1.05rem; font-weight: 600; color: var(--ink); pointer-events: none; }
-@media (max-width: 47.99rem) {
-  .topbar, .nav { background: var(--surface); }
-  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-    .topbar, .nav { background: color-mix(in srgb, var(--surface) 58%, transparent); -webkit-backdrop-filter: blur(22px) saturate(1.8); backdrop-filter: blur(22px) saturate(1.8); }
-  }
-  .topbar { border-bottom: 1px solid var(--sheet-sep); }
-  .nav { border: 0; border-image: none; border-top: 1px solid var(--sheet-sep); }
+.topbar-title { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); display: flex; align-items: center; height: 52px; max-width: calc(100% - 120px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1.3rem; font-weight: 600; color: var(--ink); pointer-events: none; }
+.topbar, .nav { background: var(--surface); }
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .topbar, .nav { background: color-mix(in srgb, var(--surface) 58%, transparent); -webkit-backdrop-filter: blur(22px) saturate(1.8); backdrop-filter: blur(22px) saturate(1.8); }
 }
+.topbar { border-bottom: 1px solid var(--sheet-sep); }
+.nav { border: 0; border-image: none; border-top: 1px solid var(--sheet-sep); }
 
 .n05-none { color: var(--muted); }
 .author-block { display: flex; }
@@ -541,7 +540,7 @@ dialog:focus, dialog:focus-visible { outline: none; }
 @keyframes toast-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(24px); } }
 .toast[data-state="in"] { animation: toast-in .22s ease-out; }
 .toast[data-state="out"] { animation: toast-out .2s ease-in forwards; }
-@media (min-width: 48rem) { .toast { inset: auto 0 1.5rem 0; margin-inline: auto; width: min(calc(100% - 20px), 34rem); } }
+@media (min-width: 48rem) { .toast { inset-inline: 0; margin-inline: auto; width: min(calc(100% - 20px), 34rem); } }
 @media (prefers-reduced-motion: reduce) { .toast[data-state] { animation: none; } }
 
 /* Code QR (Nostr Connect) : fond blanc imposé pour la lecture, quel que soit le thème */
@@ -560,3 +559,23 @@ dialog:focus, dialog:focus-visible { outline: none; }
 /* Menu latéral : case « Rester connecté » au-dessus de Déconnexion */
 .drawer-keep { display: flex; align-items: center; gap: .9rem; min-height: 48px; padding: 0 .75rem; font-size: .95rem; cursor: pointer; }
 .drawer-keep input { width: 1.25rem; height: 1.25rem; margin: 0; flex: none; accent-color: var(--accent); }
+
+.topbar { padding-inline: max(.75rem, calc((100vw - 40rem) / 2 + .75rem)); }
+
+/* Grands écrans : le menu du compte devient une barre latérale fixe (même contenu que le menu glissant) */
+.sidebar { display: none; }
+@media (min-width: 75rem) {
+  body.has-sidebar .sidebar { display: flex; flex-direction: column; position: fixed; inset: 0 auto 0 0; z-index: 12; width: 17rem; height: 100dvh; border-radius: 0; border-right: 1px solid var(--sheet-sep); background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  body.has-sidebar .app { margin-left: 17rem; }
+  body.has-sidebar .topbar { margin-left: 17rem; padding-inline: max(.75rem, calc((100vw - 17rem - 40rem) / 2 + .75rem)); }
+  body.has-sidebar .topbar-avatar { display: none; }
+  body.has-sidebar .nav { left: 17rem; }
+  body.has-sidebar .fab { right: max(1rem, calc((100vw - 17rem - 40rem) / 2 + 1rem)); }
+}
+
+/* Barre du haut de l'accueil : liste déroulante des fils (nom + chevron rond), fenêtre « verre » à l'ouverture */
+.topbar-title.interactive { pointer-events: auto; }
+.feed-switch { display: inline-flex; align-items: center; gap: .55rem; height: 100%; padding: 0 .5rem; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.feed-chevron { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: rgb(127 127 127 / .28); color: var(--ink); }
+.nm-check { margin-left: auto; display: inline-flex; }
+.nm-list .nm-check .icon { color: var(--accent); }

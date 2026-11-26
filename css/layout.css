@@ -1,12 +1,10 @@
 .app { min-height: 100vh; min-height: 100dvh; }
 
-/* Contenu : pleine page, sans cadre ni barre de titre (le titre est dans la barre fixe du haut sur mobile) */
-#view { margin: 0 0 5.5rem; max-width: 56rem; outline: none; overflow: hidden; min-height: 50vh; }
+/* Contenu : pleine page, sans cadre ni barre de titre (le titre est dans la barre fixe du haut) */
+#view { margin: 0 auto 5.5rem; max-width: 40rem; outline: none; overflow: hidden; min-height: 50vh; }
 #view > h1 { margin: 20px clamp(16px, 3vw, 32px) 0; font: var(--font-win-title); color: var(--title); }
 #view > :not(h1) { margin: 20px clamp(16px, 3vw, 32px); }
-@media (max-width: 47.99rem) {
-  #view > h1 { position: absolute; width: 1px; height: 1px; margin: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-}
+#view > h1 { position: absolute; width: 1px; height: 1px; margin: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }   /* le titre est dans la barre du haut */
 
 /* Navigation : barre basse sur mobile */
 .nav {
@@ -16,7 +14,7 @@
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 .nav .brand { display: none; }
-.nav ul { display: flex; margin: 0; padding: 0; list-style: none; }
+.nav ul { display: flex; max-width: 40rem; margin: 0 auto; padding: 0; list-style: none; }
 .nav li { flex: 1 1 0; min-width: 0; }
 .nav a {
   position: relative; display: flex; align-items: center; justify-content: center; gap: .6rem; min-height: 52px; padding: .5rem .25rem; text-decoration: none;
@@ -31,29 +29,8 @@
 }
 .banner { background: var(--surface); color: var(--ink); border-bottom: 1px solid var(--line); padding: .5rem var(--space); text-align: center; font-size: .9rem; }
 
-@media (min-width: 48rem) {
-  .app { display: grid; grid-template-columns: 15rem 1fr; }
-  .nav {
-    position: sticky; top: 0; inset: auto; height: 100vh; height: 100dvh; align-self: start;
-    border: solid transparent; border-width: 0 4px 0 0; border-image: none; padding: 1.5rem 0;
-    background: linear-gradient(var(--bg), var(--bg)) padding-box, var(--grad-side) border-box;
-  }
-  .nav .brand {
-    display: block; padding: 0 1.25rem 1.25rem; font: 400 1.65rem/1.1 var(--font-mono); letter-spacing: .035em;
-    color: transparent; background: var(--grad-title);
-    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-  }
-  .nav ul { flex-direction: column; gap: 3px; padding: 0 .75rem; }
-  .nav a { justify-content: flex-start; font-size: 1.05rem; min-height: 0; padding: .6rem .75rem; border-top: 0; border-radius: var(--r-md); }
-  .nav-label { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
-  .desk-only { display: list-item; }
-  .topbar { display: none; }
-  #view { margin: 0 1.5rem; min-height: 100vh; min-height: 100dvh; }
-}
-
 /* Pastille de notifications non lues (rouge, texte blanc : contraste AA) */
 #nav a[data-count]::after {
   content: attr(data-count); position: absolute; top: 5px; left: calc(50% + 4px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
   background: #c62828; color: #fff; font-weight: 700; font-size: .7rem; line-height: 18px; text-align: center;
 }
-@media (min-width: 48rem) { #nav a[data-count]::after { position: static; margin-left: auto; } }
