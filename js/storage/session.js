@@ -1,5 +1,7 @@
 // Session : méthode + clé PUBLIQUE (localStorage). Aucune clé d'identité n'est jamais stockée.
 // NIP-46 : la clé de TRANSPORT éphémère reste dans sessionStorage (limitée à l'onglet).
+import { keptMeta } from './kept.js';
+
 const KEY = 'nostr-client:session';
 const KEY46 = 'nostr-client:nip46';
 const METHODS = ['nip07', 'readonly'];
@@ -24,7 +26,7 @@ export function loadSession() {
     const s = JSON.parse(localStorage.getItem(KEY));
     if (s && METHODS.includes(s.method) && HEX64.test(s.pubkey)) return { method: s.method, pubkey: s.pubkey };
   } catch { /* absente ou illisible */ }
-  const n = loadNip46();
+  const n = loadNip46() ?? keptMeta();   // session d'onglet, ou connexion conservée sur cet appareil
   return n ? { method: 'nip46', pubkey: n.pubkey } : null;
 }
 
