@@ -123,12 +123,18 @@ export const updateAuthors = (root) => {
 };
 
 // Texte d'une note : liens https, mentions, références de notes et hashtags ; le reste est du texte brut.
-export function renderContent(text, { hideRefs = false } = {}) {
+export function renderContent(text, opts = {}) { return renderTokens(tokenizeContent(text), opts); }
+
+function renderTokens(tokens, { hideRefs = false } = {}) {
   const media = !!state.get('settings')?.loadMedia;
-  const nodes = tokenizeContent(text).map((tk) => {
+  const nodes = tokens.map((tk) => {
     switch (tk.type) {
       case 'link': {
         const a = el('a', { href: tk.url, target: '_blank', rel: 'noopener noreferrer nofollow ugc', class: 'ext' }, tk.label.length > 40 ? `${tk.label.slice(0, 40)}…` : tk.label);
+        if (tk.video) {
+          if (!media) return a;
+          return el('video', { class: 'note-video', src: tk.url, controls: true, playsinline: true, preload: 'metadata' });
+        }
         if (!tk.image || !media) return a;
         const img = el('img', { class: 'note-img', src: tk.url, alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
         img.addEventListener('error', () => img.remove());
@@ -269,27 +275,65 @@ function noteActions(ev, article, detail) {
   return [stats?.node ?? null, row, msg];
 }
 
-// Cartes des notes et articles cités (nostr:nevent, note, naddr) : compactes, sans citations imbriquées.
-function quoteCards(text) {
-  const refs = quoteRefs(tokenizeContent(text));
-  if (!refs.length) return null;
-  const box = el('div', { class: 'quotes' });
-  refs.forEach((ref) => {
-    const slot = el('div', { class: 'quote-slot' }, el('p', { class: 'hint' }, t('note.quote.loading')));
-    box.append(slot);
-    fetchRef(ref).then((ev) => {
-      if (!slot.isConnected) return;
-      if (!ev || isMuted(ev)) { slot.replaceChildren(el('a', { class: 'note-ref', href: ref.id ? noteHref(ref.id) : '#/feed' }, t('note.ref'))); return; }
-      if (ev.kind === ARTICLE_KIND) { slot.replaceChildren(...articleCard(ev, false)); updateAuthors(slot); return; }
-      const body = ev.content.length > 280 ? `${ev.content.slice(0, 280)}…` : ev.content;
-      slot.replaceChildren(el('a', { class: 'quote-card', href: noteHref(ev.id) },
-        el('span', { class: 'quote-head' }, authorBlockSmall(ev.pubkey), el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, fullAgo(ev.created_at, undefined, t('time.now')))),
-        el('span', { class: 'quote-text' }, ...renderContent(body, { hideRefs: true }))));
-      updateAuthors(slot);
-    });
+// Carte d'une note ou d'un article cité (nostr:nevent, note, naddr) : compacte, sans citations imbriquées.
+function quoteSlot(ref) {
+  const slot = el('div', { class: 'quote-slot' }, el('p', { class: 'hint' }, t('note.quote.loading')));
+  fetchRef(ref).then((ev) => {
+    if (!slot.isConnected) return;
+    if (!ev || isMuted(ev)) { slot.replaceChildren(el('a', { class: 'note-ref', href: ref.id ? noteHref(ref.id) : '#/feed' }, t('note.ref'))); return; }
+    if (ev.kind === ARTICLE_KIND) { slot.replaceChildren(...articleCard(ev, false)); updateAuthors(slot); return; }
+    const body = ev.content.length > 280 ? `${ev.content.slice(0, 280)}…` : ev.content;
+    slot.replaceChildren(el('a', { class: 'quote-card', href: noteHref(ev.id) },
+      el('span', { class: 'quote-head' }, authorBlockSmall(ev.pubkey), el('time', { datetime: new Date(ev.created_at * 1000).toISOString() }, fullAgo(ev.created_at, undefined, t('time.now')))),
+      el('span', { class: 'quote-text' }, ...renderContent(body, { hideRefs: true }))));
+    updateAuthors(slot);
   });
-  return box;
+  return el('div', { class: 'quotes' }, slot);
 }
+
+// Corps d'une note : le texte et les contenus insérés (images, cartes des notes citées, aperçu du premier lien) dans l'ordre
+// exact où l'auteur les a placés. Un contenu inséré coupe le texte en paragraphes.
+function renderBody(text) {
+  const tokens = tokenizeContent(text);
+  const cards = new Map(quoteRefs(tokens).map((r) => [r.id ?? `${r.kind}:${r.pubkey}:${r.identifier}`, r]));
+  const keyOf = (tk) => (tk.type === 'note' ? tk.id : `${tk.kind}:${tk.pubkey}:${tk.identifier}`);
+  const previewUrl = previewsEnabled() ? firstLinkUrl(tokens) : null;
+  const out = [];
+  let inline = [];
+  // Chaque ligne vide laissée par l'auteur sépare deux paragraphes ; l'écart entre blocs est géré par le CSS (8 px partout)
+  const flush = () => {
+    const paras = [[]];
+    for (const n of inline) {
+      if (typeof n !== 'string') { paras[paras.length - 1].push(n); continue; }
+      n.split(/\r?\n[ \t]*\r?\n\s*/).forEach((part, i) => { if (i > 0) paras.push([]); if (part) paras[paras.length - 1].push(part); });
+    }
+    for (const nodes of paras) {
+      if (typeof nodes[0] === 'string') nodes[0] = nodes[0].replace(/^\s+/, '');
+      const last = nodes.length - 1;
+      if (last >= 0 && typeof nodes[last] === 'string') nodes[last] = nodes[last].replace(/\s+$/, '');
+      if (nodes.some((n) => n !== '' && n != null)) out.push(el('p', { class: 'note-text' }, ...nodes));
+    }
+    inline = [];
+  };
+  const media = !!state.get('settings')?.loadMedia;
+  const shown = new Set();
+  for (const tk of tokens) {
+    if ((tk.type === 'note' || tk.type === 'addr') && cards.has(keyOf(tk))) {
+      const k = keyOf(tk);
+      if (shown.has(k)) continue;   // doublon : une seule carte
+      shown.add(k);
+      flush(); out.push(quoteSlot(cards.get(k)));
+    } else if (tk.type === 'link' && (tk.image || tk.video) && media) {
+      flush(); out.push(...renderTokens([tk]));
+    } else {
+      inline.push(...renderTokens([tk], { hideRefs: false }));
+      if (tk.type === 'link' && !tk.image && !tk.video && tk.url === previewUrl) { flush(); out.push(linkCard(tk.url)); }
+    }
+  }
+  flush();
+  return out.filter(Boolean);
+}
+
 function authorBlockSmall(pk) {
   requestProfile(pk);
   const av = el('span', { class: 'avatar avatar-sm', 'aria-hidden': 'true', 'data-av': pk });
@@ -315,10 +359,7 @@ function contextLine(ev, repostedBy, detail) {
 }
 
 // Carte d'aperçu du premier lien web de la note : image en haut, titre puis description. Absente si le service n'a rien renvoyé.
-function linkCard(text) {
-  if (!previewsEnabled()) return null;
-  const url = firstLinkUrl(tokenizeContent(text));
-  if (!url) return null;
+function linkCard(url) {
   const slot = el('div', { class: 'link-card-slot' });
   getPreview(url).then((p) => {
     if (!p || !slot.isConnected) return;
@@ -393,7 +434,7 @@ function buildNoteCard(ev, { via, author = true, detail = false, repostedBy = nu
   const meta = el('p', { class: 'note-meta' },
     el('time', { class: 'note-time', datetime: new Date(ev.created_at * 1000).toISOString() }, agoLabel(ev.created_at)),
     client ? el('span', { class: 'note-client' }, ` ${t('note.via', { client })}`) : null);
-  const body = ev.kind === ARTICLE_KIND ? articleCard(ev, detail) : [el('p', { class: 'note-text' }, ...renderContent(text, { hideRefs: true })), quoteCards(text), linkCard(text)];
+  const body = [el('div', { class: 'note-body' }, ...(ev.kind === ARTICLE_KIND ? articleCard(ev, detail) : renderBody(text)))];
   const article = el('article', { class: ['note', detail ? 'note-detail' : '', row ? 'note-row' : ''].filter(Boolean).join(' ') },
     context ? contextLine(ev, repostedBy, detail || row) : null,
     el('div', { class: 'note-head' }, author ? authorBlock(ev.pubkey, meta) : el('span'), detail ? null : openBtn, moreBtn),
