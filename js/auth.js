@@ -2,6 +2,7 @@ import { state } from './state.js';
 import { saveSession, loadNip46, saveNip46 } from './storage/session.js';
 import { matchesTemplate } from './nostr/events.js';
 import { restoreBunker } from './nostr/nip46.js';
+import { keepNip46, loadKept, forgetNip46, keptMeta } from './storage/kept.js';
 
 const HEX64 = /^[0-9a-f]{64}$/;
 export const hasExtension = () => typeof window.nostr?.getPublicKey === 'function';
@@ -27,6 +28,7 @@ export function setSession(session) {
   remote?.close?.();
   remote = null;
   saveNip46(null);
+  forgetNip46();   // un changement de session efface aussi la connexion conservée
   saveSession(session);
   state.set('session', session);
 }
@@ -51,11 +53,24 @@ export function setRemoteSession(info) {
   state.set('session', { method: 'nip46', pubkey: info.pubkey });
 }
 
-// Au démarrage : reprise silencieuse de la session NIP-46 de l'onglet.
+// Au démarrage : reprise silencieuse de la session NIP-46 (onglet, ou connexion conservée sur cet appareil).
 export async function restoreRemoteSession() {
-  const saved = loadNip46();
-  if (!saved || state.get('session')?.method !== 'nip46') return;
-  try { remote = await restoreBunker(saved); } catch { saveNip46(null); state.set('session', null); }
+  if (state.get('session')?.method !== 'nip46') return;
+  let saved = loadNip46(), fromKept = false;
+  if (!saved) { saved = await loadKept(); fromKept = !!saved; }
+  if (!saved) { forgetNip46(); state.set('session', null); return; }   // clé de chiffrement perdue ou données altérées
+  try {
+    remote = await restoreBunker(saved);
+    if (fromKept) saveNip46(saved);
+  } catch { saveNip46(null); forgetNip46(); state.set('session', null); }
+}
+
+// Case « Rester connecté sur cet appareil » (signeur distant uniquement)
+export const isRemoteKept = () => !!keptMeta();
+export async function setRemoteKept(on) {
+  if (!on) { await forgetNip46(); return; }
+  if (!remote?.saved) throw new Error('no-remote');
+  await keepNip46(remote.saved);
 }
 
 async function verified(ev, tpl, pubkey) {
