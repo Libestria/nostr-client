@@ -460,10 +460,12 @@ button.act:disabled { cursor: default; opacity: 1; }
 
 /* Fenêtres : en haut de l'écran, marge de 10 px à gauche, à droite et en haut, 4 coins arrondis */
 .note-menu, .stats-dialog, .compose-dialog {
-  position: fixed; inset: max(10px, env(safe-area-inset-top, 0px)) 10px auto 10px; margin: 0; width: auto; max-width: none; height: auto;
-  max-height: calc(100dvh - 20px); border: 1px solid var(--sheet-edge); border-radius: 22px; padding-top: 0;
+  position: fixed; inset: calc(var(--topbar-h, 52px) + 10px) 10px auto 10px; margin: 0; width: auto; max-width: none; height: auto;
+  max-height: calc(100dvh - var(--topbar-h, 52px) - 20px); border: 1px solid var(--sheet-edge); border-radius: 22px; padding-top: 0;
 }
 @media (min-width: 48rem) { .note-menu, .stats-dialog, .compose-dialog { inset-inline: 0; margin-inline: auto; width: min(calc(100% - 20px), 34rem); } }
+/* Grand écran avec barre latérale : les fenêtres sont centrées sur la zone de contenu (à droite de la barre), pas sur tout l'écran */
+@media (min-width: 75rem) { body.has-sidebar :is(.note-menu, .stats-dialog, .compose-dialog) { inset-inline: 17rem 0; width: min(calc(100vw - 17rem - 20px), 34rem); } }
 @keyframes sheet-top { from { opacity: 0; transform: translateY(-24px); } to { opacity: 1; transform: none; } }
 .note-menu[open], .stats-dialog[open], .compose-dialog[open] { animation: sheet-top .2s ease-out; }
 @media (prefers-reduced-motion: reduce) { .note-menu[open], .stats-dialog[open], .compose-dialog[open] { animation: none; } }
@@ -579,3 +581,36 @@ dialog:focus, dialog:focus-visible { outline: none; }
 .feed-chevron { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: rgb(127 127 127 / .28); color: var(--ink); }
 .nm-check { margin-left: auto; display: inline-flex; }
 .nm-list .nm-check .icon { color: var(--accent); }
+
+/* Ordinateur (souris) : la zone entre les barres fixes défile seule, sa barre de défilement reste sous les barres du haut et du bas.
+   Sur écran tactile, la page défile normalement. */
+@media (hover: hover) and (pointer: fine) {
+  html, body { height: 100%; overflow: hidden; }
+  .topbar { position: fixed; inset: 0 0 auto 0; }
+  .app { position: fixed; inset: 0; overflow-y: auto; overscroll-behavior: contain; padding-top: var(--topbar-h, 52px); scroll-padding-top: var(--topbar-h, 52px); scroll-padding-bottom: 60px; }
+}
+@media (hover: hover) and (pointer: fine) and (min-width: 75rem) {
+  body.has-sidebar .app { margin-left: 0; left: 17rem; }
+}
+@media (hover: hover) and (pointer: fine) { #offline { position: fixed; inset: var(--topbar-h, 52px) 0 auto 0; z-index: 8; } }
+
+/* Sous-menus des fenêtres : pages empilées, la nouvelle glisse depuis la droite */
+.sheet-pages { display: grid; grid-template-columns: minmax(0, 1fr); overflow-x: clip; }
+.sheet-page { grid-area: 1 / 1; min-width: 0; background: transparent; }
+.sheet-sub { background: var(--sheet-solid, var(--surface)); z-index: 1; }
+@keyframes sheet-collapse { to { height: 0; overflow: hidden; visibility: hidden; } }
+.sheet-under { animation: sheet-collapse 0s .25s forwards; }
+@keyframes sheet-from-right { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes sheet-to-right { from { transform: none; } to { transform: translateX(100%); } }
+.sheet-enter { animation: sheet-from-right .25s cubic-bezier(.2, .8, .2, 1); }
+.sheet-leave { animation: sheet-to-right .22s ease-in forwards; }
+:is(.note-menu, .stats-dialog, .compose-dialog) .sheet-subhead { display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; gap: .5rem; padding: .7rem .75rem; border-bottom: 1px solid var(--sheet-sep); }
+.sheet-subhead h2 { margin: 0; font-size: 1rem; font-weight: 600; text-align: center; overflow-wrap: anywhere; }
+.nm-list .nm-chev { margin-left: auto; display: inline-flex; }
+.nm-list .nm-chev .icon { color: var(--muted); }
+.note-menu .nm-details { margin: 0; }
+
+/* Titre centré dans toutes les fenêtres « verre » à titre + ✕ (colonne vide de 32 px à gauche pour équilibrer le bouton) */
+:is(.note-menu .sd-head, .stats-dialog .sd-bar):not(.sheet-subhead) { display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; gap: .5rem; padding-inline: .75rem; }
+:is(.note-menu .sd-head, .stats-dialog .sd-bar):not(.sheet-subhead) > :first-child { grid-column: 2; margin: 0; text-align: center; overflow-wrap: anywhere; }
+:is(.note-menu .sd-head, .stats-dialog .sd-bar):not(.sheet-subhead) > :last-child { grid-column: 3; }
