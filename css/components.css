@@ -52,7 +52,7 @@ input[type="text"] {
 @media (hover: hover) { input[type="text"]:hover { border-color: var(--line-hover); } }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 .status-error { color: var(--danger); }
-.section-title { margin: 0 0 .5rem; font-size: 1.125rem; font-weight: 600; color: var(--ink); }
+.section-title { display: flex; align-items: center; gap: .6rem; margin: 0 0 .5rem; font-size: 1.125rem; font-weight: 600; color: var(--ink); }
 #view > section + section { padding-top: 24px; border: 0 solid; border-top-width: var(--divider-width); border-image: var(--divider) 1; }
 .list { margin: 0 0 1rem; padding-left: 1.2rem; }
 
@@ -587,7 +587,8 @@ dialog:focus, dialog:focus-visible { outline: none; }
 @media (hover: hover) and (pointer: fine) {
   html, body { height: 100%; overflow: hidden; }
   .topbar { position: fixed; inset: 0 0 auto 0; }
-  .app { position: fixed; inset: 0; overflow-y: auto; overscroll-behavior: contain; padding-top: var(--topbar-h, 52px); scroll-padding-top: var(--topbar-h, 52px); scroll-padding-bottom: 60px; }
+  .app { position: fixed; inset: var(--topbar-h, 52px) 0 var(--nav-h, 56px) 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  #view { margin-bottom: 1.5rem; }
 }
 @media (hover: hover) and (pointer: fine) and (min-width: 75rem) {
   body.has-sidebar .app { margin-left: 0; left: 17rem; }
@@ -614,3 +615,7 @@ dialog:focus, dialog:focus-visible { outline: none; }
 :is(.note-menu .sd-head, .stats-dialog .sd-bar):not(.sheet-subhead) { display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; gap: .5rem; padding-inline: .75rem; }
 :is(.note-menu .sd-head, .stats-dialog .sd-bar):not(.sheet-subhead) > :first-child { grid-column: 2; margin: 0; text-align: center; overflow-wrap: anywhere; }
 :is(.note-menu .sd-head, .stats-dialog .sd-bar):not(.sheet-subhead) > :last-child { grid-column: 3; }
+
+.section-title .icon { flex: none; color: var(--accent); }
+/* Connexion : même écart (.75rem) entre le texte explicatif et le champ ou le bouton, dans les quatre sections */
+.login-field { gap: .75rem; }
