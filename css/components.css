@@ -556,3 +556,7 @@ dialog:focus, dialog:focus-visible { outline: none; }
 .nc-qr:empty { display: none; }
 .nc-qr .qr { margin: 0 auto; width: min(100%, 14rem); }
 .nc-wait { text-align: center; color: var(--accent); }
+
+/* Menu latéral : case « Rester connecté » au-dessus de Déconnexion */
+.drawer-keep { display: flex; align-items: center; gap: .9rem; min-height: 48px; padding: 0 .75rem; font-size: .95rem; cursor: pointer; }
+.drawer-keep input { width: 1.25rem; height: 1.25rem; margin: 0; flex: none; accent-color: var(--accent); }
