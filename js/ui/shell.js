@@ -1,7 +1,8 @@
 // Coque de l'application (inspirée de Nostur) : barre du haut avec avatar, menu latéral, bouton « + » flottant, icônes de navigation, balayage entre sous-onglets.
 import { t } from '../i18n.js';
 import { state } from '../state.js';
-import { getSigner, logout } from '../auth.js';
+import { getSigner, logout, isRemoteKept, setRemoteKept } from '../auth.js';
+import { toast } from './toast.js';
 import { getCached, onProfiles, requestProfile } from '../profiles.js';
 import { getReplaceable } from '../storage/db.js';
 import { parseContacts } from '../nostr/contacts.js';
@@ -57,11 +58,24 @@ function buildTopbar() {
     items.push(link('#/settings/mute', 'mute', t('menu.mute')), link('#/settings', 'settings', t('nav.settings')));
     const out = el('button', { type: 'button', class: 'drawer-logout' }, icon('logout', 20), el('span', {}, t('menu.logout')));
     out.addEventListener('click', () => { drawer.close(); logout(); location.hash = '#/login'; });
+    // Signeur distant : option facultative pour rester connecté entre deux ouvertures du navigateur (clé de transport chiffrée)
+    let keep = null;
+    if (s.method === 'nip46') {
+      const box = el('input', { type: 'checkbox', checked: isRemoteKept() });
+      keep = el('label', { class: 'drawer-keep' }, box, el('span', {}, t('menu.keep')));
+      box.addEventListener('change', async () => {
+        const want = box.checked;
+        box.disabled = true;
+        try { await setRemoteKept(want); toast(t(want ? 'menu.keep.on' : 'menu.keep.off')); }
+        catch { box.checked = !want; toast(t('menu.keep.fail'), { error: true }); }
+        box.disabled = false;
+      });
+    }
     const list = el('ul', { class: 'drawer-list' }, ...items);
     list.addEventListener('click', (e) => { if (e.target.closest('a')) drawer.close(); });
     close.addEventListener('click', () => drawer.close());
     drawer.replaceChildren(el('div', { class: 'drawer-head' }, banner, close, pic),
-      el('div', { class: 'drawer-id' }, el('strong', {}, p?.displayName || p?.name || shortNpub(pk)), copy, follows), list, el('div', { class: 'drawer-foot' }, out));
+      el('div', { class: 'drawer-id' }, el('strong', {}, p?.displayName || p?.name || shortNpub(pk)), copy, follows), list, el('div', { class: 'drawer-foot' }, keep, out));
   }
 
   open.addEventListener('click', async () => {
