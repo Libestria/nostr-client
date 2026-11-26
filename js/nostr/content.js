@@ -5,6 +5,7 @@ import { decode, noteEncode } from './nip19.js';
 // Pas de « lookbehind » (absent des anciens Safari) : le caractère qui précède est capturé puis rendu au texte.
 const TOKEN = /(^|[^a-z0-9])(?:nostr:)?((?:npub|nprofile|nevent|note|naddr)1[02-9ac-hj-np-z]{20,})|(https:\/\/[^\s<>"'`]+)|(^|[^\p{L}\p{N}_&#/])#([\p{L}\p{N}_]{1,60})/giu;
 const IMAGE = /\.(?:jpe?g|png|gif|webp|avif)$/i;
+const VIDEO = /\.(?:mp4|webm|mov|m4v)$/i;
 const TRAILING = /[.,;:!?)\]}»”’]+$/;
 
 function safeHttps(raw) {
@@ -41,7 +42,7 @@ export function tokenizeContent(text) {
       const trimmed = url.replace(TRAILING, '');
       end = m.index + trimmed.length;
       const href = safeHttps(trimmed);
-      if (href) token = { type: 'link', url: href, label: trimmed.replace(/^https:\/\//, ''), image: IMAGE.test(new URL(href).pathname) };
+      if (href) token = { type: 'link', url: href, label: trimmed.replace(/^https:\/\//, ''), image: IMAGE.test(new URL(href).pathname), ...(VIDEO.test(new URL(href).pathname) ? { video: true } : {}) };
     } else if (tag) token = { type: 'hashtag', tag: tag.toLowerCase() };
     if (!token) continue;
     pushText(src.slice(last, start));

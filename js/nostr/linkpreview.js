@@ -33,4 +33,4 @@ export function parsePreview(json, pageUrl) {
 }
 
 // Premier lien web (non image) d'une liste de jetons, ou null.
-export const firstLinkUrl = (tokens) => tokens.find((tk) => tk.type === 'link' && !tk.image)?.url ?? null;
+export const firstLinkUrl = (tokens) => tokens.find((tk) => tk.type === 'link' && !tk.image && !tk.video)?.url ?? null;
