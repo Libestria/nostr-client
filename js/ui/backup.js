@@ -35,6 +35,7 @@ export function backupSection() {
     apply.addEventListener('click', async () => {
       apply.disabled = true;
       const log = [];
+      let bad = false;   // une publication a échoué : résultat en orange au lieu de vert
       if (Object.keys(plan.settings).length) { state.set('settings', updateSettings(plan.settings)); log.push(t('backup.done.settings')); }
       if (canSign) {
         let ok = 0, fail = 0;
@@ -42,10 +43,11 @@ export function backupSection() {
           say(t('lists.publishing'));
           try { const r = await editList(key, op, { signer: getSigner() }); r.ok ? ok++ : fail++; } catch { fail++; }
         }
+        if (fail) bad = true;
         if (plan.relayOps.length) log.push(t('backup.done.relays', { ok, fail }));
-        if (plan.muteOps.length) { try { const r = await editMute(plan.muteOps); log.push(t(r.ok ? 'backup.done.mute' : 'backup.done.mutefail', { n: plan.muteOps.length })); } catch { log.push(t('backup.done.mutefail', { n: plan.muteOps.length })); } }
+        if (plan.muteOps.length) { try { const r = await editMute(plan.muteOps); if (!r.ok) bad = true; log.push(t(r.ok ? 'backup.done.mute' : 'backup.done.mutefail', { n: plan.muteOps.length })); } catch { bad = true; log.push(t('backup.done.mutefail', { n: plan.muteOps.length })); } }
       }
-      msg.textContent = log.join(' ');
+      say(log.join(' '), bad ? 'warn' : 'ok');
       preview.replaceChildren();
     });
     preview.replaceChildren(el('p', {}, t('backup.preview', { relays: plan.relayOps.length, mute: plan.muteOps.length, skipped: parsed.skipped })),

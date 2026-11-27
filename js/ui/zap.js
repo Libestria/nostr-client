@@ -3,7 +3,7 @@ import { getCached, requestProfile, onProfiles } from '../profiles.js';
 import { lnurlInfo, createInvoice, hasWebln, payWebln, refreshZaps, watchZaps } from '../zap.js';
 import { formatSats, MAX_SATS } from '../nostr/nip57.js';
 import { walletInfo, isUnlocked, unlock, payWithWallet } from '../wallet.js';
-import { el, closeButton } from './common.js';
+import { el, closeButton, setStatus } from './common.js';
 
 const PRESETS = [21, 100, 500, 1000, 5000];
 const BOLT11 = /^ln(?:bc|tbs|tb|bcrt)[0-9a-z]+$/i;
@@ -57,16 +57,16 @@ export function zapPanel({ recipient, event, onClose }) {
 
   const load = async () => {
     lud16 = getCached(recipient)?.lud16;
-    if (!lud16) { status.textContent = t('zap.error.NO_LNURL'); send.disabled = true; return; }
-    status.textContent = t('zap.checking');
+    if (!lud16) { setStatus(status, t('zap.error.NO_LNURL'), 'error'); send.disabled = true; return; }
+    setStatus(status, t('zap.checking'), 'info');
     try {
       info = await lnurlInfo(lud16);
-      status.textContent = '';
+      setStatus(status, '', 'info');
       amountInput.min = Math.ceil(info.min / 1000); amountInput.max = Math.min(MAX_SATS, Math.floor(info.max / 1000));
       comment.hidden = !info.commentAllowed;
       comment.maxLength = info.commentAllowed || 0;
       send.disabled = false;
-    } catch (e) { status.textContent = errMsg(e); send.disabled = true; }
+    } catch (e) { setStatus(status, errMsg(e), 'error'); send.disabled = true; }
   };
   const stop = onProfiles(() => { if (!info && getCached(recipient)?.lud16 && !busy) load(); });
   send.disabled = true;
@@ -90,39 +90,39 @@ export function zapPanel({ recipient, event, onClose }) {
       const go = el('button', { type: 'button', class: 'btn' }, t('nwc.unlockpay'));
       const row = el('div', { class: 'zap-unlock' }, el('label', {}, t('nwc.password'), pw), go);
       invoiceBox.replaceChildren(row);
-      status.textContent = t('nwc.locked');
+      setStatus(status, t('nwc.locked'), 'info');
       go.addEventListener('click', async () => {
         go.disabled = true;
         try { await unlock(pw.value); pw.value = ''; row.remove(); await payNwc(pr, sats); }
-        catch (err) { status.textContent = nwcErrMsg(err); go.disabled = false; }
+        catch (err) { setStatus(status, nwcErrMsg(err), 'error'); go.disabled = false; }
       });
       return;
     }
-    status.textContent = t('nwc.paying');
+    setStatus(status, t('nwc.paying'), 'info');
     try {
       await payWithWallet(pr, sats);
-      status.textContent = t('zap.paid', { n: formatSats(sats) });
+      setStatus(status, t('zap.paid', { n: formatSats(sats) }), 'ok');
       invoiceBox.replaceChildren();
       if (event) refreshZaps(event.id);
-    } catch (err) { status.textContent = nwcErrMsg(err); showInvoice(pr); }
+    } catch (err) { setStatus(status, nwcErrMsg(err), 'error'); showInvoice(pr); }
   };
 
   box.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (busy || !info) return;
-    if (!Number.isInteger(amount) || amount < 1) { status.textContent = t('zap.error.AMOUNT_RANGE'); return; }
-    busy = true; send.disabled = true; invoiceBox.replaceChildren(); status.textContent = t('zap.invoice');
+    if (!Number.isInteger(amount) || amount < 1) { setStatus(status, t('zap.error.AMOUNT_RANGE'), 'error'); return; }
+    busy = true; send.disabled = true; invoiceBox.replaceChildren(); setStatus(status, t('zap.invoice'), 'info');
     try {
       const { pr } = await createInvoice({ recipient, lud16, event, amountSats: amount, comment: comment.value });
       if (walletInfo()) { await payNwc(pr, amount); busy = false; send.disabled = false; return; }
       if (hasWebln()) {
-        status.textContent = t('zap.paying');
-        try { await payWebln(pr); status.textContent = t('zap.paid', { n: formatSats(amount) }); if (event) refreshZaps(event.id); busy = false; send.disabled = false; return; }
-        catch { status.textContent = t('zap.error.PAY_FAILED'); }
-      } else status.textContent = t('zap.ready');
+        setStatus(status, t('zap.paying'), 'info');
+        try { await payWebln(pr); setStatus(status, t('zap.paid', { n: formatSats(amount) }), 'ok'); if (event) refreshZaps(event.id); busy = false; send.disabled = false; return; }
+        catch { setStatus(status, t('zap.error.PAY_FAILED'), 'error'); }
+      } else setStatus(status, t('zap.ready'), 'info');
       showInvoice(pr);
       if (event) refreshZaps(event.id);
-    } catch (err) { status.textContent = errMsg(err); }
+    } catch (err) { setStatus(status, errMsg(err), 'error'); }
     busy = false; send.disabled = false;
   });
 

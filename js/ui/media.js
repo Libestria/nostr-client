@@ -1,7 +1,8 @@
 // Médias d'une note (images, vidéos) : visionneuse plein écran et menu « … » (fenêtres natives <dialog>).
 // Aucun contenu externe n'est inséré en HTML : le média est un élément <img> / <video> créé par el().
 import { t } from '../i18n.js';
-import { el, returnFocus, closeButton } from './common.js';
+import { el, returnFocus, closeButton, setStatus } from './common.js';
+import { toast } from './toast.js';
 import { icon } from './icons.js';
 
 const MAX_SAVE_BYTES = 200 * 1024 * 1024;   // au-delà, on n'essaie pas de télécharger en mémoire : ouverture dans un onglet
@@ -29,7 +30,7 @@ export function openViewer(url, kind, opener = null) {
 
 // Enregistrer : télécharge le média puis le propose à l'appareil (feuille de partage, sinon téléchargement).
 // Si le site refuse la copie (CORS), le média est ouvert dans un nouvel onglet pour un enregistrement manuel.
-async function saveMedia(url, say) {
+async function saveMedia(url, say, done) {
   const name = decodeURIComponent(new URL(url).pathname.split('/').pop() || 'media') || 'media';
   say('media.saving');
   let blob;
@@ -40,18 +41,18 @@ async function saveMedia(url, say) {
     blob = await res.blob();
   } catch {
     window.open(url, '_blank', 'noopener,noreferrer');
-    say('media.saveFallback');
+    say('media.saveFallback', 'warn');
     return;
   }
   const file = new File([blob], name, { type: blob.type });
   try {
-    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file] }); say('media.shared'); return; }
-  } catch (e) { if (e?.name === 'AbortError') { say('media.shared'); return; } /* autre erreur : repli sur le téléchargement */ }
+    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file] }); done('media.shared'); return; }
+  } catch (e) { if (e?.name === 'AbortError') { say(null); return; } /* autre erreur : repli sur le téléchargement */ }
   const href = URL.createObjectURL(blob);
   const a = el('a', { href, download: name });
   document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(href), 60000);
-  say('media.downloaded');
+  done('media.downloaded');
 }
 
 // Menu « … » d'un média : visionneuse, nouvel onglet, copier l'URL, enregistrer.
@@ -61,7 +62,9 @@ export function openMediaMenu(url, kind, opener = null) {
   const close = closeButton(t('shell.menu.close'));
   close.addEventListener('click', () => dlg.close());
   const list = el('ul', { class: 'drawer-list nm-list' });
-  const say = (key) => msg.replaceChildren(t(key));
+  const say = (key, kind = 'info') => setStatus(msg, key ? t(key) : '', kind);
+  // Action réussie : le message passe dans la fenêtre du bas et le menu se ferme
+  const done = (key) => { toast(t(key), { kind: 'ok' }); dlg.close(); };
   const row = (ic, label, run) => {
     const b = el('button', { type: 'button' }, icon(ic, 20), el('span', {}, label));
     b.addEventListener('click', () => run(b));
@@ -69,8 +72,8 @@ export function openMediaMenu(url, kind, opener = null) {
   };
   row('expand', t('media.viewer'), () => { dlg.close(); openViewer(url, kind, opener); });
   row('external', t('media.newTab'), () => { window.open(url, '_blank', 'noopener,noreferrer'); dlg.close(); });
-  row('copy', t('media.copyUrl'), async () => say((await copy(url)) ? 'note.copied' : 'compose.err.generic'));
-  row('download', t('media.save'), async (b) => { b.disabled = true; try { await saveMedia(url, say); } finally { b.disabled = false; } });
+  row('copy', t('media.copyUrl'), async () => (await copy(url)) ? done('note.copied') : say('compose.err.generic', 'error'));
+  row('download', t('media.save'), async (b) => { b.disabled = true; try { await saveMedia(url, say, done); } finally { b.disabled = false; } });
   dlg.append(el('div', { class: 'sd-head' }, el('h2', {}, t('media.menu')), close), list, msg);
   dlg.addEventListener('close', () => { dlg.remove(); returnFocus(opener); });
   dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });

@@ -37,6 +37,14 @@ if (typeof addEventListener === 'function') {
   addEventListener('keydown', () => { keyboardUsed = true; }, true);
   addEventListener('pointerdown', () => { keyboardUsed = false; }, true);
 }
+// Écrit un message d'état et sa couleur dans l'élément : 'info' (blanc), 'ok' (vert), 'warn' (orange), 'error' (rouge).
+// La fenêtre du bas reprend le texte et la couleur.
+export function setStatus(node, text, kind = 'info') {
+  node.classList.remove('status-error', 'status-ok', 'status-warn');
+  if (kind !== 'info') node.classList.add(`status-${kind}`);
+  node.textContent = text;
+}
+
 // Bouton de fermeture « ✕ » unique pour toutes les fenêtres : rond de 32 px, croix dessinée (SVG, centrée au pixel près).
 export function closeButton(label, { cls = '', title = null } = {}) {
   return el('button', { type: 'button', class: `sheet-x ${cls}`.trim(), 'aria-label': label, ...(title ? { title } : {}) }, icon('close', 16));

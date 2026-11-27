@@ -254,7 +254,7 @@ function noteActions(ev, article, detail) {
       const target = !isBookmarked(ev.id);
       try {
         const res = await setBookmark(ev.id, target);
-        if (res.ok) msg.replaceChildren(); else msg.replaceChildren(t('lists.publish.failed', { ok: res.ok, total: res.total }));
+        if (res.ok) msg.replaceChildren(); else msg.replaceChildren(el('span', { class: 'status status-error' }, t('lists.publish.failed', { ok: res.ok, total: res.total })));
       } catch (e) { msg.replaceChildren(el('span', { class: 'status status-error' }, t(e?.message === 'NOT_LOADED' ? 'bookmark.notLoaded' : 'compose.err.generic'))); } finally { busy = false; b.disabled = false; paintFav(); }
     } });
     const paintFav = () => {

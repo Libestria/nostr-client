@@ -2,7 +2,7 @@
 // Les éléments [role=status|alert] des pages et des fenêtres restent dans le DOM (lecteurs d'écran) mais sont masqués à l'écran ;
 // leur texte est repris ici. Un élément marqué data-inline garde son affichage dans la page (état permanent, pas un message).
 const SELECTOR = '[role="status"], [role="alert"]';
-const SKIP = '[data-inline], .state, #offline, #toast';
+const SKIP = '[data-inline], .state:not(.state-loading), #offline, #toast';   // les états « chargement » passent aussi dans la fenêtre du bas
 const ERROR_MS = 8000, NORMAL_MS = 5000, HIDE_MS = 220;
 
 let box = null, timer = null, owner = null, hideTimer = null;

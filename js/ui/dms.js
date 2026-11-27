@@ -6,7 +6,7 @@ import { getCached, onProfiles, requestProfile } from '../profiles.js';
 import { conversations, conversationMessages, markRead, sendDm, startDms, dmStats, loadLegacy, legacyPartners, decryptLegacy } from '../dms.js';
 import { pool } from '../relays/pool.js';
 import { partnersOf } from '../nostr/dm.js';
-import { el, pageTitle, stateBlock, shortNpub, timeAgo } from './common.js';
+import { el, pageTitle, stateBlock, shortNpub, timeAgo, setStatus } from './common.js';
 import { avatarNode } from './note.js';
 import { icon } from './icons.js';
 
@@ -84,14 +84,14 @@ export function renderDms(main, params) {
         e.preventDefault();
         const text = ta.value.trim();
         if (!text) return;
-        send.disabled = true; result.textContent = t('dm.sending');
+        send.disabled = true; setStatus(result, t('dm.sending'));
         try {
           const res = await sendDm(partner, text);
-          if (res.ok) { ta.value = ''; result.textContent = t('dm.sent', { ok: res.ok, total: res.partner.length }); }
-          else result.textContent = t('dm.error.FAILED');
+          if (res.ok) { ta.value = ''; setStatus(result, t('dm.sent', { ok: res.ok, total: res.partner.length }), 'ok'); }
+          else setStatus(result, t('dm.error.FAILED'), 'error');
         } catch (err) {
           const code = err?.code === 'signer' ? 'SIGNER' : err?.message;
-          result.textContent = t(`dm.error.${['NO_DM_RELAYS', 'NO_NIP44', 'READ_ONLY', 'SIGNER', 'INVALID'].includes(code) ? code : 'FAILED'}`);
+          setStatus(result, t(`dm.error.${['NO_DM_RELAYS', 'NO_NIP44', 'READ_ONLY', 'SIGNER', 'INVALID'].includes(code) ? code : 'FAILED'}`), 'error');
         }
         send.disabled = false; paint();
       });
