@@ -520,7 +520,7 @@ dialog:focus, dialog:focus-visible { outline: none; }
 /* Trait de liaison d'une seule pièce : part du bas de l'avatar (56 px) et descend jusqu'au bas de la ligne (rognée par overflow: clip), sans coupure */
 .note-row.link-next { overflow: clip; }
 .note-row.link-next .note-head { position: relative; }
-.note-row.link-next .note-head::after { content: ''; position: absolute; left: 27px; top: 58px; width: 2px; height: 100vh; background: rgb(127 127 127 / .45); pointer-events: none; }
+.note-row.link-next .note-head::after { content: ''; position: absolute; left: 27px; top: 58px; width: 2px; height: 20000px; background: rgb(127 127 127 / .45); pointer-events: none; }
 .thread-flatlist .note-focus { outline: none; }
 /* Espace entre l'indication (repost / réponse) et la note */
 .note-context { margin: 0 0 10px 2px; }
@@ -585,18 +585,13 @@ dialog:focus, dialog:focus-visible { outline: none; }
 .nm-check { margin-left: auto; display: inline-flex; }
 .nm-list .nm-check .icon { color: var(--accent); }
 
-/* Ordinateur (souris) : la zone entre les barres fixes défile seule, sa barre de défilement reste sous les barres du haut et du bas.
-   Sur écran tactile, la page défile normalement. */
-@media (hover: hover) and (pointer: fine) {
-  html, body { height: 100%; overflow: hidden; }
-  .topbar { position: fixed; inset: 0 0 auto 0; }
-  .app { position: fixed; inset: var(--topbar-h, 52px) 0 var(--nav-h, 56px) 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
-  #view { margin-bottom: 1.5rem; }
-}
-@media (hover: hover) and (pointer: fine) and (min-width: 75rem) {
-  body.has-sidebar .app { margin-left: 0; left: 17rem; }
-}
-@media (hover: hover) and (pointer: fine) { #offline { position: fixed; inset: var(--topbar-h, 52px) 0 auto 0; z-index: 8; } }
+/* Tous écrans : seule la zone entre les barres fixes défile, donc sa barre de défilement reste entre la barre du haut et celle du bas. */
+html, body { height: 100%; overflow: hidden; }
+.topbar { position: fixed; inset: 0 0 auto 0; }
+.app { position: fixed; inset: var(--topbar-h, 52px) 0 var(--nav-h, 56px) 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+#view { margin-bottom: 1.5rem; }
+@media (min-width: 75rem) { body.has-sidebar .app { margin-left: 0; left: 17rem; } }
+#offline { position: fixed; inset: var(--topbar-h, 52px) 0 auto 0; z-index: 8; }
 
 /* Sous-menus des fenêtres : pages empilées, la nouvelle glisse depuis la droite */
 .sheet-pages { display: grid; grid-template-columns: minmax(0, 1fr); overflow-x: clip; }
@@ -631,3 +626,18 @@ dialog:focus, dialog:focus-visible { outline: none; }
 .note-actions { margin-top: 0; }
 /* Compensation de l'interligne : un paragraphe a une demi-interligne (≈ 5 px) au-dessus et au-dessous de ses lettres ; les autres blocs la reçoivent en marge pour que l'écart visible soit le même partout */
 .note-body > :not(.note-text) { margin-block: .325rem; }
+
+/* Indications « reposté » / « réponse » : icône blanche (encre du thème : noire en thème clair) et pastille un peu plus grande */
+.note-context { gap: .5rem; }
+.note-context > .icon { flex: none; color: var(--ink); }
+.note-context .ctx-pill { font-size: .92rem; padding: 2px 10px 2px 3px; gap: .4rem; }
+.note-context .avatar-xs { width: 24px; height: 24px; }
+
+/* Icône des indications « reposté » / « réponse » centrée sur la verticale de l'avatar de la note (avatar de 56 px à 5 px du bord → centre à 33 px) */
+.note-context { padding-left: 16px; }
+.note-chain > .note-context { padding-left: 21px; }
+
+/* Pastille « N nouvelles notes » : flotte sous la barre du haut (hors du flux : elle ne décale pas le fil) tant que des notes attendent */
+.new-notes { white-space: nowrap; width: max-content; position: fixed; top: calc(var(--topbar-h, 52px) + 10px); left: 50%; transform: translateX(-50%); z-index: 7; display: block; margin: 0; padding: .45rem 1rem; border: 1px solid var(--sheet-edge, var(--line)); border-radius: 999px; background: var(--sheet-bg, var(--surface)); color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; -webkit-backdrop-filter: blur(20px) saturate(1.4); backdrop-filter: blur(20px) saturate(1.4); box-shadow: var(--sheet-shadow, 0 6px 20px rgb(0 0 0 / .3)); }
+.new-notes[hidden] { display: none; }
+@media (min-width: 75rem) { body.has-sidebar .new-notes { left: calc(50% + 8.5rem); } }
