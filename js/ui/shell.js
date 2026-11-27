@@ -10,8 +10,7 @@ import { parseContacts } from '../nostr/contacts.js';
 import { npubEncode } from '../nostr/nip19.js';
 import { el, shortNpub, returnFocus, scrollToTop, scrollTopNow, closeButton } from './common.js';
 import { icon } from './icons.js';
-import { composer } from './composer.js';
-import { avatarNode } from './note.js';
+import { openCompose } from './composedialog.js';
 
 const NAV_ICONS = { login: 'user', feed: 'home', bookmarks: 'bookmark', search: 'search', notifications: 'bell', messages: 'mail', profile: 'user', settings: 'settings' };
 const loadMedia = () => state.get('settings')?.loadMedia !== false;
@@ -121,20 +120,7 @@ function buildFab() {
   const fab = el('button', { type: 'button', class: 'fab', 'aria-haspopup': 'dialog' }, icon('plus', 26));
   document.body.append(fab);
   const refresh = () => { fab.hidden = !(state.get('session') && getSigner()); fab.setAttribute('aria-label', t('shell.newPost')); fab.title = t('shell.newPost'); };
-  fab.addEventListener('click', () => {
-    const dlg = el('dialog', { class: 'compose-dialog', 'aria-label': t('shell.newPost') });
-    const cancel = el('button', { type: 'button', class: 'btn btn-small' }, t('shell.cancel'));
-    cancel.addEventListener('click', () => dlg.close());
-    const form = composer({});
-    const publish = el('button', { type: 'submit', class: 'btn btn-small btn-primary', form: form.id }, t('compose.send'));
-    const me = state.get('session')?.pubkey;
-    dlg.append(el('div', { class: 'sd-head' }, cancel, publish), el('div', { class: 'compose-row' }, me ? avatarNode(me) : null, form));
-    dlg.addEventListener('close', () => { dlg.remove(); returnFocus(fab); });
-    dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
-    document.body.append(dlg);
-    dlg.showModal?.() ?? dlg.setAttribute('open', '');
-    dlg.querySelector('textarea')?.focus();
-  });
+  fab.addEventListener('click', () => openCompose({ opener: fab }));
   state.on('session', refresh);
   refresh();
 }

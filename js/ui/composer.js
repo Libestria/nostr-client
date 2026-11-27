@@ -34,12 +34,14 @@ export function showResult(box, res, retry) {
 }
 
 // reply : événement parent (ou null pour une nouvelle note) ; onPublished(res) après succès.
-export function composer({ reply = null, onPublished } = {}) {
-  const id = reply ? `reply-${reply.id}` : 'new';
+export function composer({ reply = null, onPublished, quote = null } = {}) {
+  // quote : { id, text } — citation d'une note : brouillon propre à cette note, déjà rempli (« \n\nnostr:nevent… »)
+  const id = reply ? `reply-${reply.id}` : quote ? `quote-${quote.id}` : 'new';
   const area = el('textarea', { id: `compose-${id}`, name: 'text', rows: reply ? 3 : 4, maxlength: MAX_NOTE_CHARS, autocomplete: 'off',
     placeholder: t(reply ? 'compose.reply.placeholder' : 'compose.placeholder') });
-  area.value = loadDraft(id);
+  area.value = loadDraft(id) || quote?.text || '';
   area.addEventListener('input', () => saveDraft(id, area.value));
+  if (quote) setTimeout(() => { area.focus(); area.setSelectionRange(0, 0); }, 0);   // le curseur reste au début : on écrit au-dessus de la citation
   const send = el('button', { type: 'submit', class: 'btn' }, t(reply ? 'compose.reply.send' : 'compose.send'));
   const out = el('div', { class: 'compose-result', role: 'status' });
   const count = el('span', { class: 'compose-count', 'aria-hidden': 'true' });

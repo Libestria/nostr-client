@@ -13,6 +13,7 @@ import { profileEditor } from './profile-edit.js';
 import { planFor } from '../relays/outbox.js';
 import { zapPanel } from './zap.js';
 import { muteList, editMute } from '../mute.js';
+import { loadReplaceable } from '../replaceable.js';
 
 const PAGE = 30;
 const PEOPLE_PAGE = 50;
@@ -21,21 +22,6 @@ const HEX64 = /^[0-9a-f]{64}$/;
 function nip05Label(text) {
   const id = parseIdentifier(text);
   return id ? (id.name === '_' ? id.domain : `${id.name}@${id.domain}`) : text;
-}
-
-// Charge un événement remplaçable d'un compte : cache d'abord, puis relais. onChange(ev) à chaque version plus récente.
-function loadReplaceable(kind, pubkey, onChange, onDone) {
-  let cur = null;
-  const take = (ev) => {
-    if (ev?.kind !== kind || ev.pubkey !== pubkey || (cur && ev.created_at <= cur.created_at)) return;
-    cur = ev;
-    onChange(ev);
-  };
-  getReplaceable(kind, pubkey).then(take);
-  return pool.subscribe([{ kinds: [kind], authors: [pubkey], limit: 1 }], {
-    closeOnEose: true, onevent: take,
-    oneose: () => onDone?.(cur, pool.status().filter((r) => r.state === 'open').length),
-  });
 }
 
 export function renderProfile(main, params) {
