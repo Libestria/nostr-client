@@ -34,3 +34,6 @@ export function parsePreview(json, pageUrl) {
 
 // Premier lien web (non image) d'une liste de jetons, ou null.
 export const firstLinkUrl = (tokens) => tokens.find((tk) => tk.type === 'link' && !tk.image && !tk.video)?.url ?? null;
+
+// Tous les liens web (non image / vidéo) d'une liste de jetons, sans doublon, limités à `max` (une carte chacun).
+export const previewLinkUrls = (tokens, max = 5) => [...new Set(tokens.filter((tk) => tk.type === 'link' && !tk.image && !tk.video).map((tk) => tk.url))].slice(0, max);
