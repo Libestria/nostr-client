@@ -2,7 +2,7 @@
 import { t } from '../i18n.js';
 import { onProfiles } from '../profiles.js';
 import { noteHref } from '../nostr/content.js';
-import { el, timeAgo, returnFocus } from './common.js';
+import { el, timeAgo, returnFocus, closeButton } from './common.js';
 import { authorLink, updateAuthors, renderContent } from './note.js';
 import { compact } from '../nostr/stats.js';
 
@@ -24,7 +24,7 @@ const BUILDERS = {
 export function openStatsDialog(key, getData, opener) {
   const list = el('ul', { class: 'sd-list' });
   const title = el('h2', { id: `sd-title-${key}` }, t(`note.stat.${key}`));
-  const close = el('button', { type: 'button', class: 'sheet-x', 'aria-label': t('zap.close') }, '✕');
+  const close = closeButton(t('zap.close'));
   const dlg = el('dialog', { class: 'stats-dialog', 'aria-labelledby': title.id, tabindex: '-1', autofocus: '' }, el('div', { class: 'sd-bar' }, title, close), list);
   const fill = () => {
     const items = BUILDERS[key](getData()).slice(0, MAX_SHOWN);

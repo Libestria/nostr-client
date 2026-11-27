@@ -8,7 +8,7 @@ import { getCached, onProfiles, requestProfile } from '../profiles.js';
 import { getReplaceable } from '../storage/db.js';
 import { parseContacts } from '../nostr/contacts.js';
 import { npubEncode } from '../nostr/nip19.js';
-import { el, shortNpub, returnFocus, scrollToTop, scrollTopNow } from './common.js';
+import { el, shortNpub, returnFocus, scrollToTop, scrollTopNow, closeButton } from './common.js';
 import { icon } from './icons.js';
 import { composer } from './composer.js';
 import { avatarNode } from './note.js';
@@ -56,7 +56,7 @@ function buildTopbar() {
     const banner = el('div', { class: 'drawer-banner' });
     if (p?.banner && loadMedia()) { const img = el('img', { src: p.banner, alt: '', decoding: 'async', referrerpolicy: 'no-referrer' }); img.addEventListener('error', () => img.remove()); banner.append(img); }
     const pic = el('span', { class: 'avatar avatar-xl', 'aria-hidden': 'true' }); paintAvatar(pic, pk, 72);
-    const close = dismiss ? el('button', { type: 'button', class: 'sheet-x drawer-close', 'aria-label': t('shell.menu.close') }, '✕') : null;
+    const close = dismiss ? closeButton(t('shell.menu.close'), { cls: 'drawer-close' }) : null;
     const copy = el('button', { type: 'button', class: 'drawer-npub', title: t('shell.copyNpub'), 'aria-label': t('shell.copyNpub') }, el('span', {}, shortNpub(pk)), icon('copy', 14));
     copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(npub); copy.querySelector('span').textContent = t('shell.copied'); setTimeout(() => { copy.querySelector('span').textContent = shortNpub(pk); }, 1500); } catch { /* presse-papiers refusé */ } });
     const follows = el('p', { class: 'drawer-follows' });

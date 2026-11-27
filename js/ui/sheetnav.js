@@ -1,7 +1,7 @@
 // Sous-menus des fenêtres « verre » : une rubrique ouvre une page qui glisse depuis la droite, avec retour « < » et fermeture « ✕ ».
 // Les pages sont empilées dans la même fenêtre native (<dialog>) ; Échap revient d'abord à la page précédente.
 import { t } from '../i18n.js';
-import { el } from './common.js';
+import { el, closeButton } from './common.js';
 import { icon } from './icons.js';
 
 const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -32,7 +32,7 @@ export function subMenuRow(ic, label, open) {
 export function pushPage(dlg, { title, body, opener = null }) {
   const stack = stackOf(dlg);
   const back = el('button', { type: 'button', class: 'sheet-x sheet-back', 'aria-label': t('menu.back') }, icon('back', 18));
-  const close = el('button', { type: 'button', class: 'sheet-x', 'aria-label': t('shell.menu.close') }, '✕');
+  const close = closeButton(t('shell.menu.close'));
   const page = el('div', { class: 'sheet-page sheet-sub', role: 'group', 'aria-label': title });
   page.append(el('div', { class: 'sd-head sheet-subhead' }, back, el('h2', {}, title), close), ...(Array.isArray(body) ? body : [body]));
   page._opener = opener;

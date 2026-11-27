@@ -2,7 +2,7 @@
 // qui ouvre une fenêtre « verre » en haut de l'écran (même style que le menu « … » des notes). Les fils sont des itinéraires (#/feed…),
 // ce qui permettra d'en ajouter de personnalisés plus tard sans changer ce module.
 import { t } from '../i18n.js';
-import { el, returnFocus } from './common.js';
+import { el, returnFocus, closeButton } from './common.js';
 import { icon } from './icons.js';
 
 let current = null;   // { feeds, activeId } du fil affiché
@@ -30,7 +30,7 @@ export function mountFeedSwitcher(feeds, activeId) {
 
 function openFeedMenu(feeds, activeId, opener) {
   const dlg = el('dialog', { class: 'note-menu feed-menu', 'aria-label': t('feed.menu'), tabindex: '-1', autofocus: '' });
-  const close = el('button', { type: 'button', class: 'sheet-x', 'aria-label': t('shell.menu.close') }, '✕');
+  const close = closeButton(t('shell.menu.close'));
   close.addEventListener('click', () => dlg.close());
   const list = el('ul', { class: 'drawer-list nm-list' });
   for (const f of feeds) {

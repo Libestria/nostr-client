@@ -3,7 +3,7 @@ import { getCached, requestProfile, onProfiles } from '../profiles.js';
 import { lnurlInfo, createInvoice, hasWebln, payWebln, refreshZaps, watchZaps } from '../zap.js';
 import { formatSats, MAX_SATS } from '../nostr/nip57.js';
 import { walletInfo, isUnlocked, unlock, payWithWallet } from '../wallet.js';
-import { el } from './common.js';
+import { el, closeButton } from './common.js';
 
 const PRESETS = [21, 100, 500, 1000, 5000];
 const BOLT11 = /^ln(?:bc|tbs|tb|bcrt)[0-9a-z]+$/i;
@@ -52,7 +52,7 @@ export function zapPanel({ recipient, event, onClose }) {
   const dismiss = () => { stop(); box.remove(); onClose?.(); };
   const cancel = el('button', { type: 'button', class: 'btn btn-small' }, t('zap.cancel'));
   cancel.addEventListener('click', dismiss);
-  const xBtn = el('button', { type: 'button', class: 'sheet-x zap-x', 'aria-label': t('zap.close'), title: t('zap.close') }, '✕');
+  const xBtn = closeButton(t('zap.close'), { cls: 'zap-x', title: t('zap.close') });
   xBtn.addEventListener('click', dismiss);
 
   const load = async () => {

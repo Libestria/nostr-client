@@ -30,6 +30,7 @@ const PATHS = {
   globe: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M3 12h18', 'M12 3a14 14 0 0 1 0 18', 'M12 3a14 14 0 0 0 0 18'],
   send: ['M22 2L11 13', 'M22 2l-7 20-4-9-9-4z'],
   thread: ['M5 3.2a1.8 1.8 0 1 1 0 3.6a1.8 1.8 0 1 1 0-3.6z', 'M5 10.2a1.8 1.8 0 1 1 0 3.6a1.8 1.8 0 1 1 0-3.6z', 'M5 17.2a1.8 1.8 0 1 1 0 3.6a1.8 1.8 0 1 1 0-3.6z', 'M5 6.8v3.4', 'M5 13.8v3.4', 'M10 5h10', 'M10 12h10', 'M10 19h10'],
+  close: ['M6 6l12 12', 'M18 6L6 18'],
   expand: ['M15 3h6v6', 'M9 21H3v-6', 'M21 3l-7 7', 'M3 21l7-7'],
   external: ['M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6', 'M15 3h6v6', 'M10 14L21 3'],
   download: ['M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4', 'M7 10l5 5 5-5', 'M12 15V3'],
@@ -38,7 +39,7 @@ const PATHS = {
 
 export function icon(name, size = 16.5) {
   const svg = document.createElementNS(NS, 'svg');
-  for (const [k, v] of Object.entries({ viewBox: '0 0 24 24', width: size, height: size, fill: 'none', stroke: 'currentColor', 'stroke-width': name === 'more' ? 3 : 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', focusable: 'false', class: `icon icon-${name}` })) svg.setAttribute(k, String(v));
+  for (const [k, v] of Object.entries({ viewBox: '0 0 24 24', width: size, height: size, fill: 'none', stroke: 'currentColor', 'stroke-width': name === 'more' ? 3 : name === 'close' ? 2.2 : 1.8, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', focusable: 'false', class: `icon icon-${name}` })) svg.setAttribute(k, String(v));
   for (const d of PATHS[name] ?? []) { const p = document.createElementNS(NS, 'path'); p.setAttribute('d', d); svg.append(p); }
   return svg;
 }

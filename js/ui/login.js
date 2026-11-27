@@ -1,6 +1,6 @@
 import { t } from '../i18n.js';
 import { state } from '../state.js';
-import { el, pageTitle } from './common.js';
+import { el, pageTitle, closeButton } from './common.js';
 import { decode, Nip19Error, npubEncode } from '../nostr/nip19.js';
 import { resolveNip05 } from '../nostr/nip05.js';
 import { hasExtension, connectExtension, readOnlySession, setSession, setRemoteSession, logout, takeReturnTo } from '../auth.js';
@@ -120,7 +120,7 @@ function nostrConnectSection(setMsg) {
       if (!relays.length) { try { relays = await bootRelays(); } catch { relays = []; } }
       mine = await startNostrConnect({ relays, name: 'Client Nostr Libestria', url: location.origin });
       const title = el('h2', { id: 'nc-title' }, t('login.nc.title'));
-      const x = el('button', { type: 'button', class: 'sheet-x', 'aria-label': t('zap.close') }, '✕');
+      const x = closeButton(t('zap.close'));
       const open = el('a', { class: 'btn', href: mine.uri }, t('login.nc.open'));
       const copy = el('button', { type: 'button', class: 'btn' }, t('login.nc.copy'));
       copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(mine.uri); setMsg(t('profile.copied'), 'ok'); } catch { setMsg(t('profile.copyFail'), true); } });

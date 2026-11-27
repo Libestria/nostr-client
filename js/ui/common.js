@@ -1,5 +1,6 @@
 import { t } from '../i18n.js';
 import { npubEncode } from '../nostr/nip19.js';
+import { icon } from './icons.js';
 
 // Création de nœuds DOM sûre : le texte passe toujours par createTextNode,
 // jamais par innerHTML ; les attributs on* sont refusés.
@@ -36,6 +37,11 @@ if (typeof addEventListener === 'function') {
   addEventListener('keydown', () => { keyboardUsed = true; }, true);
   addEventListener('pointerdown', () => { keyboardUsed = false; }, true);
 }
+// Bouton de fermeture « ✕ » unique pour toutes les fenêtres : rond de 32 px, croix dessinée (SVG, centrée au pixel près).
+export function closeButton(label, { cls = '', title = null } = {}) {
+  return el('button', { type: 'button', class: `sheet-x ${cls}`.trim(), 'aria-label': label, ...(title ? { title } : {}) }, icon('close', 16));
+}
+
 export const returnFocus = (node) => { if (keyboardUsed) node?.focus?.(); };
 
 // Titre de page : le <h1> reste dans le document (accessibilité) ; sur mobile il est masqué et le titre s'affiche dans la barre fixe du haut.

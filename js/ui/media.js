@@ -1,7 +1,7 @@
 // Médias d'une note (images, vidéos) : visionneuse plein écran et menu « … » (fenêtres natives <dialog>).
 // Aucun contenu externe n'est inséré en HTML : le média est un élément <img> / <video> créé par el().
 import { t } from '../i18n.js';
-import { el, returnFocus } from './common.js';
+import { el, returnFocus, closeButton } from './common.js';
 import { icon } from './icons.js';
 
 const MAX_SAVE_BYTES = 200 * 1024 * 1024;   // au-delà, on n'essaie pas de télécharger en mémoire : ouverture dans un onglet
@@ -13,7 +13,7 @@ async function copy(text) {
 // Visionneuse : le média occupe tout l'écran, ✕ en haut à droite, Échap ou appui sur le fond pour fermer.
 export function openViewer(url, kind, opener = null) {
   const dlg = el('dialog', { class: 'media-viewer', 'aria-label': t('media.viewer.label'), tabindex: '-1', autofocus: '' });
-  const close = el('button', { type: 'button', class: 'sheet-x media-viewer-x', 'aria-label': t('shell.menu.close') }, '✕');
+  const close = closeButton(t('shell.menu.close'), { cls: 'media-viewer-x' });
   close.addEventListener('click', () => dlg.close());
   const media = kind === 'video'
     ? el('video', { class: 'mv-media', src: url, controls: true, autoplay: true, playsinline: true })
@@ -58,7 +58,7 @@ async function saveMedia(url, say) {
 export function openMediaMenu(url, kind, opener = null) {
   const dlg = el('dialog', { class: 'note-menu', 'aria-label': t('media.menu'), tabindex: '-1', autofocus: '' });
   const msg = el('div', { class: 'note-msg', role: 'status' });
-  const close = el('button', { type: 'button', class: 'sheet-x', 'aria-label': t('shell.menu.close') }, '✕');
+  const close = closeButton(t('shell.menu.close'));
   close.addEventListener('click', () => dlg.close());
   const list = el('ul', { class: 'drawer-list nm-list' });
   const say = (key) => msg.replaceChildren(t(key));
@@ -80,10 +80,11 @@ export function openMediaMenu(url, kind, opener = null) {
 
 // Média d'une note avec son bouton « … » en haut à droite. `fallback` : le lien en texte, remis si le média ne se charge pas.
 export function mediaBox(url, kind, fallback) {
-  const more = el('button', { type: 'button', class: 'note-more media-more', 'aria-haspopup': 'dialog', 'aria-label': t('media.more'), title: t('media.more') }, icon('more', 20));
+  const more = el('button', { type: 'button', class: 'note-more media-more', 'aria-haspopup': 'dialog', 'aria-label': t('media.more'), title: t('media.more') }, icon('more', 18));
   let node;
   if (kind === 'video') {
-    node = el('video', { class: 'note-video', src: url, controls: true, playsinline: true, preload: 'metadata' });
+    // « #t=0.1 » : Safari charge alors une première image fixe, qui sert d'aperçu et délimite la vidéo
+    node = el('video', { class: 'note-video', src: `${url.split('#')[0]}#t=0.1`, controls: true, playsinline: true, preload: 'metadata' });
   } else {
     const img = el('img', { class: 'note-img', src: url, alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
     node = el('div', { class: 'note-media' }, img);   // un appui sur l'image ne fait rien : tout passe par le menu « … »
