@@ -351,11 +351,11 @@ function profilePill(pk, href) {
 
 // Ligne au-dessus d'une note : « [pastille] a reposté » ou « En réponse à [pastille] ».
 function contextLine(ev, repostedBy, detail) {
-  if (repostedBy) return el('p', { class: 'note-context' }, icon('repost', 14), profilePill(repostedBy, `#/profile/${npubEncode(repostedBy)}`), t('note.reposted'));
+  // Indication réduite à l'icône et à la pilule de l'auteur ; le texte (« a reposté » / « a répondu à ») reste lisible pour les lecteurs d'écran
+  if (repostedBy) return el('p', { class: 'note-context' }, icon('repost', 16), profilePill(repostedBy, `#/profile/${npubEncode(repostedBy)}`), el('span', { class: 'sr-only' }, t('note.reposted')));
   const r = !detail && replyInfo(ev);
   if (!r) return null;
-  return el('p', { class: 'note-context' }, icon('reply', 14), profilePill(ev.pubkey, `#/profile/${npubEncode(ev.pubkey)}`), t('note.replyTo'),
-    r.parentAuthor ? profilePill(r.parentAuthor, noteHref(r.parentId)) : el('a', { class: 'ctx-pill', href: noteHref(r.parentId) }, t('note.ref')));
+  return el('p', { class: 'note-context' }, icon('reply', 16), profilePill(ev.pubkey, `#/profile/${npubEncode(ev.pubkey)}`), el('span', { class: 'sr-only' }, t('note.replyTo')));
 }
 
 // Carte d'aperçu du premier lien web de la note : image en haut, titre puis description. Absente si le service n'a rien renvoyé.
