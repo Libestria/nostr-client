@@ -3,6 +3,7 @@ import { Relay } from './relay.js';
 import { Subscription } from './subscription.js';
 import { normalizeRelayUrl } from '../nostr/relayurl.js';
 import { isValidShape, isTooFarInFuture, eventKey, matchesAny } from '../nostr/events.js';
+import { noteSeen } from './seen.js';
 
 const VERIFIED_MAX = 5000;
 const LIMIT_DEFAULT = 100;
@@ -162,6 +163,7 @@ export class Pool {
   _onEvent(relay, sub, ev) {
     relay.stats.events++;
     if (!isValidShape(ev) || isTooFarInFuture(ev) || !matchesAny(ev, sub.relayFilters?.get(relay.url) ?? sub.filters)) { relay.stats.invalid++; return; }
+    noteSeen(ev.id, relay.url);   // « reçue de » : tous les relais qui livrent l'événement, même doublons
     const key = eventKey(ev);
     if (sub.seen.has(key)) return;
     sub.seen.add(key);
