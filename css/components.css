@@ -417,10 +417,9 @@ button.act:disabled { cursor: default; opacity: 1; }
 /* Menu « … » : titre actuel, puis liste groupée */
 .note-menu { width: min(78vw, 19rem); max-height: none; padding: 0; overflow-y: auto; overscroll-behavior: contain; }
 .note-menu .sd-head { padding: .7rem .75rem .7rem 1.1rem; border-bottom: 1px solid var(--sheet-sep); }
-.note-menu .sd-head h2 { font-size: 1rem; font-weight: 600; }
+.note-menu .sd-head h2 { font-size: 1.2rem; font-weight: 600; }
 .nm-list { list-style: none; margin: 0; padding: 0; }
 .nm-list li { margin: 0; }
-.nm-list li + li:not(.nm-gap) > :is(button, a) { border-top: 1px solid var(--sheet-sep); }
 .nm-list li.nm-gap + li > :is(button, a) { border-top: 0; }
 .nm-list :is(button, a) { display: flex; align-items: center; gap: .9rem; width: 100%; min-height: 50px; padding: 0 1.1rem; border: 0; border-radius: 0; background: none; color: var(--ink); font: inherit; font-size: 1.05rem; text-align: left; text-decoration: none; cursor: pointer; }
 .nm-list :is(button, a):hover, .nm-list :is(button, a):focus-visible { background: var(--sheet-hover); color: var(--ink); outline: none; }
@@ -611,7 +610,7 @@ html, body { height: 100%; overflow: hidden; }
 .sheet-enter { animation: sheet-from-right .25s cubic-bezier(.2, .8, .2, 1); }
 .sheet-leave { animation: sheet-to-right .22s ease-in forwards; }
 :is(.note-menu, .stats-dialog, .compose-dialog) .sheet-subhead { display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; gap: .5rem; padding: .7rem .75rem; border-bottom: 1px solid var(--sheet-sep); }
-.sheet-subhead h2 { margin: 0; font-size: 1rem; font-weight: 600; text-align: center; overflow-wrap: anywhere; }
+.sheet-subhead h2 { margin: 0; font-size: 1.2rem; font-weight: 600; text-align: center; overflow-wrap: anywhere; }
 .nm-list .nm-chev { margin-left: auto; display: inline-flex; }
 .nm-list .nm-chev .icon { color: var(--muted); }
 .note-menu .nm-details { margin: 0; }
@@ -662,3 +661,7 @@ html, body { height: 100%; overflow: hidden; }
 .mv-media { display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
 .mv-fail { color: #fff; text-decoration: underline; padding: 1rem; }
 .media-viewer-x { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 12px); right: 12px; z-index: 3; background: rgb(0 0 0 / .6); border-color: rgb(255 255 255 / .35); color: #fff; }
+/* Dans le cadre d'un média, l'image démarre exactement au bord du cadre : le bouton « … » est à 10 px du haut comme de la droite */
+.media-box > .note-media, .media-box .note-img { margin: 0; }
+/* Titres des fenêtres « verre » (statistiques, connexion par signeur) : même taille que ceux des menus */
+.stats-dialog .sd-bar h2 { font-size: 1.2rem; font-weight: 600; }
