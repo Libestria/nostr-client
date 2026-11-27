@@ -132,6 +132,16 @@ export function nprofileEncode({ pubkey, relays = [] }) {
   return bech32Encode('nprofile', Uint8Array.from(parts.flatMap((p) => [...p])));
 }
 
+// nevent : identifiant de note + indications (relais, auteur, kind) pour la retrouver ailleurs.
+export function neventEncode({ id, relays = [], author, kind: k }) {
+  const enc = new TextEncoder();
+  const parts = [Uint8Array.of(0, 32, ...need(id))];
+  for (const r of relays) { const b = enc.encode(r); parts.push(Uint8Array.of(1, b.length, ...b)); }
+  if (author) parts.push(Uint8Array.of(2, 32, ...need(author)));
+  if (Number.isInteger(k) && k >= 0) parts.push(Uint8Array.of(3, 4, (k >>> 24) & 255, (k >>> 16) & 255, (k >>> 8) & 255, k & 255));
+  return bech32Encode('nevent', Uint8Array.from(parts.flatMap((p) => [...p])));
+}
+
 export function naddrEncode({ identifier, pubkey, kind: k, relays = [] }) {
   const enc = new TextEncoder();
   const id = enc.encode(identifier);
