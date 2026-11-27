@@ -21,7 +21,7 @@ import { openStatsDialog } from './statsdialog.js';
 import { openNoteMenu } from './notemenu.js';
 import { isMuted } from '../mute.js';
 import { getPreview, previewsEnabled } from '../linkpreview.js';
-import { firstLinkUrl } from '../nostr/linkpreview.js';
+import { previewLinkUrls } from '../nostr/linkpreview.js';
 import { ARTICLE_KIND, articleMeta } from '../nostr/article.js';
 
 // Remplit un lien d'auteur (nom + avatar) à partir du cache de profils.
@@ -292,13 +292,13 @@ function quoteSlot(ref) {
   return el('div', { class: 'quotes' }, slot);
 }
 
-// Corps d'une note : le texte et les contenus insérés (images, cartes des notes citées, aperçu du premier lien) dans l'ordre
+// Corps d'une note : le texte et les contenus insérés (images, cartes des notes citées, aperçu de chaque lien) dans l'ordre
 // exact où l'auteur les a placés. Un contenu inséré coupe le texte en paragraphes.
 function renderBody(text) {
   const tokens = tokenizeContent(text);
   const cards = new Map(quoteRefs(tokens).map((r) => [r.id ?? `${r.kind}:${r.pubkey}:${r.identifier}`, r]));
   const keyOf = (tk) => (tk.type === 'note' ? tk.id : `${tk.kind}:${tk.pubkey}:${tk.identifier}`);
-  const previewUrl = previewsEnabled() ? firstLinkUrl(tokens) : null;
+  const previewUrls = new Set(previewsEnabled() ? previewLinkUrls(tokens) : []);
   const out = [];
   let inline = [];
   // Chaque ligne vide laissée par l'auteur sépare deux paragraphes ; l'écart entre blocs est géré par le CSS (8 px partout)
@@ -328,7 +328,7 @@ function renderBody(text) {
       flush(); out.push(...renderTokens([tk]));
     } else {
       inline.push(...renderTokens([tk], { hideRefs: false }));
-      if (tk.type === 'link' && !tk.image && !tk.video && tk.url === previewUrl) { flush(); out.push(linkCard(tk.url)); }
+      if (tk.type === 'link' && !tk.image && !tk.video && previewUrls.delete(tk.url)) { flush(); out.push(linkCard(tk.url)); }
     }
   }
   flush();
@@ -359,7 +359,7 @@ function contextLine(ev, repostedBy, detail) {
   return el('p', { class: 'note-context' }, icon('reply', 20), profilePill(ev.pubkey, `#/profile/${npubEncode(ev.pubkey)}`), el('span', { class: 'sr-only' }, t('note.replyTo')));
 }
 
-// Carte d'aperçu du premier lien web de la note : image en haut, titre puis description. Absente si le service n'a rien renvoyé.
+// Carte d'aperçu d'un lien web de la note (jusqu'à 5 par note) : image en haut, titre puis description. Absente si le service n'a rien renvoyé.
 function linkCard(url) {
   const slot = el('div', { class: 'link-card-slot' });
   getPreview(url).then((p) => {
