@@ -2,7 +2,8 @@
 // Le service d'aperçu est un modèle d'adresse https contenant {url}. Réponses acceptées :
 // format « microlink » ({ status, data: { title, description, image: { url }, publisher } })
 // ou format plat ({ title, description, image }).
-export const DEFAULT_SERVICE = 'https://api.microlink.io/?url={url}';
+export const DEFAULT_SERVICE = 'https://apercu-libestria.libestria.workers.dev/?url={url}';
+export const LEGACY_SERVICE = 'https://api.microlink.io/?url={url}';   // ancien service par défaut : remplacé automatiquement
 
 export function validTemplate(tpl) {
   if (typeof tpl !== 'string' || !tpl.includes('{url}') || tpl.length > 300) return false;
