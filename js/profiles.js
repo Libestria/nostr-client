@@ -29,14 +29,29 @@ export function acceptProfileEvent(ev) {
   notify();
 }
 
+// Une demande peut échouer sans erreur (relais pas encore connecté, lent, demande refusée) : les profils toujours
+// absents après la fin de la demande sont redemandés, au plus 3 fois, avec un délai croissant.
+const attempts = new Map();   // pubkey → nombre de tentatives réseau
+const RETRY_MS = [4000, 12000, 30000];
+
+function retryMissing(authors) {
+  for (const pk of authors) {
+    if (cache.has(pk)) { attempts.delete(pk); continue; }
+    const n = attempts.get(pk) ?? 0;
+    if (n >= RETRY_MS.length) continue;
+    attempts.set(pk, n + 1);
+    setTimeout(() => { if (!cache.has(pk)) { queue.add(pk); flushTimer ||= setTimeout(flush, 150); } }, RETRY_MS[n]);
+  }
+}
+
 async function flush() {
   flushTimer = null;
   const list = [...queue];
   queue.clear();
   await Promise.all(list.map((pk) => getReplaceable(0, pk).then((ev) => ev && acceptProfileEvent(ev))));
-  for (let i = 0; i < list.length; i += 100) {
-    const authors = list.slice(i, i + 100);
-    pool.subscribe([{ kinds: [0], authors, limit: authors.length * 2 }], { closeOnEose: true, onevent: acceptProfileEvent, maxEvents: 300 });
+  for (let i = 0; i < list.length; i += 50) {
+    const authors = list.slice(i, i + 50);
+    pool.subscribe([{ kinds: [0], authors, limit: authors.length * 2 }], { closeOnEose: true, onevent: acceptProfileEvent, maxEvents: 300, oneose: () => retryMissing(authors) });
   }
 }
 
