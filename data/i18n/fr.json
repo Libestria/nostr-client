@@ -66,6 +66,8 @@
   "relay.retrying": "Nouvelle tentative",
   "relay.closed": "Fermé",
   "relay.stats": "{events} événements, {invalid} rejetés",
+  "feed.newOne": "↑ 1 nouvelle note",
+  "feed.newMany": "↑ {n} nouvelles notes",
   "feed.refresh": "Actualiser",
   "feed.menu": "Fils",
   "feed.switch": "Changer de fil",

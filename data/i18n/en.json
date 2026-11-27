@@ -66,6 +66,8 @@
   "relay.retrying": "Retrying",
   "relay.closed": "Closed",
   "relay.stats": "{events} events, {invalid} rejected",
+  "feed.newOne": "↑ 1 new note",
+  "feed.newMany": "↑ {n} new notes",
   "feed.refresh": "Refresh",
   "feed.menu": "Feeds",
   "feed.switch": "Switch feed",
