@@ -681,3 +681,6 @@ html, body { height: 100%; overflow: hidden; }
 .nm-seen ul { margin: .25rem 0 0; padding: 0; list-style: none; font-size: .85rem; overflow-wrap: anywhere; }
 .nm-hint { padding: .6rem 1.1rem; margin: 0; }
 .sheet-sub:focus { outline: none; }
+/* Pastille de profil dans les rubriques de menu : même taille que le texte, non cliquable */
+.nm-list .ctx-pill { font-size: .95rem; max-width: 100%; pointer-events: none; padding: 2px 10px 2px 3px; gap: .4rem; vertical-align: middle; }
+.nm-list button > span:not(.nm-chev) { min-width: 0; overflow: hidden; }
