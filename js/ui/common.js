@@ -21,10 +21,8 @@ export function stateBlock(kind, key, vars) {
   return el('div', { class: `state state-${kind}`, role: kind === 'error' ? 'alert' : 'status' }, ...children);
 }
 
-// Conteneur de défilement : sur ordinateur (souris), la zone entre les barres fixes défile seule pour que la barre de défilement ne
-// passe pas sous les barres ; sur écran tactile, c'est la page (comportement natif de Safari).
-const innerScroll = typeof matchMedia === 'function' ? matchMedia('(hover: hover) and (pointer: fine)') : null;
-export const scroller = () => (innerScroll?.matches ? document.querySelector('.app') : null);
+// Conteneur de défilement : la zone entre les barres fixes défile seule (sa barre de défilement ne passe pas sous les barres).
+export const scroller = () => (typeof document !== 'undefined' ? document.querySelector('.app') : null);
 export const scrollTopNow = () => scroller()?.scrollTop ?? window.scrollY;
 export function scrollToTop(smooth = true) {
   const s = scroller(), opts = { top: 0, behavior: smooth ? 'smooth' : 'auto' };

@@ -68,6 +68,7 @@ function nip05Line(pk) {
   const paint = () => {
     const p = getCached(pk);
     const id = p?.nip05;
+    if (!p) { line.className = 'nip05-line n05-wait'; line.textContent = '\u00a0'; line.removeAttribute('title'); return; }   // profil pas encore reçu : on n'affiche rien (pas de « Aucun NIP-05 » à tort)
     if (typeof id !== 'string' || !id.trim()) {
       line.className = 'nip05-line n05-none'; line.textContent = t('nip05.none'); line.removeAttribute('title'); line.removeAttribute('data-id');
       return;
@@ -352,10 +353,10 @@ function profilePill(pk, href) {
 // Ligne au-dessus d'une note : « [pastille] a reposté » ou « En réponse à [pastille] ».
 function contextLine(ev, repostedBy, detail) {
   // Indication réduite à l'icône et à la pilule de l'auteur ; le texte (« a reposté » / « a répondu à ») reste lisible pour les lecteurs d'écran
-  if (repostedBy) return el('p', { class: 'note-context' }, icon('repost', 16), profilePill(repostedBy, `#/profile/${npubEncode(repostedBy)}`), el('span', { class: 'sr-only' }, t('note.reposted')));
+  if (repostedBy) return el('p', { class: 'note-context' }, icon('repost', 20), profilePill(repostedBy, `#/profile/${npubEncode(repostedBy)}`), el('span', { class: 'sr-only' }, t('note.reposted')));
   const r = !detail && replyInfo(ev);
   if (!r) return null;
-  return el('p', { class: 'note-context' }, icon('reply', 16), profilePill(ev.pubkey, `#/profile/${npubEncode(ev.pubkey)}`), el('span', { class: 'sr-only' }, t('note.replyTo')));
+  return el('p', { class: 'note-context' }, icon('reply', 20), profilePill(ev.pubkey, `#/profile/${npubEncode(ev.pubkey)}`), el('span', { class: 'sr-only' }, t('note.replyTo')));
 }
 
 // Carte d'aperçu du premier lien web de la note : image en haut, titre puis description. Absente si le service n'a rien renvoyé.

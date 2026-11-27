@@ -4,7 +4,7 @@ import { pool } from '../relays/pool.js';
 import { latest, getReplaceable } from '../storage/db.js';
 import { parseContacts } from '../nostr/contacts.js';
 import { onProfiles } from '../profiles.js';
-import { el, pageTitle, stateBlock, reconcile } from './common.js';
+import { el, pageTitle, stateBlock, reconcile, scroller, scrollTopNow, scrollToTop } from './common.js';
 import { mountFeedSwitcher } from './feedmenu.js';
 import { noteCard, updateAuthors } from './note.js';
 import { ARTICLE_KIND, addressKey } from '../nostr/article.js';
@@ -15,6 +15,8 @@ import { chunkAuthors } from '../nostr/outbox.js';
 
 const PAGE = 30;
 const MAX_SHOWN = 300;
+const POLL_MS = 30000;     // vérification des nouvelles notes
+const NEW_CAP = 200;       // au-delà, la pastille affiche « 200+ »
 const MAX_AUTHORS = 1000; // 10 filtres au maximum par abonnement
 
 // Fils proposés dans la liste déroulante de la barre du haut
@@ -32,11 +34,14 @@ export function renderFeed(main, params = []) {
   let oldest = Infinity;                 // mode global
   let groups = [], cursor = [], authorSet = null, planToken = 0; // mode abonnements : groupes (relais, auteurs), curseur par groupe
   let contacts = null, followCount = 0, contactsDone = false, contactsSub = null;
+  let ready = false, mark = Infinity, lastPoll = 0;   // mark : seules les notes plus anciennes sont affichées (les plus récentes attendent derrière la pastille)
 
   const status = el('p', { class: 'status', role: 'status', 'data-inline': '' });
   const holder = el('div');
   const list = el('div', { class: 'notes' });
-  const reload = el('button', { type: 'button', class: 'btn', 'data-refresh': '' }, t('feed.refresh'));
+  // Bouton caché : il reste la cible du tirer-pour-actualiser (rechargement complet)
+  const reload = el('button', { type: 'button', class: 'btn', 'data-refresh': '', hidden: true }, t('feed.refresh'));
+  const pill = el('button', { type: 'button', class: 'new-notes', hidden: true });
   const more = el('button', { type: 'button', class: 'btn' }, t('feed.more'));
   more.hidden = true;
   const extra = [];
@@ -45,7 +50,7 @@ export function renderFeed(main, params = []) {
   if (!session) extra.push(el('p', {}, el('a', { class: 'btn', href: '#/login' }, t('login.cta'))));
   main.replaceChildren(pageTitle('nav.feed'),
     ...(session ? [] : [el('p', {}, t('feed.global'))]),
-    status, el('div', { class: 'row' }, reload), holder, list, more, ...extra);
+    status, reload, pill, holder, list, more, ...extra);
 
   if (session) mountFeedSwitcher(FEEDS(), following ? 'following' : 'global');
 
@@ -55,8 +60,12 @@ export function renderFeed(main, params = []) {
   function draw() {
     drawTimer = null;
     if (!alive) return;
-    const entries = [...notes.values()].map((ev) => ({ ev, at: ev.created_at, by: null, key: ev.id }));
-    reposts.forEach((r, key) => { if (r) entries.push({ ...r, key }); });
+    const all = [...notes.values()].map((ev) => ({ ev, at: ev.created_at, by: null, key: ev.id }));
+    reposts.forEach((r, key) => { if (r) all.push({ ...r, key }); });
+    const entries = all.filter((e) => e.at <= mark);
+    const held = all.length - entries.length;
+    pill.hidden = held === 0;
+    if (held) pill.textContent = t(held === 1 ? 'feed.newOne' : 'feed.newMany', { n: held >= NEW_CAP ? `${NEW_CAP}+` : String(held) });
     entries.sort((a, b) => b.at - a.at || (a.key < b.key ? -1 : 1));
     const shown = entries.slice(0, MAX_SHOWN);
     const nodes = shown.map((e) => {
@@ -112,11 +121,48 @@ export function renderFeed(main, params = []) {
     scheduleDraw();
   }
 
+  // --- nouvelles notes : vérification toutes les 30 s tant que le fil est visible
+  const newestAt = () => {
+    let m = 0;
+    notes.forEach((ev) => { if (ev.created_at > m) m = ev.created_at; });
+    reposts.forEach((r) => { if (r && r.at > m) m = r.at; });
+    return m;
+  };
+  const release = () => { if (mark !== Infinity) { mark = Infinity; scheduleDraw(); } };
+  const atTop = () => scrollTopNow() < 120;
+  function pollNew() {
+    if (!alive || !ready || document.hidden || (following && !groups.length)) return;
+    lastPoll = Date.now();
+    const since = newestAt();
+    if (!since) return;
+    if (mark === Infinity && !atTop()) mark = since;   // lecteur plus bas dans le fil : rien ne bouge, la pastille compte
+    subs.splice(0, subs.length, ...subs.filter((x) => !x.closed));
+    if (!following) {
+      subs.push(pool.subscribe([{ kinds: [1], since, limit: 50 }], { closeOnEose: true, onevent: add, oneose: () => { if (atTop()) release(); } }));
+      return;
+    }
+    const byRelay = new Map();
+    groups.forEach((g) => {
+      if (!byRelay.has(g.url)) byRelay.set(g.url, []);
+      byRelay.get(g.url).push({ kinds: [1, 6, ARTICLE_KIND], authors: [...g.authors], since, limit: 50 });
+    });
+    subs.push(pool.subscribe([{ kinds: [1, 6, ARTICLE_KIND] }], { closeOnEose: true, relayFilters: byRelay, onevent: add, oneose: () => { if (atTop()) release(); } }));
+  }
+  const pollTimer = setInterval(pollNew, POLL_MS);
+  const onVisible = () => { if (!document.hidden && Date.now() - lastPoll > 10000) pollNew(); };
+  document.addEventListener('visibilitychange', onVisible);
+  // revenu tout en haut : les notes en attente s'insèrent
+  const box = scroller();
+  const onScroll = () => { if (mark !== Infinity && scrollTopNow() < 20) release(); };
+  box?.addEventListener('scroll', onScroll, { passive: true });
+  pill.addEventListener('click', () => { release(); scrollToTop(false); });
+
   function fetchPage(first, only = null) {
     reload.disabled = more.disabled = true;
     const done = () => {
       if (!got) setHolder('empty', following ? 'feed.followingEmpty' : 'feed.empty');
       reload.disabled = more.disabled = false;
+      if (got) ready = true;
     };
     if (!following) {
       subs.push(pool.subscribe([{ kinds: [1], limit: PAGE, ...(first || !Number.isFinite(oldest) ? {} : { until: oldest - 1 }) }], { closeOnEose: true, onevent: add, oneose: done }));
@@ -135,7 +181,7 @@ export function renderFeed(main, params = []) {
   }
 
   more.addEventListener('click', () => fetchPage(false));
-  reload.addEventListener('click', () => fetchPage(true));
+  reload.addEventListener('click', () => { mark = Infinity; fetchPage(true); });
 
   const refreshStatus = () => {
     const st = pool.status();
@@ -144,7 +190,7 @@ export function renderFeed(main, params = []) {
     status.textContent = following && contactsDone ? `${base} · ${t('feed.follows', { n: followCount })}` : base;
   };
   const stopPool = pool.onChange(refreshStatus);
-  const stopPublished = state.on('published', (ev) => { if (ev?.kind === 1 && ev.pubkey === session?.pubkey) { add(ev); more.hidden = false; } });
+  const stopPublished = state.on('published', (ev) => { if (ev?.kind === 1 && ev.pubkey === session?.pubkey) { mark = Infinity; add(ev); more.hidden = false; } });
   const stopProfiles = onProfiles(() => updateAuthors(list));
   refreshStatus();
 
@@ -206,6 +252,7 @@ export function renderFeed(main, params = []) {
   return () => {
     alive = false;
     stopPool(); stopPublished(); stopProfiles(); clearTimeout(noRelays); clearTimeout(drawTimer);
+    clearInterval(pollTimer); document.removeEventListener('visibilitychange', onVisible); box?.removeEventListener('scroll', onScroll);
     subs.forEach((s) => s.close());
     contactsSub?.close();
   };
