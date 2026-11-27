@@ -1,7 +1,7 @@
 // Service worker : lecture hors ligne de l'application. Stratégie « réseau d'abord » (les mises à jour sont prises tout de suite),
 // avec repli sur la copie en cache si le réseau est absent ou trop lent. Seules les ressources de ce site sont concernées :
 // les relais (WebSocket), les images externes et les API Lightning ne passent jamais par ici.
-const CACHE = 'nostr-shell-m28';
+const CACHE = 'nostr-shell-m29';
 const SLOW = 5000;
 
 self.addEventListener('install', () => self.skipWaiting());
