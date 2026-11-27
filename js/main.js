@@ -68,11 +68,11 @@ async function render(focus = false) {
   });
   document.title = `${t(view ? `nav.${name}` : 'state.notFound')} – Nostr`;
   document.body.dataset.route = name;
-  main.replaceChildren(stateBlock('loading', 'state.loading'));
+  const gated = view && !OPEN_ROUTES.has(name) && state.get('lists').status !== 'ready';
+  if (!gated) main.replaceChildren(stateBlock('loading', 'state.loading'));   // en phase de connexion, la page reste vide : le message est dans la fenêtre du bas
   try {
     if (!view) main.replaceChildren(stateBlock('error', 'state.notFound'));
     else {
-      const gated = view && !OPEN_ROUTES.has(name) && state.get('lists').status !== 'ready';
       const done = gated ? renderGate(main, name) : await view(main, params);
       if (typeof done === 'function') { if (id === renderId) cleanup = done; else done(); }
     }
