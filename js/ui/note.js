@@ -9,6 +9,7 @@ import { fetchRef } from '../embed.js';
 import { buildReaction, buildRepost } from '../nostr/compose.js';
 import { publishEvent } from '../publish.js';
 import { el, shortNpub, fullAgo, clientName } from './common.js';
+import { profilePill } from './pill.js';
 import { checkNip05, cachedNip05 } from '../nip05check.js';
 import { composer, showResult, errorKey } from './composer.js';
 import { zapPanel } from './zap.js';
@@ -335,14 +336,6 @@ function authorBlockSmall(pk) {
   const av = el('span', { class: 'avatar avatar-sm', 'aria-hidden': 'true', 'data-av': pk });
   fillAvatar(av);
   return el('span', { class: 'quote-author' }, av, el('strong', { class: 'who', 'data-pk': pk }, shortNpub(pk)));
-}
-
-// Petit bouton arrondi : miniature + nom du profil.
-function profilePill(pk, href) {
-  requestProfile(pk);
-  const av = el('span', { class: 'avatar avatar-xs', 'aria-hidden': 'true', 'data-av': pk });
-  fillAvatar(av);
-  return el('a', { class: 'ctx-pill', href }, av, el('span', { class: 'who', 'data-pk': pk }, shortNpub(pk)));
 }
 
 // Ligne au-dessus d'une note : « [pastille] a reposté » ou « En réponse à [pastille] ».

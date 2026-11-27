@@ -14,9 +14,10 @@ import { putEvent, deleteEvent } from '../storage/db.js';
 import { loadReplaceable } from '../replaceable.js';
 import { getCached, requestProfile } from '../profiles.js';
 import { muteList, editMute } from '../mute.js';
-import { el, returnFocus, closeButton, setStatus, shortNpub } from './common.js';
+import { el, returnFocus, closeButton, setStatus } from './common.js';
 import { icon } from './icons.js';
 import { pushPage } from './sheetnav.js';
+import { withPill } from './pill.js';
 import { showResult, errorKey } from './composer.js';
 import { openCompose } from './composedialog.js';
 import { toast } from './toast.js';
@@ -27,7 +28,6 @@ async function copy(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
 }
 
-const nameOf = (pk) => { const p = getCached(pk); return p?.displayName || p?.name || shortNpub(pk); };
 const nip05Of = (pk) => String(getCached(pk)?.nip05 ?? '').trim().replace(/^_@/, '');
 
 // Relais qui ont livré la note (tous ceux vus ; à défaut, celui indiqué par le fil)
@@ -69,8 +69,8 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
     const add = (ic, label, run, { href = null, warn = false, group = 0, sub = false } = {}) => {
       sep(group);
       const chev = sub ? el('span', { class: 'nm-chev', 'aria-hidden': 'true' }, icon('chevron', 18)) : null;
-      const node = href ? el('a', { href }, icon(ic, 20), el('span', {}, label))
-        : el('button', { type: 'button', class: warn ? 'nm-warn' : '', ...(sub ? { 'aria-haspopup': 'true' } : {}) }, icon(ic, 20), el('span', {}, label), chev);
+      const node = href ? el('a', { href }, icon(ic, 20), el('span', {}, ...[].concat(label)))
+        : el('button', { type: 'button', class: warn ? 'nm-warn' : '', ...(sub ? { 'aria-haspopup': 'true' } : {}) }, icon(ic, 20), el('span', {}, ...[].concat(label)), chev);
       if (!href) node.addEventListener('click', () => run(node));
       else node.addEventListener('click', () => dlg.close());
       list.append(el('li', {}, node));
@@ -90,8 +90,7 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
   // ── Auteur ──
   const authorPage = (node) => {
     const { list, add, addValue } = makeList();
-    const name = nameOf(author);
-    add('user', t('note.viewProfile', { name }), null, { href: `#/profile/${npubEncode(author)}`, group: 1 });
+    add('user', withPill('note.viewProfile', author), null, { href: `#/profile/${npubEncode(author)}`, group: 1 });
     if (signer) {
       const follow = add('users', '', async () => {
         if (busy || !contacts) return;
@@ -110,8 +109,8 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
       paintFollow = paint;
       function paint() {
         follow.disabled = busy || !contacts;
-        follow.querySelector('span').textContent = followReady && !contacts ? t('profile.follow.unavailable')
-          : t(isFollowing() ? 'note.unfollow' : 'note.follow', { name });
+        follow.querySelector('span').replaceChildren(...(followReady && !contacts ? [t('profile.follow.unavailable')]
+          : withPill(isFollowing() ? 'note.unfollow' : 'note.follow', author)));
       }
       paint();
     }
@@ -201,9 +200,8 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
   // ── Modération (compte connecté, note d'un autre) ──
   const moderationPage = (node) => {
     const { list, add } = makeList();
-    const name = nameOf(author);
     const muted = () => muteList().pubkeys.includes(author);
-    add('mute', t(muted() ? 'mute.unmuteNamed' : 'mute.accountNamed', { name }), async (b) => {
+    add('mute', withPill(muted() ? 'mute.unmuteNamed' : 'mute.accountNamed', author), async (b) => {
       b.disabled = true; say('lists.publishing');
       const wasMuted = muted();
       try {
