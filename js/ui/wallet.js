@@ -7,14 +7,15 @@ import { el, shortNpub } from './common.js';
 export function walletSection() {
   const node = el('section', { class: 'wallet' });
   const msg = el('p', { class: 'status', role: 'status' });
+  const say = (text, kind = '') => { msg.className = kind ? `status status-${kind}` : 'status'; msg.textContent = text; };
   const draw = () => {
     const info = walletInfo();
     const kids = [el('h2', {}, t('nwc.title')), el('p', { class: 'hint' }, t('nwc.hint'))];
     if (info) {
       const limit = el('input', { type: 'number', min: 1, max: 1000000, value: String(info.maxSats), inputmode: 'numeric', 'aria-label': t('nwc.limit') });
-      limit.addEventListener('change', () => { setMaxSats(Number(limit.value)); msg.textContent = t('settings.saved'); });
+      limit.addEventListener('change', () => { setMaxSats(Number(limit.value)); say(t('settings.saved'), 'ok'); });
       const off = el('button', { type: 'button', class: 'btn' }, t('nwc.remove'));
-      off.addEventListener('click', () => { removeWallet(); msg.textContent = t('nwc.removed'); draw(); });
+      off.addEventListener('click', () => { removeWallet(); say(t('nwc.removed'), 'ok'); draw(); });
       kids.push(el('p', {}, el('strong', {}, t('nwc.connected')), ` ${shortNpub(info.walletPubkey)} · ${info.relays[0].replace(/^wss:\/\//, '')}${info.lud16 ? ` · ${info.lud16}` : ''}`),
         el('p', { class: 'ident' }, isUnlocked() ? t('nwc.unlocked') : t('nwc.locked.state')),
         el('label', {}, t('nwc.limit'), limit));
@@ -28,9 +29,9 @@ export function walletSection() {
       const form = el('form', { class: 'form' }, el('label', { for: 'nwc-uri' }, t('nwc.uri')), uri, el('label', { for: 'nwc-pw' }, t('nwc.newpassword')), pw,
         el('label', {}, t('nwc.limit'), limit), go);
       form.addEventListener('submit', async (e) => {
-        e.preventDefault(); go.disabled = true; msg.textContent = '';
-        try { await saveWallet(uri.value, pw.value, Number(limit.value)); uri.value = ''; pw.value = ''; msg.textContent = t('nwc.saved'); draw(); }
-        catch (err) { msg.textContent = nwcErrMsg(err); go.disabled = false; }
+        e.preventDefault(); go.disabled = true; say('');
+        try { await saveWallet(uri.value, pw.value, Number(limit.value)); uri.value = ''; pw.value = ''; say(t('nwc.saved'), 'ok'); draw(); }
+        catch (err) { say(nwcErrMsg(err), 'error'); go.disabled = false; }
       });
       kids.push(form);
     }

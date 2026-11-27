@@ -10,7 +10,7 @@ import { logout, getSigner, signerCapabilities } from '../auth.js';
 import { walletSection } from './wallet.js';
 import { muteSection } from './mute.js';
 import { backupSection } from './backup.js';
-import { el, pageTitle } from './common.js';
+import { el, pageTitle, publishKind } from './common.js';
 import { icon } from './icons.js';
 
 function select(id, labelKey, options, value, onChange) {
@@ -31,7 +31,7 @@ function previewServiceField(s, save, status) {
   const input = el('input', { type: 'url', id: 'previewService', name: 'previewService', value: s.previewService, autocomplete: 'off', spellcheck: 'false', 'aria-describedby': 'previewService-hint' });
   input.addEventListener('change', () => {
     const v = input.value.trim();
-    if (!validTemplate(v)) { status.textContent = t('settings.previewService.invalid'); input.value = s.previewService; return; }
+    if (!validTemplate(v)) { status.className = 'status status-error'; status.textContent = t('settings.previewService.invalid'); input.value = s.previewService; return; }
     s = { ...s, previewService: v }; save({ previewService: v });
   });
   return el('div', { class: 'field' }, el('label', { for: 'previewService' }, t('settings.previewService')), input,
@@ -76,7 +76,7 @@ function listsSection() {
   };
 
   const showResult = (box, key, res) => {
-    box.msg.className = res.ok ? 'status' : 'status status-error';
+    box.msg.className = `status status-${publishKind(res)}`;
     const detail = el('details', {}, el('summary', {}, t('lists.details')),
       el('ul', { class: 'relays' }, ...res.results.map((r) => el('li', { class: 'relay' },
         el('span', { class: `dot dot-${r.ok ? 'open' : 'closed'}`, 'aria-hidden': 'true' }),
@@ -133,7 +133,7 @@ function listsSection() {
       const v = input.value.trim();
       if (!v) return;
       await run(key, { type: 'add', url: v, ...(sel ? roleOf(sel.value) : {}) }, box);
-      if (box.msg.className === 'status') input.value = '';
+      if (!box.msg.classList.contains('status-error')) input.value = '';
     });
     box.add = add;
     box.input = input;
@@ -203,7 +203,7 @@ export function renderSettings(main, params = []) {
   const status = el('p', { class: 'status', role: 'status' });
   const save = (patch) => {
     state.set('settings', updateSettings(patch));
-    status.textContent = t('settings.saved');
+    status.className = 'status status-ok'; status.textContent = t('settings.saved');
   };
   const form = (...fields) => { const f = el('form', { class: 'form' }, ...fields, status); f.addEventListener('submit', (e) => e.preventDefault()); return f; };
   let stop = null;
@@ -223,7 +223,7 @@ export function renderSettings(main, params = []) {
         if (v && Notification.permission !== 'granted') {
           let perm = 'denied';
           try { perm = await Notification.requestPermission(); } catch { /* refusé */ }
-          if (perm !== 'granted') { status.textContent = t('settings.notify.denied'); const box = f.querySelector('input[name=browserNotify]'); if (box) box.checked = false; return; }
+          if (perm !== 'granted') { status.className = 'status status-error'; status.textContent = t('settings.notify.denied'); const box = f.querySelector('input[name=browserNotify]'); if (box) box.checked = false; return; }
         }
         save({ browserNotify: v });
       })] : []));

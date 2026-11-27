@@ -27,7 +27,7 @@ export function renderLogin(main) {
   if (session) return renderConnected(main, session);
 
   const msg = el('p', { class: 'status', role: 'status' });
-  const setMsg = (text, error = false) => { msg.textContent = text; msg.classList.toggle('status-error', error); };
+  const setMsg = (text, kind = false) => { msg.textContent = text; msg.classList.toggle('status-error', kind === true); msg.classList.toggle('status-ok', kind === 'ok'); };
 
   // Extension NIP-07
   const extBtn = el('button', { type: 'button', class: 'btn', disabled: !hasExtension() }, t('login.ext.button'));
@@ -123,7 +123,7 @@ function nostrConnectSection(setMsg) {
       const x = el('button', { type: 'button', class: 'sheet-x', 'aria-label': t('zap.close') }, '✕');
       const open = el('a', { class: 'btn', href: mine.uri }, t('login.nc.open'));
       const copy = el('button', { type: 'button', class: 'btn' }, t('login.nc.copy'));
-      copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(mine.uri); setMsg(t('profile.copied')); } catch { setMsg(t('profile.copyFail'), true); } });
+      copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(mine.uri); setMsg(t('profile.copied'), 'ok'); } catch { setMsg(t('profile.copyFail'), true); } });
       const cancel = el('button', { type: 'button', class: 'btn' }, t('login.nc.cancel'));
       const qrSlot = el('div', { class: 'nc-qr' });
       dlg = el('dialog', { class: 'stats-dialog nc-dialog', 'aria-labelledby': 'nc-title', tabindex: '-1', autofocus: '' },

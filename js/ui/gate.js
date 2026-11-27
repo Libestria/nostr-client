@@ -15,10 +15,10 @@ export function renderGate(main, routeName) {
     main.replaceChildren(title, stateBlock(st === 'empty' ? 'empty' : 'error', st === 'empty' ? 'lists.empty' : 'lists.error'), el('p', {}, retry));
     return undefined;
   }
-  // Message d'avancement affiché dans la fenêtre du bas (toast) ; la page ne garde que l'indicateur d'attente
+  // Un seul message, dans la fenêtre du bas (avec l'animation de chargement) : la page reste vide
   const progress = el('p', { class: 'status', role: 'status' });
-  const paint = (p) => { progress.textContent = p.total ? `${t('lists.loading')} ${t('lists.progress', { done: p.done, total: p.total })}` : t('lists.loading'); };
+  const paint = (p) => { progress.textContent = p.total ? t('lists.loadingProgress', { done: p.done, total: p.total }) : t('lists.loading'); };
   paint(state.get('listsProgress'));
-  main.replaceChildren(title, el('div', { class: 'state state-loading', 'aria-hidden': 'true' }, el('span', { class: 'spinner' })), progress);
+  main.replaceChildren(title, progress);
   return state.on('listsProgress', paint);
 }

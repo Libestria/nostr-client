@@ -4,7 +4,7 @@ import { muteList, editMute } from '../mute.js';
 import { getCached, requestProfile } from '../profiles.js';
 import { getSigner } from '../auth.js';
 import { npubEncode } from '../nostr/nip19.js';
-import { el, shortNpub } from './common.js';
+import { el, shortNpub, publishKind } from './common.js';
 
 const nameOf = (pk) => { const p = getCached(pk); return p?.displayName || p?.name || shortNpub(pk); };
 
@@ -12,12 +12,13 @@ const nameOf = (pk) => { const p = getCached(pk); return p?.displayName || p?.na
 export function muteSection() {
   const node = el('section', { class: 'mute' });
   const msg = el('p', { class: 'status', role: 'status' });
+  const say = (text, kind = '') => { msg.className = kind ? `status status-${kind}` : 'status'; msg.textContent = text; };
   const run = async (ops) => {
-    msg.textContent = t('lists.publishing');
+    say(t('lists.publishing'));
     try {
       const res = await editMute(ops);
-      msg.textContent = res.ok ? t('lists.published', { ok: res.ok, total: res.total }) : t('lists.publish.failed', { ok: res.ok, total: res.total });
-    } catch (e) { msg.textContent = t(e.message === 'NO_CHANGE' ? 'mute.nochange' : e.message === 'INVALID_VALUE' ? 'mute.invalid' : 'compose.err.generic'); }
+      say(res.ok ? t('lists.published', { ok: res.ok, total: res.total }) : t('lists.publish.failed', { ok: res.ok, total: res.total }), publishKind(res));
+    } catch (e) { say(t(e.message === 'NO_CHANGE' ? 'mute.nochange' : e.message === 'INVALID_VALUE' ? 'mute.invalid' : 'compose.err.generic'), e.message === 'NO_CHANGE' ? '' : 'error'); }
   };
   const row = (label, remove) => {
     const b = el('button', { type: 'button', class: 'btn btn-small' }, t('mute.remove'));

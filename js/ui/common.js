@@ -98,3 +98,6 @@ export function reconcile(parent, nodes) {
   }
   while (cur) { const next = cur.nextSibling; cur.remove(); cur = next; }
 }
+
+// Nature d'un résultat de publication : échec (aucun relais), avertissement (quelques relais seulement) ou succès
+export const publishKind = (res) => (!res.ok ? 'error' : res.ok < res.total ? 'warn' : 'ok');

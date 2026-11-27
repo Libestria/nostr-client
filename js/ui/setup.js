@@ -5,7 +5,7 @@ import { getSigner } from '../auth.js';
 import { normalizeRelayUrl } from '../nostr/relayurl.js';
 import { LIST_KEYS, MAX_LIST_RELAYS } from '../nostr/relaylists.js';
 import { suggestedRelays, createLists, applyCreated, publishListEvent, loadAccountLists } from '../account.js';
-import { el, pageTitle } from './common.js';
+import { el, pageTitle, publishKind } from './common.js';
 
 const ERR = { NO_SIGNER: 'lists.err.signer', SIGN_FAILED: 'lists.err.sign', EMPTY: 'setup.err.empty' };
 const short = (u) => u.replace(/^wss:\/\//, '');
@@ -94,7 +94,7 @@ export function renderSetup(main) {
       const paint = (r) => {
         res = r; created[key] = r;
         const failed = !r.ok;
-        const nodes = [el('p', { class: failed ? 'status status-error' : 'status', role: 'status' }, t(failed ? 'lists.publish.failed' : 'lists.published', { ok: r.ok, total: r.total })),
+        const nodes = [el('p', { class: `status status-${publishKind(r)}`, role: 'status' }, t(failed ? 'lists.publish.failed' : 'lists.published', { ok: r.ok, total: r.total })),
           el('details', {}, el('summary', {}, t('lists.details')), el('ul', { class: 'relays' }, ...r.results.map((x) => el('li', { class: 'relay' },
             el('span', { class: `dot dot-${x.ok ? 'open' : 'closed'}`, 'aria-hidden': 'true' }),
             el('div', { class: 'relay-body' }, el('span', { class: 'ident' }, short(x.url)),

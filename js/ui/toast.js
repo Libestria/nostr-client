@@ -6,7 +6,7 @@ const SKIP = '[data-inline], .state, #offline, #toast';
 const ERROR_MS = 8000, NORMAL_MS = 5000, HIDE_MS = 220;
 
 let box = null, timer = null, owner = null, hideTimer = null;
-const seen = new WeakMap();   // élément -> { text, error }
+const seen = new WeakMap();   // élément -> { text, kind }
 
 const canPopover = () => typeof HTMLElement !== 'undefined' && typeof HTMLElement.prototype.showPopover === 'function';
 
@@ -35,29 +35,38 @@ export function hide() {
   }, HIDE_MS);
 }
 
-// Affiche un message. Progression (texte contenant « … ») : reste jusqu'à ce qu'il soit remplacé ou effacé.
-export function toast(text, { error = false, from = null } = {}) {
+// Affiche un message. kind : 'info' (blanc, avancement ou information), 'error' (rouge), 'ok' (vert, action réussie), 'warn' (orange, avertissement).
+// Progression (info dont le texte contient « … ») : une animation de chargement précède le texte et le message reste
+// jusqu'à ce qu'il soit remplacé ou effacé.
+export function toast(text, { error = false, kind = error ? 'error' : 'info', from = null } = {}) {
   const b = ensureBox();
   clearTimeout(timer); clearTimeout(hideTimer);
   owner = from;
-  b.textContent = text;
-  b.classList.toggle('toast-error', !!error);
+  error = kind === 'error';
+  const busy = kind === 'info' && /…|\.\.\./.test(text);
+  const label = document.createElement('span');
+  label.textContent = text;
+  b.replaceChildren(...(busy ? [Object.assign(document.createElement('span'), { className: 'spinner' })] : []), label);
+  b.dataset.kind = kind;
+  b.classList.toggle('toast-error', error);
   b.hidden = false;
   try { if (canPopover() && !b.matches(':popover-open')) b.showPopover(); } catch { /* ignoré */ }
   b.dataset.state = 'in';
-  if (!error && /…|\.\.\./.test(text)) return;
-  timer = setTimeout(hide, error ? ERROR_MS : NORMAL_MS);
+  if (busy) return;
+  timer = setTimeout(hide, error || kind === 'warn' ? ERROR_MS : NORMAL_MS);
 }
 
 function check(elm) {
   if (!(elm instanceof Element) || elm.closest(SKIP)) return;
   if (!elm.classList.contains('toasted')) elm.classList.add('toasted');
   const text = (elm.textContent || '').replace(/\s+/g, ' ').trim();
-  const error = !!(elm.classList.contains('status-error') || elm.querySelector('.status-error') || elm.getAttribute('role') === 'alert');
+  const kind = (elm.classList.contains('status-error') || elm.querySelector('.status-error') || elm.getAttribute('role') === 'alert') ? 'error'
+    : (elm.classList.contains('status-warn') || elm.querySelector('.status-warn')) ? 'warn'
+    : (elm.classList.contains('status-ok') || elm.querySelector('.status-ok')) ? 'ok' : 'info';
   const prev = seen.get(elm);
-  if (prev && prev.text === text && prev.error === error) return;
-  seen.set(elm, { text, error });
-  if (text) toast(text, { error, from: elm });
+  if (prev && prev.text === text && prev.kind === kind) return;
+  seen.set(elm, { text, kind });
+  if (text) toast(text, { kind, from: elm });
   else if (owner === elm) hide();
 }
 

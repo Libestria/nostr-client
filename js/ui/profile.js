@@ -7,7 +7,7 @@ import { resolveNip05, parseIdentifier } from '../nostr/nip05.js';
 import { parseContacts, buildContactsTemplate } from '../nostr/contacts.js';
 import { getCached, onProfiles, requestProfile } from '../profiles.js';
 import { getSigner } from '../auth.js';
-import { el, pageTitle, stateBlock, shortNpub } from './common.js';
+import { el, pageTitle, stateBlock, shortNpub, publishKind } from './common.js';
 import { authorLink, noteCard, updateAuthors } from './note.js';
 import { profileEditor } from './profile-edit.js';
 import { planFor } from '../relays/outbox.js';
@@ -137,12 +137,11 @@ export function renderProfile(main, params) {
     // ---- actions : copier, suivre
     const copy = el('button', { type: 'button', class: 'btn' }, t('profile.copy'));
     copy.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(npub); msg.textContent = t('profile.copied'); } catch { msg.textContent = t('profile.copyFail'); }
-      msg.classList.remove('status-error');
+      try { await navigator.clipboard.writeText(npub); msg.textContent = t('profile.copied'); msg.classList.remove('status-error'); msg.classList.add('status-ok'); } catch { msg.textContent = t('profile.copyFail'); msg.classList.remove('status-ok'); msg.classList.add('status-error'); }
     });
     actions.append(copy);
 
-    const say = (text, error = false) => { msg.textContent = text; msg.classList.toggle('status-error', error); };
+    const say = (text, kind = false) => { msg.textContent = text; msg.classList.toggle('status-error', kind === true); msg.classList.toggle('status-ok', kind === 'ok'); msg.classList.toggle('status-warn', kind === 'warn'); };
     let mine = null, mineReady = false, mineRelays = 0, confirmEmpty = false, busy = false;
     const follow = el('button', { type: 'button', class: 'btn', disabled: true }, t('state.loading'));
     const isFollowing = () => !!mine && parseContacts(mine).includes(pubkey);
@@ -171,7 +170,7 @@ export function renderProfile(main, params) {
         stops.push(state.on('mute', paintHide));
         hide.addEventListener('click', async () => {
           hide.disabled = true;
-          try { const res = await editMute([{ type: muteList().pubkeys.includes(pubkey) ? 'remove' : 'add', kind: 'pubkey', value: pubkey }]); say(res.ok ? t('lists.published', { ok: res.ok, total: res.total }) : t('lists.publish.failed', { ok: res.ok, total: res.total }), !res.ok); if (res.ok) setTimeout(() => window.dispatchEvent(new HashChangeEvent('hashchange')), 400); }
+          try { const res = await editMute([{ type: muteList().pubkeys.includes(pubkey) ? 'remove' : 'add', kind: 'pubkey', value: pubkey }]); say(res.ok ? t('lists.published', { ok: res.ok, total: res.total }) : t('lists.publish.failed', { ok: res.ok, total: res.total }), ({ ok: 'ok', warn: 'warn', error: true })[publishKind(res)]); if (res.ok) setTimeout(() => window.dispatchEvent(new HashChangeEvent('hashchange')), 400); }
           catch { say(t('compose.err.generic'), true); }
           hide.disabled = false;
         });
@@ -193,7 +192,7 @@ export function renderProfile(main, params) {
           const ok = results.filter((r) => r.ok).length;
           if (!ok) { say(t('profile.follow.failed', { reason: results[0]?.message || 'aucun relais' }), true); return; }
           mine = signed; putEvent(signed);
-          say(t('profile.follow.done', { ok, total: results.length }));
+          say(t('profile.follow.done', { ok, total: results.length }), 'ok');
         } catch { say(t('profile.follow.signFail'), true); }
         finally { busy = false; paintFollow(); }
       });

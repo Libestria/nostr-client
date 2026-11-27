@@ -75,7 +75,7 @@ function buildTopbar() {
       box.addEventListener('change', async () => {
         const want = box.checked;
         box.disabled = true;
-        try { await setRemoteKept(want); toast(t(want ? 'menu.keep.on' : 'menu.keep.off')); }
+        try { await setRemoteKept(want); toast(t(want ? 'menu.keep.on' : 'menu.keep.off'), { kind: 'ok' }); }
         catch { box.checked = !want; toast(t('menu.keep.fail'), { error: true }); }
         box.disabled = false;
       });

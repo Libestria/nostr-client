@@ -3,7 +3,7 @@ import { t } from '../i18n.js';
 import { getSigner } from '../auth.js';
 import { buildNote, MAX_NOTE_CHARS } from '../nostr/compose.js';
 import { publishEvent, republishEvent } from '../publish.js';
-import { el } from './common.js';
+import { el, publishKind } from './common.js';
 
 const ERR = { EMPTY: 'compose.err.empty', TOO_LONG: 'compose.err.long', PRIVATE_KEY: 'compose.err.private',
   NO_SIGNER: 'lists.err.signer', SIGN_FAILED: 'lists.err.sign', NOT_OWN: 'compose.err.notown' };
@@ -17,7 +17,7 @@ const saveDraft = (id, v) => { try { v ? localStorage.setItem(draftKey(id), v) :
 export function showResult(box, res, retry) {
   if (res.queued) { box.replaceChildren(el('span', { class: 'status' }, t('compose.queued'))); return; }
   const failed = !res.ok;
-  const nodes = [el('span', { class: failed ? 'status status-error' : 'status' },
+  const nodes = [el('span', { class: `status status-${publishKind(res)}` },
     res.total === 0 ? t('compose.norelay') : t(failed ? 'lists.publish.failed' : 'lists.published', { ok: res.ok, total: res.total }))];
   if (res.total) {
     nodes.push(el('details', {}, el('summary', {}, t('lists.details')), el('ul', { class: 'relays' }, ...res.results.map((x) => el('li', { class: 'relay' },
