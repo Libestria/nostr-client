@@ -31,3 +31,13 @@ test('previewLinkUrls : tous les liens web, sans doublon ni image, limités', ()
   assert.deepEqual(previewLinkUrls([l('https://a.test/'), l('https://i.test/x.png', { image: true }), l('https://a.test/'), l('https://b.test/')]), ['https://a.test/', 'https://b.test/']);
   assert.equal(previewLinkUrls(Array.from({ length: 9 }, (_, i) => l(`https://s${i}.test/`))).length, 5);
 });
+
+test('service par défaut : Worker libestria ; l\'ancien réglage microlink est remplacé', async () => {
+  assert.equal(DEFAULT_SERVICE, 'https://apercu-libestria.libestria.workers.dev/?url={url}');
+  globalThis.localStorage = { _v: JSON.stringify({ previewService: 'https://api.microlink.io/?url={url}' }), getItem() { return this._v; }, setItem(k, v) { this._v = v; } };
+  globalThis.navigator ??= { language: 'fr' };
+  const { loadSettings } = await import('../js/storage/settings.js');
+  assert.equal(loadSettings().previewService, DEFAULT_SERVICE);
+  globalThis.localStorage._v = JSON.stringify({ previewService: 'https://autre.example.org/?u={url}' });
+  assert.equal(loadSettings().previewService, 'https://autre.example.org/?u={url}');
+});
