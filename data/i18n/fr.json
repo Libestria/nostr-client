@@ -538,5 +538,8 @@
   "note.report.malware": "Contenu malveillant",
   "note.report.other": "Autre",
   "note.report.done": "Signalement envoyé ({ok}/{total} relais).",
-  "note.report.hint": "Un signalement est un événement public (NIP-56) visible par tous les relais qui le reçoivent."
+  "note.report.hint": "Un signalement est un événement public (NIP-56) visible par tous les relais qui le reçoivent.",
+  "note.sec.author": "Auteur",
+  "note.sec.note": "Note",
+  "note.sec.moderation": "Modération"
 }

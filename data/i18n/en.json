@@ -538,5 +538,8 @@
   "note.report.malware": "Malware",
   "note.report.other": "Other",
   "note.report.done": "Report sent ({ok}/{total} relays).",
-  "note.report.hint": "A report is a public event (NIP-56) visible to every relay that receives it."
+  "note.report.hint": "A report is a public event (NIP-56) visible to every relay that receives it.",
+  "note.sec.author": "Author",
+  "note.sec.note": "Note",
+  "note.sec.moderation": "Moderation"
 }
