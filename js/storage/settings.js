@@ -1,4 +1,4 @@
-import { validTemplate } from '../nostr/linkpreview.js';
+import { validTemplate, DEFAULT_SERVICE, LEGACY_SERVICE } from '../nostr/linkpreview.js';
 // Réglages locaux : JSON versionné dans localStorage.
 const KEY = 'nostr-client:settings';
 const VERSION = 1;
@@ -12,7 +12,7 @@ export const defaults = () => ({
   loadMedia: true,
   linkPreviews: true,
   threadMode: 'flat',
-  previewService: 'https://api.microlink.io/?url={url}',
+  previewService: DEFAULT_SERVICE,
   readOnly: false,
   browserNotify: false,
   muted: { pubkeys: [], words: [], events: [] },
@@ -28,7 +28,7 @@ function normalize(raw) {
     loadMedia: typeof s.loadMedia === 'boolean' ? s.loadMedia : d.loadMedia,
     threadMode: s.threadMode === 'nested' ? 'nested' : 'flat',
     linkPreviews: typeof s.linkPreviews === 'boolean' ? s.linkPreviews : d.linkPreviews,
-    previewService: validTemplate(s.previewService) ? s.previewService : d.previewService,
+    previewService: validTemplate(s.previewService) && s.previewService !== LEGACY_SERVICE ? s.previewService : d.previewService,
     readOnly: typeof s.readOnly === 'boolean' ? s.readOnly : d.readOnly,
     browserNotify: typeof s.browserNotify === 'boolean' ? s.browserNotify : d.browserNotify,
     muted: {
