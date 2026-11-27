@@ -19,6 +19,7 @@ import { compact } from '../nostr/stats.js';
 import { icon } from './icons.js';
 import { openStatsDialog } from './statsdialog.js';
 import { openNoteMenu } from './notemenu.js';
+import { mediaBox } from './media.js';
 import { isMuted } from '../mute.js';
 import { getPreview, previewsEnabled } from '../linkpreview.js';
 import { previewLinkUrls } from '../nostr/linkpreview.js';
@@ -132,14 +133,8 @@ function renderTokens(tokens, { hideRefs = false } = {}) {
     switch (tk.type) {
       case 'link': {
         const a = el('a', { href: tk.url, target: '_blank', rel: 'noopener noreferrer nofollow ugc', class: 'ext' }, tk.label.length > 40 ? `${tk.label.slice(0, 40)}…` : tk.label);
-        if (tk.video) {
-          if (!media) return a;
-          return el('video', { class: 'note-video', src: tk.url, controls: true, playsinline: true, preload: 'metadata' });
-        }
-        if (!tk.image || !media) return a;
-        const img = el('img', { class: 'note-img', src: tk.url, alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
-        img.addEventListener('error', () => img.remove());
-        return el('a', { class: 'note-media', href: tk.url, target: '_blank', rel: 'noopener noreferrer nofollow ugc' }, img);
+        if (tk.video) return media ? mediaBox(tk.url, 'video', a) : a;
+        return tk.image && media ? mediaBox(tk.url, 'image', a) : a;
       }
       case 'mention': {
         requestProfile(tk.pubkey);
