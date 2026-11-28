@@ -119,12 +119,12 @@ async function finish(signer, meta, timeout) {
   return wrap(signer, { ...meta, pubkey });
 }
 
-// Connexion à partir d'un lien bunker://… ou d'une adresse NIP-05 de signeur.
+// Connexion à partir d'un lien bunker://… uniquement (la connexion par adresse NIP-05 a été retirée de NIP-46 : aucune requête vers un serveur tiers).
 export async function connectBunker(input, { lib, timeout = 120000 } = {}) {
   lib ||= await loadLib();
   const n = need(lib);
   const text = String(input ?? '').trim();
-  if (!text || text.length > 2000 || /^(nsec|ncryptsec)1/i.test(text)) throw new Nip46Error('invalid');
+  if (!text || text.length > 2000 || /^(nsec|ncryptsec)1/i.test(text) || !/^bunker:\/\//i.test(text)) throw new Nip46Error('invalid');
   let bp;
   try { bp = await withTimeout(n.parseBunkerInput(text), 15000); } catch (e) { throw e instanceof Nip46Error ? e : new Nip46Error('invalid'); }
   if (!bp || !HEX64.test(bp.pubkey ?? '')) throw new Nip46Error('invalid');
