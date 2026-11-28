@@ -30,7 +30,7 @@ function buildTopbar() {
   const avatar = el('span', { class: 'avatar', 'aria-hidden': 'true' });
   const open = el('button', { type: 'button', class: 'topbar-avatar', 'aria-haspopup': 'dialog' }, avatar);
   // Sans compte : engrenage à droite (réglages) ; dans les réglages, flèche de retour à gauche (connexion)
-  const back = el('a', { class: 'topbar-btn topbar-back', href: '#/login', 'aria-label': t('menu.back') }, icon('back', 22));
+  const back = el('a', { class: 'topbar-btn topbar-back', href: '#/login' }, icon('back', 22), el('span', {}, t('menu.back')));
   const gear = el('a', { class: 'topbar-btn topbar-gear', href: '#/settings', 'aria-label': t('nav.settings') }, icon('settings', 22));
   const bar = el('header', { class: 'topbar' }, open, back, el('span', { class: 'topbar-title', 'aria-hidden': 'true' }), gear);
   document.body.insertBefore(bar, document.querySelector('.app'));

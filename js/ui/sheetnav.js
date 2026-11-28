@@ -1,10 +1,9 @@
-// Sous-menus des fenêtres « verre » : une rubrique ouvre une page qui glisse depuis la droite, avec retour « < » et fermeture « ✕ ».
+// Sous-menus des fenêtres « verre » : une rubrique ouvre une page ; le menu se ferme (animation), puis le sous-menu apparaît, avec retour « < » et fermeture « ✕ ».
 // Les pages sont empilées dans la même fenêtre native (<dialog>) ; Échap revient d'abord à la page précédente.
 import { t } from '../i18n.js';
-import { el, closeButton } from './common.js';
+import { el, closeButton, keyboardActive } from './common.js';
 import { icon } from './icons.js';
-
-const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+import { reduced, playIn, playOut } from './sheetanim.js';
 
 // Enveloppe le contenu actuel de la fenêtre dans une pile de pages (une seule fois)
 function stackOf(dlg) {
@@ -39,25 +38,33 @@ export function pushPage(dlg, { title, body, opener = null }) {
   back.addEventListener('click', () => popPage(dlg));
   close.addEventListener('click', () => dlg.close());
   const below = stack.lastElementChild;
-  stack.append(page);
-  if (!reduced()) page.classList.add('sheet-enter');
-  below.setAttribute('inert', '');
-  below.classList.add('sheet-under');
-  back.focus({ preventScroll: true });
+  if (dlg._navBusy) return { page, pop: () => popPage(dlg) };
+  const show = () => {
+    stack.append(page);
+    below.setAttribute('inert', '');
+    below.hidden = true;
+    // Au clavier : focus sur « retour » ; au toucher : sur la page elle-même, sans anneau visible
+    if (keyboardActive()) back.focus({ preventScroll: true });
+    else { page.tabIndex = -1; page.focus({ preventScroll: true }); }
+  };
+  if (reduced()) show();
+  else { dlg._navBusy = true; playOut(dlg).then(() => { show(); return playIn(dlg); }).finally(() => { dlg._navBusy = false; }); }
   return { page, pop: () => popPage(dlg) };
 }
 
 export function popPage(dlg) {
   const stack = dlg.querySelector(':scope > .sheet-pages');
   const subs = stack ? stack.querySelectorAll('.sheet-sub') : [];
-  const page = [...subs].filter((p) => !p.classList.contains('sheet-leave')).pop();
-  if (!page) return false;
+  const page = [...subs].pop();
+  if (!page || dlg._navBusy) return !!page;
   const below = page.previousElementSibling;
-  const done = () => { page.remove(); };
-  below.removeAttribute('inert');
-  below.classList.remove('sheet-under');
-  if (page._opener?.isConnected) page._opener.focus({ preventScroll: true });
-  if (reduced()) done();
-  else { page.classList.remove('sheet-enter'); page.classList.add('sheet-leave'); page.addEventListener('animationend', done, { once: true }); setTimeout(done, 400); }
+  const show = () => {
+    page.remove();
+    below.hidden = false;
+    below.removeAttribute('inert');
+    if (page._opener?.isConnected && keyboardActive()) page._opener.focus({ preventScroll: true });
+  };
+  if (reduced()) show();
+  else { dlg._navBusy = true; playOut(dlg).then(() => { show(); return playIn(dlg); }).finally(() => { dlg._navBusy = false; }); }
   return true;
 }
