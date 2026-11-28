@@ -700,3 +700,9 @@ html, body { height: 100%; overflow: hidden; }
 /* Logo Libestria en haut de la page de connexion : 10 px sous la barre du haut */
 #view > .login-logo { display: flex; justify-content: center; margin: 10px auto 0; }
 .login-logo img { display: block; width: 128px; height: 128px; object-fit: contain; }
+
+/* Sans compte : pas de barre du bas ni de barre latérale ; engrenage à droite et flèche de retour dans la barre du haut */
+body.signed-out .nav { display: none; }
+.topbar-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; border-radius: 50%; color: var(--accent); text-decoration: none; }
+.topbar-btn[hidden] { display: none; }
+.topbar-gear { margin-left: auto; }
