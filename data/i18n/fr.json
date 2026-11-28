@@ -454,7 +454,7 @@
   "note.share": "Partager",
   "note.details": "Détails",
   "note.thread": "Ouvrir le fil",
-  "note.muteThread": "Masquer cette conversation",
+  "note.muteThread": "Masquer cette discussion",
   "note.copied": "Copié.",
   "media.menu": "Options du média",
   "media.more": "Options du média",
@@ -474,7 +474,7 @@
   "note.d.kind": "Type (kind)",
   "note.d.relay": "Reçue via",
   "note.deleteMine": "Supprimer ma note",
-  "mute.threadDone": "Conversation masquée.",
+  "mute.threadDone": "Discussion masquée.",
   "settings.sec.account": "Compte",
   "settings.sec.appearance": "Apparence",
   "settings.sec.general": "Médias et notifications",
@@ -543,5 +543,11 @@
   "note.sec.note": "Note",
   "note.sec.moderation": "Modération",
   "settings.shareClient": "Indiquer le client utilisé",
-  "settings.shareClient.hint": "Tes notes portent la mention « via Libestria Web » (balise publique « client », NIP-89)."
+  "settings.shareClient.hint": "Tes notes portent la mention « via Libestria Web » (balise publique « client », NIP-89).",
+  "note.report.scope": "Portée du signalement",
+  "note.report.scope.note": "Signaler seulement la note",
+  "note.report.scope.both": "Signaler la note et l'auteur",
+  "note.report.choose": "Choisir un motif…",
+  "note.report.reason": "Motif du signalement",
+  "note.report.send": "Envoyer le signalement"
 }

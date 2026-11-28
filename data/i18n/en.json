@@ -543,5 +543,11 @@
   "note.sec.note": "Note",
   "note.sec.moderation": "Moderation",
   "settings.shareClient": "Show the client used",
-  "settings.shareClient.hint": "Your notes carry the “via Libestria Web” mention (public “client” tag, NIP-89)."
+  "settings.shareClient.hint": "Your notes carry the “via Libestria Web” mention (public “client” tag, NIP-89).",
+  "note.report.scope": "Report scope",
+  "note.report.scope.note": "Report the note only",
+  "note.report.scope.both": "Report the note and its author",
+  "note.report.choose": "Choose a reason…",
+  "note.report.reason": "Report reason",
+  "note.report.send": "Send report"
 }
