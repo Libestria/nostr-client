@@ -91,9 +91,10 @@ export function buildRepost(target, created_at = now()) {
 // NIP-09 : on ne demande que la suppression de ses propres événements. Erreur : NOT_OWN
 // Signalement (NIP-56, kind 1984). Types : spam, impersonation, illegal, nudity, malware, other. Public : il est publié sur les relais.
 export const REPORT_TYPES = ['spam', 'impersonation', 'illegal', 'nudity', 'malware', 'other'];
-export function buildReport(target, type, created_at = now()) {
+// withAuthor : signale aussi le compte de l'auteur (balise p portant le motif)
+export function buildReport(target, type, created_at = now(), { withAuthor = false } = {}) {
   if (!REPORT_TYPES.includes(type)) throw new Error('invalid-type');
-  return { kind: 1984, created_at, tags: [['e', target.id, type], ['p', target.pubkey]], content: '' };
+  return { kind: 1984, created_at, tags: [['e', target.id, type], withAuthor ? ['p', target.pubkey, type] : ['p', target.pubkey]], content: '' };
 }
 
 export function buildDeletion(target, pubkey, created_at = now()) {
