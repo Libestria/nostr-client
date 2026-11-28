@@ -697,3 +697,6 @@ html, body { height: 100%; overflow: hidden; }
 .nm-select { width: 100%; max-width: none; min-height: 48px; font-size: 1.05rem; background: var(--sheet-hover); border-color: var(--sheet-sep); }
 .nm-send { width: 100%; min-height: 48px; font-size: 1.05rem; justify-content: center; }
 .nm-send:disabled { opacity: .5; }
+/* Logo Libestria en haut de la page de connexion : 10 px sous la barre du haut */
+#view > .login-logo { display: flex; justify-content: center; margin: 10px auto 0; }
+.login-logo img { display: block; width: 128px; height: 128px; object-fit: contain; }
