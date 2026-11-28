@@ -618,7 +618,8 @@ html, body { height: 100%; overflow: hidden; }
 .sheet-page[hidden] { display: none; }   /* sous-menu affiché : le menu du dessous est masqué (jamais superposé), le fond verre reste celui de la fenêtre */
 :is(.note-menu, .stats-dialog, .compose-dialog) .sheet-subhead { display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; gap: .5rem; padding: .7rem .75rem; border-bottom: 1px solid var(--sheet-sep); }
 .sheet-subhead h2 { margin: 0; font-size: 1.2rem; font-weight: 600; text-align: center; overflow-wrap: anywhere; }
-.nm-list .nm-chev { margin-left: auto; display: inline-flex; }
+.nm-list .nm-chev { margin-left: auto; display: inline-flex; align-items: center; gap: .35rem; }
+.nm-val { color: var(--muted); font-size: .95rem; }
 .nm-list .nm-chev .icon { color: var(--muted); }
 .note-menu .nm-details { margin: 0; }
 
@@ -711,10 +712,9 @@ html, body { height: 100%; overflow: hidden; }
 
 /* Sans compte : pas de barre du bas ni de barre latérale ; engrenage à droite et flèche de retour dans la barre du haut */
 body.signed-out .nav { display: none; }
-.topbar-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; border-radius: 50%; color: var(--accent); text-decoration: none; }
+.topbar-btn { border: 0; background: none; font: inherit; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; border-radius: 50%; color: var(--accent); text-decoration: none; }
 .topbar-btn[hidden] { display: none; }
 .topbar-gear { margin-left: auto; }
-.topbar-back { gap: .15rem; padding: 0 .75rem 0 .25rem; border-radius: 12px; font-size: 1.05rem; font-weight: 500; }   /* chevron + « Retour » */
 
 /* Page de connexion : logo qui grandit avec l'écran, message d'accueil, bouton « Se connecter » (largeur limitée sur grand écran) */
 .login-logo img { width: 128px; height: 128px; }
