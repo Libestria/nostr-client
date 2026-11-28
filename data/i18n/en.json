@@ -144,7 +144,7 @@
   "lists.accepted": "Accepted",
   "lists.refused": "Rejected",
   "lists.edit.hint": "Every change is signed and immediately published to the bootstrap relays and the list's relays.",
-  "lists.nosigner.hint": "Log in with a signer (extension or bunker) to edit your lists.",
+  "lists.nosigner.hint": "Log in with a signer (extension or Bunker) to edit your lists.",
   "lists.err.url": "Invalid relay address: it must start with wss:// and not point to a local network.",
   "lists.err.dup": "This relay is already in the list.",
   "lists.err.max": "The list already has 12 relays.",
@@ -155,7 +155,7 @@
   "lists.err.generic": "Change not possible.",
   "setup.title": "First setup",
   "setup.intro": "No relay list is published for this account. Pick the relays to use: they will be published on your account and found again at every login, from any client.",
-  "setup.nosigner": "No relay list is published for this account, and one cannot be created without signing. Log in with a signer (extension or bunker) to publish one, or retry if you think it exists.",
+  "setup.nosigner": "No relay list is published for this account, and one cannot be created without signing. Log in with a signer (extension or Bunker) to publish one, or retry if you think it exists.",
   "setup.hint.pub": "Relays where you read and publish your notes.",
   "setup.hint.search": "Relays queried for search (NIP-50). Optional.",
   "setup.hint.dm": "Relays where you receive private messages. Optional. Some require authentication.",
@@ -541,7 +541,7 @@
   "note.report.send": "Send report",
   "login.welcome.title": "Welcome to Libestria Web",
   "login.welcome.tagline": "A Nostr client that runs entirely in your browser.",
-  "login.welcome.keys": "Here you never enter your private key (nsec): it stays in your browser extension (NIP-07) or in your signing app (NIP-46, via a bunker link or Nostr Connect), which signs on your behalf.",
-  "login.sameDevice.bunker": "On the same phone as your signer app (Clave, Amber…), prefer this bunker link.",
+  "login.welcome.keys": "Here you never enter your private key (nsec): it stays in your browser extension (NIP-07) or in your signing app (NIP-46, via a Bunker link or Nostr Connect), which signs on your behalf.",
+  "login.sameDevice.bunker": "On the same phone as your signer app (Clave, Amber…), prefer this Bunker link.",
   "login.sameDevice.nc": "The nostrconnect:// link is mostly useful for a signer app on another device."
 }
