@@ -688,3 +688,12 @@ html, body { height: 100%; overflow: hidden; }
 /* Étiquette de menu : texte + pastille sur une seule ligne ; la pastille se raccourcit si le nom est long */
 .nm-list :is(button, a) > span:not(.nm-chev):not(.nm-vtext) { display: flex; align-items: center; gap: .4rem; min-width: 0; white-space: nowrap; }
 .nm-list .ctx-pill { flex: 0 1 auto; min-width: 0; }
+/* Page « Signaler » : texte explicatif sous le titre, portée, motif en liste déroulante */
+.nm-hint-top { padding: .7rem 1.1rem .3rem; font-size: .95rem; }
+.nm-form { display: grid; gap: .75rem; padding: .4rem 1.1rem 1rem; }
+.nm-scope { display: grid; }
+.nm-check { display: flex; align-items: center; gap: .75rem; min-height: 44px; font-size: 1.05rem; cursor: pointer; }
+.nm-check input { width: 1.25rem; height: 1.25rem; flex: none; accent-color: var(--focus); margin: 0; }
+.nm-select { width: 100%; max-width: none; min-height: 48px; font-size: 1.05rem; background: var(--sheet-hover); border-color: var(--sheet-sep); }
+.nm-send { width: 100%; min-height: 48px; font-size: 1.05rem; justify-content: center; }
+.nm-send:disabled { opacity: .5; }
