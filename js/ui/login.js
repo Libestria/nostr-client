@@ -1,6 +1,6 @@
 import { t } from '../i18n.js';
 import { state } from '../state.js';
-import { el, pageTitle, closeButton } from './common.js';
+import { el, pageTitle, closeButton, returnFocus, setStatus } from './common.js';
 import { decode, Nip19Error, npubEncode } from '../nostr/nip19.js';
 import { resolveNip05 } from '../nostr/nip05.js';
 import { hasExtension, connectExtension, readOnlySession, setSession, setRemoteSession, logout, takeReturnTo } from '../auth.js';
@@ -9,8 +9,9 @@ import { pool } from '../relays/pool.js';
 import { bootRelays } from '../account.js';
 import { qrSvg } from './qr.js';
 import { icon } from './icons.js';
+import { pushPage } from './sheetnav.js';
+import { toast } from './toast.js';
 
-const section = (titleKey, ic, ...kids) => el('section', {}, el('h2', { class: 'section-title' }, icon(ic, 20), el('span', {}, t(titleKey))), ...kids);
 
 function renderConnected(main, session) {
   const npub = npubEncode(session.pubkey);
@@ -26,26 +27,74 @@ export function renderLogin(main) {
   const session = state.get('session');
   if (session) return renderConnected(main, session);
 
-  const msg = el('p', { class: 'status', role: 'status' });
-  const setMsg = (text, kind = false) => { msg.textContent = text; msg.classList.toggle('status-error', kind === true); msg.classList.toggle('status-ok', kind === 'ok'); };
+  // Logo Libestria (WebP animé, fichier à déposer dans img/ à côté de index.html) ; sa taille grandit avec l'écran (voir le CSS)
+  const logo = el('div', { class: 'login-logo' },
+    el('img', { src: 'img/logo-libestria.webp', alt: 'Libestria', width: 128, height: 128, decoding: 'async' }));
+  const welcome = el('div', { class: 'login-welcome' },
+    el('h2', {}, t('login.welcome.title')),
+    el('p', {}, t('login.welcome.tagline')),
+    el('p', {}, ...t('login.welcome.keys').split(/(NIP-\d+)/).map((x) => (/^NIP-\d+$/.test(x) ? el('span', { class: 'nowrap' }, x) : x))),   // « NIP-07 » ne se coupe pas en fin de ligne
+    el('p', {}, t('login.welcome.explore')));
+  const cta = el('button', { type: 'button', class: 'btn btn-primary login-cta', 'aria-haspopup': 'dialog' }, t('login.cta'));
+  cta.addEventListener('click', () => openLoginMenu(cta));
+  main.replaceChildren(pageTitle('nav.login'), logo, welcome, el('div', { class: 'login-cta-wrap' }, cta));
+}
 
-  // Extension NIP-07
-  const extBtn = el('button', { type: 'button', class: 'btn', disabled: !hasExtension() }, t('login.ext.button'));
-  extBtn.addEventListener('click', async () => {
-    extBtn.disabled = true;
+// Menu « Se connecter » : une rubrique par mode, un sous-menu pour chacune
+function openLoginMenu(opener) {
+  const dlg = el('dialog', { class: 'note-menu login-menu', 'aria-label': t('login.cta'), tabindex: '-1', autofocus: '' });
+  const close = closeButton(t('shell.menu.close'));
+  close.addEventListener('click', () => dlg.close());
+  // Connexion réussie : message vert en bas, le menu se ferme, retour à la page demandée
+  const finish = (method) => { toast(t(`login.connected.${method}`), { kind: 'ok' }); dlg.close(); location.hash = takeReturnTo(); };
+  // Un message d'état par page (rouge : erreur, vert : succès, blanc : en cours)
+  const page = () => {
+    const msg = el('p', { class: 'status nm-msg', role: 'status' });
+    return { msg, setMsg: (text, kind = false) => setStatus(msg, text, kind === true ? 'error' : kind === 'ok' ? 'ok' : 'info') };
+  };
+  const open = (titleKey, build) => (node) => { const { msg, setMsg } = page(); pushPage(dlg, { title: t(titleKey), body: [build(setMsg, finish), msg], opener: node }); };
+
+  const items = [
+    ['puzzle', 'login.menu.ext', open('login.ext.title', (setMsg) => extensionPage(setMsg, finish))],
+    ['lock', 'login.menu.bunker', open('login.bunker.title', (setMsg) => bunkerSection(setMsg, finish))],
+    ['link', 'login.menu.nc', open('login.nc.title', (setMsg) => nostrConnectSection(setMsg, finish))],
+    ['eye', 'login.menu.explore', open('login.ro.title', (setMsg) => explorePage(setMsg, finish))],
+  ];
+  const list = el('ul', { class: 'drawer-list nm-list' });
+  for (const [ic, key, run] of items) {
+    const b = el('button', { type: 'button', 'aria-haspopup': 'true' }, icon(ic, 20), el('span', {}, t(key)), el('span', { class: 'nm-chev', 'aria-hidden': 'true' }, icon('chevron', 18)));
+    b.addEventListener('click', () => run(b));
+    list.append(el('li', {}, b));
+  }
+  dlg.append(el('div', { class: 'sd-head' }, el('h2', {}, t('login.cta')), close), list);
+  dlg.addEventListener('close', () => { dlg.remove(); returnFocus(opener); });
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+  document.body.append(dlg);
+  dlg.showModal?.() ?? dlg.setAttribute('open', '');
+}
+
+// Extension de navigateur (NIP-07) : sans extension, seulement le message d'aide (pas de bouton grisé)
+function extensionPage(setMsg, finish) {
+  if (!hasExtension()) return el('div', { class: 'login-page' }, el('p', { class: 'hint' }, t('login.ext.missing')));
+  const btn = el('button', { type: 'button', class: 'btn' }, t('login.ext.button'));
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
     try {
       setSession(await connectExtension());
-      location.hash = takeReturnTo();
+      finish('nip07');
     } catch {
       setMsg(t('login.ext.denied'), true);
-      extBtn.disabled = false;
+      btn.disabled = false;
     }
   });
+  return el('div', { class: 'login-page' }, el('p', { class: 'hint' }, t('login.ext.hint')), btn);
+}
 
-  // Lecture seule
+// Explorer sans compte (lecture seule)
+function explorePage(setMsg, finish) {
   const input = el('input', { type: 'text', id: 'ro-id', name: 'ro-id', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false', 'aria-label': t('login.ro.label'), 'aria-describedby': 'ro-hint' });
   const roBtn = el('button', { type: 'submit', class: 'btn' }, t('login.ro.button'));
-  const form = el('form', { class: 'form' },
+  const form = el('form', { class: 'form login-page' },
     el('div', { class: 'field login-field' },
       el('p', { class: 'hint', id: 'ro-hint' }, t('login.ro.hint')),
       el('div', { class: 'row' }, input, roBtn)));
@@ -70,24 +119,14 @@ export function renderLogin(main) {
       return setMsg(t(err instanceof Nip19Error || err.message === 'invalid' ? 'login.ro.invalid' : 'login.ro.nip05fail'), true);
     }
     setSession(readOnlySession(pubkey));
-    location.hash = takeReturnTo();
+    finish('readonly');
   });
-
-  // Logo Libestria (WebP animé, fichier à déposer dans img/ à côté de index.html)
-  const logo = el('div', { class: 'login-logo' },
-    el('img', { src: 'img/logo-libestria.webp', alt: 'Libestria', width: 128, height: 128, decoding: 'async' }));
-
-  main.replaceChildren(pageTitle('nav.login'), logo,
-    section('login.ro.title', 'eye', form),
-    section('login.ext.title', 'puzzle', el('p', { class: 'hint' }, t(hasExtension() ? 'login.ext.hint' : 'login.ext.missing')), extBtn),
-    section('login.bunker.title', 'lock', bunkerSection(setMsg)),
-    section('login.nc.title', 'link', nostrConnectSection(setMsg)),
-    msg);
+  return form;
 }
 
 const errKey = (e) => ({ invalid: 'login.bunker.invalid', 'no-relays': 'login.bunker.noRelays', timeout: 'login.bunker.timeout', unsupported: 'login.bunker.unsupported', cancelled: 'login.bunker.cancelled' })[e?.code] || 'login.bunker.failed';
 
-function bunkerSection(setMsg) {
+function bunkerSection(setMsg, finish) {
   const input = el('input', { type: 'text', id: 'bunker', name: 'bunker', placeholder: 'bunker://…', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false', 'aria-label': t('login.bunker.label'), 'aria-describedby': 'bunker-hint' });
   const go = el('button', { type: 'submit', class: 'btn' }, t('login.bunker.button'));
   const form = el('form', { class: 'form' }, el('div', { class: 'field login-field' },
@@ -103,14 +142,14 @@ function bunkerSection(setMsg) {
       const info = await connectBunker(value);
       input.value = '';
       setRemoteSession(info);
-      location.hash = takeReturnTo();
+      finish('nip46');
     } catch (err) { setMsg(t(errKey(err)), true); go.disabled = false; }
   });
 
-  return el('div', {}, form, el('p', { class: 'hint' }, t('login.sameDevice')));
+  return el('div', { class: 'login-page' }, form, el('p', { class: 'hint' }, t('login.sameDevice.bunker')));
 }
 
-function nostrConnectSection(setMsg) {
+function nostrConnectSection(setMsg, finish) {
   // Connexion initiée ici : lien nostrconnect:// (et code QR) présenté dans une fenêtre en haut de l'écran.
   // Fermer la fenêtre (✕, Annuler, Échap, clic sur le fond) abandonne la connexion en attente.
   const gen = el('button', { type: 'button', class: 'btn' }, t('login.nc.button'));
@@ -150,11 +189,11 @@ function nostrConnectSection(setMsg) {
       finished = true;
       dlg.close();
       setRemoteSession(info);
-      location.hash = takeReturnTo();
+      finish('nip46');
     } catch (err) {
       if (err?.code !== 'cancelled') { setMsg(t(errKey(err)), true); }
       end();
     }
   });
-  return el('div', {}, el('p', { class: 'hint' }, t('login.nc.or')), gen);
+  return el('div', { class: 'login-page' }, el('p', { class: 'hint' }, t('login.nc.or')), gen, el('p', { class: 'hint' }, t('login.sameDevice.nc')));
 }
