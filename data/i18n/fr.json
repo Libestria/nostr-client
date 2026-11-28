@@ -115,10 +115,9 @@
   "login.nc.title": "Nostr Connect (NIP-46)",
   "login.nc.or": "Génère un lien à ouvrir dans ton application de signature : ce client attend ensuite ton approbation.",
   "login.nc.button": "Générer un lien nostrconnect://",
-  "login.nc.open": "Ouvrir dans le signeur",
   "login.nc.copy": "Copier le lien",
   "login.nc.cancel": "Annuler",
-  "login.nc.hint": "Scanne le code QR avec ton application de signature (depuis un autre appareil), ou ouvre ou copie le lien.",
+  "login.nc.hint": "Scanne le code QR avec ton application de signature (depuis un autre appareil), ou copie le lien.",
   "login.nc.qr": "Code QR du lien nostrconnect",
   "login.nc.waiting": "En attente de l'approbation de l'application de signature…",
   "login.connected.nip46": "Connecté avec une application de signature distante (NIP-46). La session dure tant que l'onglet reste ouvert.",
@@ -553,10 +552,6 @@
   "login.welcome.tagline": "Un client Nostr qui fonctionne entièrement dans ton navigateur.",
   "login.welcome.keys": "Ici, tu ne saisis jamais ta clé privée (nsec) : elle reste dans ton extension de navigateur (NIP-07) ou dans ton application de signature (NIP-46, par lien bunker ou Nostr Connect), qui signe à ta place.",
   "login.welcome.explore": "Sans compte, tu peux aussi explorer Nostr avec la npub d'un profil public.",
-  "login.menu.ext": "Extension de navigateur",
-  "login.menu.bunker": "Bunker",
-  "login.menu.nc": "Nostr Connect",
-  "login.menu.explore": "Explorer sans compte",
   "login.sameDevice.bunker": "Sur le même téléphone que ton application de signature (Clave, Amber…), utilise de préférence ce lien bunker.",
   "login.sameDevice.nc": "Le lien nostrconnect:// convient surtout pour une application de signature sur un autre appareil."
 }

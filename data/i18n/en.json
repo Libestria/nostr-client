@@ -115,10 +115,9 @@
   "login.nc.title": "Nostr Connect (NIP-46)",
   "login.nc.or": "Generate a link to open in your signer app: this client then waits for your approval.",
   "login.nc.button": "Generate a nostrconnect:// link",
-  "login.nc.open": "Open in signer",
   "login.nc.copy": "Copy link",
   "login.nc.cancel": "Cancel",
-  "login.nc.hint": "Scan the QR code with your signer app (from another device), or open or copy the link.",
+  "login.nc.hint": "Scan the QR code with your signer app (from another device), or copy the link.",
   "login.nc.qr": "QR code of the nostrconnect link",
   "login.nc.waiting": "Waiting for the signer to approve…",
   "login.connected.nip46": "Signed in with a remote signer (NIP-46). The session lasts while this tab stays open.",
@@ -553,10 +552,6 @@
   "login.welcome.tagline": "A Nostr client that runs entirely in your browser.",
   "login.welcome.keys": "Here you never enter your private key (nsec): it stays in your browser extension (NIP-07) or in your signing app (NIP-46, via a bunker link or Nostr Connect), which signs on your behalf.",
   "login.welcome.explore": "Without an account, you can also explore Nostr with the npub of a public profile.",
-  "login.menu.ext": "Browser extension",
-  "login.menu.bunker": "Bunker",
-  "login.menu.nc": "Nostr Connect",
-  "login.menu.explore": "Explore without an account",
   "login.sameDevice.bunker": "On the same phone as your signer app (Clave, Amber…), prefer this bunker link.",
   "login.sameDevice.nc": "The nostrconnect:// link is mostly useful for a signer app on another device."
 }
