@@ -222,20 +222,28 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
   };
 
   const reportPage = (node) => {
-    const ul = el('ul', { class: 'drawer-list nm-list' });
-    for (const type of REPORT_TYPES) {
-      const b = el('button', { type: 'button' }, el('span', {}, t(`note.report.${type}`)));
-      b.addEventListener('click', async () => {
-        b.disabled = true; say('lists.publishing');
-        try {
-          const res = await publishEvent(buildReport(ev, type));
-          if (res.ok) done(t('note.report.done', { ok: res.ok, total: res.total }), res.ok < res.total ? 'warn' : 'ok');
-          else { b.disabled = false; sayText(t('lists.publish.failed', { ok: res.ok, total: res.total }), 'error'); }
-        } catch (e) { b.disabled = false; sayText(t(errorKey(e)), 'error'); }
-      });
-      ul.append(el('li', {}, b));
-    }
-    openPage(t('note.report.title'), [ul, el('p', { class: 'hint nm-hint' }, t('note.report.hint')), newMsg()], node);
+    const radio = (id, key, checked) => {
+      const input = el('input', { type: 'radio', name: 'report-scope', id, checked });
+      return [input, el('label', { class: 'nm-check', for: id }, input, el('span', {}, t(key)))][1];
+    };
+    const scopeNote = radio('report-note', 'note.report.scope.note', true);
+    const scopeBoth = radio('report-both', 'note.report.scope.both', false);
+    const select = el('select', { class: 'nm-select', 'aria-label': t('note.report.reason') },
+      el('option', { value: '', disabled: true, selected: true }, t('note.report.choose')),
+      ...REPORT_TYPES.map((type) => el('option', { value: type }, t(`note.report.${type}`))));
+    const send = el('button', { type: 'button', class: 'btn btn-primary nm-send', disabled: true }, t('note.report.send'));
+    select.addEventListener('change', () => { send.disabled = !select.value; });
+    send.addEventListener('click', async () => {
+      send.disabled = true; say('lists.publishing');
+      try {
+        const withAuthor = scopeBoth.querySelector('input').checked;
+        const res = await publishEvent(buildReport(ev, select.value, undefined, { withAuthor }));
+        if (res.ok) done(t('note.report.done', { ok: res.ok, total: res.total }), res.ok < res.total ? 'warn' : 'ok');
+        else { send.disabled = false; sayText(t('lists.publish.failed', { ok: res.ok, total: res.total }), 'error'); }
+      } catch (e) { send.disabled = false; sayText(t(errorKey(e)), 'error'); }
+    });
+    const form = el('div', { class: 'nm-form' }, el('div', { class: 'nm-scope', role: 'radiogroup', 'aria-label': t('note.report.scope') }, scopeNote, scopeBoth), select, send);
+    openPage(t('note.report.title'), [el('p', { class: 'hint nm-hint nm-hint-top' }, t('note.report.hint')), form, newMsg()], node);
   };
 
   // ── Racine : 4 rubriques ──
