@@ -13,7 +13,6 @@ import { authorLink, noteCard, updateAuthors, nip05Line } from './note.js';
 import { icon } from './icons.js';
 import { toast } from './toast.js';
 import { openSheet } from './listwindow.js';
-import { fitLine } from './fit.js';
 import { qrSvg } from './qr.js';
 import { profileEditor } from './profile-edit.js';
 import { planFor } from '../relays/outbox.js';
@@ -158,30 +157,21 @@ export function renderProfile(main, params) {
       const n = Math.max(c, seen);
       return { n, text: `${n}${seen >= FOLLOWERS_LIMIT && seen >= c ? '+' : ''}` };
     };
-    const statBtn = (cls) => el('button', { type: 'button', class: `p-stat ${cls}`, 'aria-haspopup': 'dialog' });
+    // Bouton de statistique : le nombre au-dessus, le libellé dessous (deux lignes serrées, boutons de même largeur)
+    const statBtn = (cls) => { const b = el('button', { type: 'button', class: `p-stat ${cls}`, 'aria-haspopup': 'dialog' }, el('span', { class: 'p-n' }), el('span', { class: 'p-l' })); return b; };
+    const setStat = (b, n, label) => { b.firstChild.textContent = n; b.lastChild.textContent = label; b.setAttribute('aria-label', `${n} ${label}`); };
     const sFollows = statBtn('p-stat-follows'), sFollowers = statBtn('p-stat-followers'), sRelays = statBtn('p-stat-relays');
-    const dot = () => el('span', { class: 'p-dot', 'aria-hidden': 'true' }, '\u2022');
-    const stats = el('div', { class: 'p-stats' }, sFollows, dot(), sFollowers, dot(), sRelays);
+    const stats = el('div', { class: 'p-stats' }, sFollows, sFollowers, sRelays);
     const relayUrls = () => (relaysDone || theirRelays ? (theirRelays ? tagUrls(theirRelays, 'pub') : []) : null);
     function paintStats() {
       const nf = theirs ? parseContacts(theirs).length : followsDone ? 0 : null;
-      sFollows.textContent = t(nf != null && nf < 2 ? 'profile.stat.follows.one' : 'profile.stat.follows', { n: nf ?? '…' });
+      setStat(sFollows, nf ?? '…', t(nf != null && nf < 2 ? 'profile.stat.follows.one' : 'profile.stat.follows'));
       const f = followersText();
-      sFollowers.textContent = t(f.n < 2 ? 'profile.stat.followers.one' : 'profile.stat.followers', { n: f.text });
+      setStat(sFollowers, f.text, t(f.n < 2 ? 'profile.stat.followers.one' : 'profile.stat.followers'));
       const urls = relayUrls();
-      if (urls && !urls.length) sRelays.textContent = t('profile.stat.relays.none');
-      else {
-        const open = new Set(pool.status().filter((r) => r.state === 'open').map((r) => r.url));
-        sRelays.textContent = t('profile.stat.relays', { x: urls ? urls.filter((u) => open.has(u)).length : '…', y: urls ? urls.length : '…' });
-      }
-      layoutStats();
+      const open = new Set(pool.status().filter((r) => r.state === 'open').map((r) => r.url));
+      setStat(sRelays, urls ? `${urls.filter((u) => open.has(u)).length}/${urls.length}` : '…/…', t('profile.stat.relays'));
     }
-    // Sur écran étroit les trois éléments passent à la ligne : on masque alors les puces « • » (une puce ne doit jamais finir une ligne)
-    const layoutStats = () => {
-      stats.classList.remove('wrapped');
-      if (sRelays.offsetTop > sFollows.offsetTop + 4) stats.classList.add('wrapped');
-    };
-    if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(() => { if (!stats.isConnected) return; layoutStats(); }); ro.observe(stats); stops.push(() => ro.disconnect()); }
     sFollows.addEventListener('click', () => openPeople({ title: t('profile.tab.follows'), opener: sFollows, emptyKey: 'profile.noFollows',
       source: { get: () => ({ pks: theirs ? parseContacts(theirs) : [], loading: !followsDone && !theirs }), on: (fn) => { followsListeners.add(fn); return () => followsListeners.delete(fn); } } }));
     sFollowers.addEventListener('click', () => {
@@ -197,12 +187,9 @@ export function renderProfile(main, params) {
     stops.push(pool.onChange(paintStats));
 
     // Une ligne « titre / valeur » ; la valeur tient sur une seule ligne (raccourcie au milieu si besoin), suivie d'icônes d'action
-    const idRow = (titleKey, value, actions) => el('div', { class: 'p-row' }, el('dt', {}, t(titleKey)), el('dd', {}, value, ...actions));
+    const idRow = (titleKey, value, actions) => el('div', { class: 'p-row' }, el('dt', {}, t(titleKey)), el('dd', {}, value, ...actions));   // titre et valeur sur la même ligne
     const keyRow = (titleKey, full, label) => {
-      const v = el('span', { class: 'p-val ident' });
-      const row = idRow(titleKey, v, [copyButton(full, label)]);
-      queueMicrotask(() => fitLine(v, full));
-      return row;
+      return idRow(titleKey, el('span', { class: 'p-val', title: full }, full), [copyButton(full, label)]);
     };
 
     const paintHead = () => {
@@ -223,7 +210,7 @@ export function renderProfile(main, params) {
       if (p?.lud16) {
         const qr = el('button', { type: 'button', class: 'p-icon', title: t('profile.ln.title'), 'aria-label': t('profile.ln.title'), 'aria-haspopup': 'dialog' }, icon('qr', 16));
         qr.addEventListener('click', () => openLightning(qr, p.lud16));
-        rows.push(idRow('profile.id.ln', el('span', { class: 'p-val ident' }, p.lud16), [copyButton(p.lud16, t('profile.copy.ln')), qr]));
+        rows.push(idRow('profile.id.ln', el('span', { class: 'p-val', title: p.lud16 }, p.lud16), [copyButton(p.lud16, t('profile.copy.ln')), qr]));
       }
       head.replaceChildren(
         ...(over ? [el('img', { class: 'p-banner', src: p.banner, alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' })] : []),
