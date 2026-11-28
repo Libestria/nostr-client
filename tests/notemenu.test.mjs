@@ -22,3 +22,8 @@ test('seen mémorise les relais par note', () => {
   noteSeen(id, 'wss://a'); noteSeen(id, 'wss://b'); noteSeen(id, 'wss://a');
   assert.deepEqual([...seenOn(id)].sort(), ['wss://a', 'wss://b']);
 });
+import { buildNote, CLIENT_NAME } from '../js/nostr/compose.js';
+test('buildNote : balise client facultative', () => {
+  assert.deepEqual(buildNote('salut', { created_at: 1 }).tags.filter((t) => t[0] === 'client'), []);
+  assert.deepEqual(buildNote('salut', { client: CLIENT_NAME, created_at: 1 }).tags.filter((t) => t[0] === 'client'), [['client', 'Libestria Web']]);
+});
