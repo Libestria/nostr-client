@@ -417,12 +417,14 @@ html[data-kbd] .link-card:focus-visible { border-color: var(--line-hover, var(--
 
 /* Menu « … » : titre actuel, puis liste groupée */
 .note-menu { width: min(78vw, 19rem); max-height: none; padding: 0; overflow-y: auto; overscroll-behavior: contain; }
-.note-menu .sd-head { padding: .7rem .75rem .7rem 1.1rem; border-bottom: 1px solid var(--sheet-sep); }
+/* Règle unique des fenêtres Liquid : espace sous le filet / au-dessus du premier bloc, et marge latérale */
+:root { --sheet-space: 14px; --sheet-side: 18px; --sheet-top: calc(var(--sheet-space) - 3px); }   /* --sheet-top : même écart visible quand le bloc commence par un texte (l'interligne ajoute ~3 px) */
+.note-menu .sd-head { padding: .7rem .75rem .7rem var(--sheet-side); border-bottom: 1px solid var(--sheet-sep); }
 .note-menu .sd-head h2 { font-size: 1.2rem; font-weight: 600; }
 .nm-list { list-style: none; margin: 0; padding: 0; }
 .nm-list li { margin: 0; }
 .nm-list li.nm-gap + li > :is(button, a) { border-top: 0; }
-.nm-list :is(button, a) { display: flex; align-items: center; gap: .9rem; width: 100%; min-height: 50px; padding: 0 1.1rem; border: 0; border-radius: 0; background: none; color: var(--ink); font: inherit; font-size: 1.05rem; text-align: left; text-decoration: none; cursor: pointer; }
+.nm-list :is(button, a) { display: flex; align-items: center; gap: .9rem; width: 100%; min-height: 50px; padding: 0 var(--sheet-side); border: 0; border-radius: 0; background: none; color: var(--ink); font: inherit; font-size: 1.05rem; text-align: left; text-decoration: none; cursor: pointer; }
 .nm-list :is(button, a):hover, html[data-kbd] .nm-list :is(button, a):focus-visible { background: var(--sheet-hover); color: var(--ink); outline: none; }
 .nm-list :is(button, a):disabled { opacity: .5; }
 .nm-list .icon { color: var(--ink); flex: none; }
@@ -441,9 +443,9 @@ html[data-kbd] .link-card:focus-visible { border-color: var(--line-hover, var(--
 .stats-dialog { width: min(92vw, 28rem); overflow: hidden; }
 .stats-dialog[open] { display: flex; flex-direction: column; }
 .stats-dialog .sd-list { padding: 0; gap: 0; overflow-y: auto; }
-.stats-dialog .sd-item { padding: .7rem 1.1rem; border: 0; border-radius: 0; }
+.stats-dialog .sd-item { padding: .7rem var(--sheet-side); border: 0; border-radius: 0; }
 .stats-dialog .sd-item + .sd-item { border-top: 1px solid var(--sheet-sep); }
-.stats-dialog .hint { padding: .9rem 1.1rem; margin: 0; }
+.stats-dialog .hint { padding: var(--sheet-top) var(--sheet-side) var(--sheet-space); margin: 0; }
 
 /* Menu latéral : mêmes couleurs, filets et survol */
 .drawer-list a, .drawer-logout { border-radius: 12px; }
@@ -559,13 +561,14 @@ html[data-kbd] .searchbox:focus-within { outline-width: 1.5px; }
 .qr { display: block; width: min(100%, 20rem); height: auto; aspect-ratio: 1; margin: .75rem auto; border-radius: 14px; }
 
 /* Fenêtre Nostr Connect (même gabarit que la fenêtre des détails) */
-.nc-body { display: grid; gap: .75rem; padding: .9rem 1.1rem 1.1rem; overflow-y: auto; }
-.nc-body .hint { margin: 0; }
+.nc-body { display: grid; gap: .75rem; padding: var(--sheet-top) var(--sheet-side) var(--sheet-space); overflow-y: auto; }
+.nc-body .hint { margin: 0; padding: 0; }
+.nc-dialog { max-height: calc(100dvh - 270px); }   /* centrée : son bas reste au-dessus du bandeau de message (le corps défile si l'écran est petit) */
 .nc-link { display: block; max-height: 4rem; overflow: auto; font-size: .75rem; overflow-wrap: anywhere; word-break: break-all; user-select: text; -webkit-user-select: text; }
-.nc-actions { display: grid; grid-template-columns: 1fr; gap: .5rem; }
-.nc-actions .btn, .nc-body > .btn { width: 100%; justify-content: center; text-align: center; }
+.nc-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.nc-actions .btn, .nc-body > .btn { width: 100%; justify-content: center; text-align: center; white-space: nowrap; }
 .nc-qr:empty { display: none; }
-.nc-qr .qr { margin: 0 auto; width: min(100%, 14rem); }
+.nc-qr .qr { margin: 0 auto; width: min(100%, 12rem); }
 .nc-wait { text-align: center; color: var(--accent); }
 
 /* Menu latéral : case « Rester connecté » au-dessus de Déconnexion */
@@ -717,7 +720,7 @@ body.signed-out .nav { display: none; }
 .login-cta-wrap { display: flex; justify-content: center; }
 .login-cta { width: 100%; max-width: 20rem; min-height: 48px; font-size: 1.05rem; justify-content: center; }
 /* Sous-menus de connexion */
-.login-page { display: grid; gap: .9rem; padding: .75rem 1.1rem 1rem; }
+.login-page { display: grid; gap: .9rem; padding: var(--sheet-top) var(--sheet-side) var(--sheet-space); }
 .login-page .hint, .login-page .field { margin: 0; }
-.nm-msg { margin: 0; padding: .6rem 1.1rem; }
+.nm-msg { margin: 0; padding: .6rem var(--sheet-side); }
 .nowrap { white-space: nowrap; }
