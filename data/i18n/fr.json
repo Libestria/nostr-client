@@ -543,5 +543,6 @@
   "login.welcome.tagline": "Un client Nostr qui fonctionne entièrement dans ton navigateur.",
   "login.welcome.keys": "Ici, tu ne saisis jamais ta clé privée (nsec) : elle reste dans ton extension de navigateur (NIP-07) ou dans ton application de signature (NIP-46, par lien Bunker ou Nostr Connect), qui signe à ta place.",
   "login.sameDevice.bunker": "Sur le même téléphone que ton application de signature (Clave, Amber…), utilise de préférence ce lien Bunker.",
-  "login.sameDevice.nc": "Le lien nostrconnect:// convient surtout pour une application de signature sur un autre appareil."
+  "login.sameDevice.nc": "Le lien nostrconnect:// convient surtout pour une application de signature sur un autre appareil.",
+  "settings.chosen": "{label} : {value}"
 }

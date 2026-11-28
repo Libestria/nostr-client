@@ -543,5 +543,6 @@
   "login.welcome.tagline": "A Nostr client that runs entirely in your browser.",
   "login.welcome.keys": "Here you never enter your private key (nsec): it stays in your browser extension (NIP-07) or in your signing app (NIP-46, via a Bunker link or Nostr Connect), which signs on your behalf.",
   "login.sameDevice.bunker": "On the same phone as your signer app (Clave, Amber…), prefer this Bunker link.",
-  "login.sameDevice.nc": "The nostrconnect:// link is mostly useful for a signer app on another device."
+  "login.sameDevice.nc": "The nostrconnect:// link is mostly useful for a signer app on another device.",
+  "settings.chosen": "{label}: {value}"
 }
