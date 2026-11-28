@@ -562,7 +562,7 @@ html[data-kbd] .searchbox:focus-within { outline-width: 1.5px; }
 .nc-body { display: grid; gap: .75rem; padding: .9rem 1.1rem 1.1rem; overflow-y: auto; }
 .nc-body .hint { margin: 0; }
 .nc-link { display: block; max-height: 4rem; overflow: auto; font-size: .75rem; overflow-wrap: anywhere; word-break: break-all; user-select: text; -webkit-user-select: text; }
-.nc-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.nc-actions { display: grid; grid-template-columns: 1fr; gap: .5rem; }
 .nc-actions .btn, .nc-body > .btn { width: 100%; justify-content: center; text-align: center; }
 .nc-qr:empty { display: none; }
 .nc-qr .qr { margin: 0 auto; width: min(100%, 14rem); }
