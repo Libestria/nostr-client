@@ -43,7 +43,9 @@ export function rootOf(parent) {
 
 // text : saisie de l'utilisateur ; reply : événement auquel on répond (facultatif).
 // Erreurs : EMPTY, TOO_LONG, PRIVATE_KEY
-export function buildNote(text, { reply, created_at = now() } = {}) {
+export const CLIENT_NAME = 'Libestria Web';
+// client : nom à publier dans la balise « client » (NIP-89), ou null pour ne rien indiquer
+export function buildNote(text, { reply, client = null, created_at = now() } = {}) {
   const raw = String(text ?? '').trim();
   if (!raw) throw new Error('EMPTY');
   if (raw.length > MAX_NOTE_CHARS) throw new Error('TOO_LONG');
@@ -71,6 +73,7 @@ export function buildNote(text, { reply, created_at = now() } = {}) {
     tags.push(['q', m.id, '', ...(m.author ? [m.author] : [])]);
   }
   for (const h of hashtags) tags.push(['t', h]);
+  if (client) tags.push(['client', String(client).slice(0, 40)]);
   return { kind: 1, created_at, tags, content };
 }
 
