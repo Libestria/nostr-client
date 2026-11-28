@@ -27,3 +27,7 @@ test('buildNote : balise client facultative', () => {
   assert.deepEqual(buildNote('salut', { created_at: 1 }).tags.filter((t) => t[0] === 'client'), []);
   assert.deepEqual(buildNote('salut', { client: CLIENT_NAME, created_at: 1 }).tags.filter((t) => t[0] === 'client'), [['client', 'Libestria Web']]);
 });
+test('buildReport : signalement de la note et de l\'auteur', () => {
+  const r = buildReport({ id, pubkey: pk }, 'spam', 5, { withAuthor: true });
+  assert.deepEqual(r.tags, [['e', id, 'spam'], ['p', pk, 'spam']]);
+});
