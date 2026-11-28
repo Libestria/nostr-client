@@ -22,7 +22,6 @@ import { showResult, errorKey } from './composer.js';
 import { openCompose } from './composedialog.js';
 import { toast } from './toast.js';
 
-const linkOf = (ev) => `${location.origin}${location.pathname}${noteHref(ev.id)}`;
 
 async function copy(text) {
   try { await navigator.clipboard.writeText(text); return true; } catch { return false; }
@@ -56,6 +55,7 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
 
   const hints = relaysOf(ev, via).filter((r) => /^wss:\/\//.test(r)).slice(0, 2);
   const nevent = () => neventEncode({ id: ev.id, relays: hints, author: ev.pubkey, kind: ev.kind });
+  const linkOf = () => `https://njump.me/${nevent()}`;
 
   // Liste de rubriques (une par page)
   const makeList = () => {
@@ -144,11 +144,11 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
 
   const sharePage = (node) => {
     const { list, valueRow, sep, add } = makeList();
-    list.append(valueRow(t('note.share.id'), nevent()), valueRow(t('note.share.link'), linkOf(ev)));
+    list.append(valueRow(t('note.share.id'), nevent()), valueRow(t('note.share.link'), linkOf()));
     if (typeof navigator.share === 'function') {
       sep(1);
       add('repost', t('note.share.action'), async () => {
-        try { await navigator.share({ url: linkOf(ev), text: `nostr:${nevent()}` }); dlg.close(); } catch { /* annulé : le menu reste ouvert */ }
+        try { await navigator.share({ url: linkOf() }); dlg.close(); } catch { /* annulé : le menu reste ouvert */ }
       }, { group: 1 });
     }
     openPage(t('note.share'), [list, newMsg()], node);
@@ -156,15 +156,15 @@ export function openNoteMenu(ev, { via = null, opener = null, onHidden, onDelete
 
   const detailsPage = (node) => {
     const { list, valueRow, add } = makeList();
-    list.append(valueRow(t('note.d.nevent'), nevent()), valueRow(t('note.d.note1'), noteEncode(ev.id)), valueRow(t('note.d.hex'), ev.id));
     const row = (k, v) => [el('dt', {}, t(k)), el('dd', {}, v)];
-    const dl = el('dl', { class: 'nm-details' }, ...row('note.d.date', new Date(ev.created_at * 1000).toLocaleString(document.documentElement.lang || 'fr')), ...row('note.d.kind', String(ev.kind)));
+    const seen = relaysOf(ev, via);
+    const dl = el('dl', { class: 'nm-details' }, ...row('note.d.date', new Date(ev.created_at * 1000).toLocaleString(document.documentElement.lang || 'fr')), ...row('note.d.kind', String(ev.kind)),
+      ...(seen.length ? [el('dt', {}, t('note.d.seen')), el('dd', {}, ...seen.map((r) => el('div', {}, r.replace(/^wss:\/\//, ''))))] : []));
+    list.append(el('li', { class: 'nm-gap', role: 'presentation' }), valueRow(t('note.d.nevent'), nevent()), valueRow(t('note.d.note1'), noteEncode(ev.id)), valueRow(t('note.d.hex'), ev.id));
     add('eye', t('note.json.view'), (b) => openPage(t('note.json.title'), el('pre', { class: 'nm-json' }, JSON.stringify(ev, null, 2)), b), { group: 1, sub: true });
     add('copy', t('note.copyJson'), () => copied(JSON.stringify(ev)), { group: 1 });
     if (mine) add('send', t('note.republish'), (b) => republishPage(b), { group: 1, sub: true });
-    const body = [list, dl];
-    const seen = relaysOf(ev, via);
-    if (seen.length) body.push(el('div', { class: 'nm-seen' }, el('strong', {}, t('note.d.seen')), el('ul', {}, ...seen.map((r) => el('li', {}, r.replace(/^wss:\/\//, ''))))));
+    const body = [dl, list];
     body.push(newMsg());
     openPage(t('note.details'), body, node);
   };
