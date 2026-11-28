@@ -241,8 +241,8 @@ button.act:disabled { cursor: default; opacity: 1; }
 .drawer-close { position: absolute; top: 8px; right: 8px; }
 .drawer-id { padding: .5rem 1rem 0; display: grid; gap: .25rem; }
 .drawer-id strong { font-size: 1.1rem; overflow-wrap: anywhere; }
-.drawer-npub { display: inline-flex; align-items: center; gap: .4rem; justify-self: start; min-height: 32px; padding: 0; background: none; border: 0; color: var(--muted); font: inherit; font-size: .85rem; cursor: pointer; }
-.drawer-follows { margin: 0; color: var(--muted); font-size: .9rem; max-width: none; }
+.drawer-npub { display: inline-flex; align-items: center; gap: .4rem; justify-self: start; min-height: 32px; padding: 0; background: none; border: 0; color: var(--muted); font: inherit; font-size: .95rem; cursor: pointer; }
+.drawer-follows { margin: 0; color: var(--muted); font-size: .95rem; max-width: none; }
 .drawer-list { list-style: none; margin: .75rem 0 0; padding: 0 .5rem; }
 .drawer-list a, .drawer-logout { display: flex; align-items: center; gap: .9rem; min-height: 48px; padding: 0 .75rem; border-radius: var(--r-md); color: var(--ink); text-decoration: none; font: inherit; background: none; border: 0; width: 100%; cursor: pointer; }
 .drawer-list a:hover, html[data-kbd] .drawer-list a:focus-visible, .drawer-logout:hover, html[data-kbd] .drawer-logout:focus-visible { background: var(--nav-hover-bg); color: var(--nav-hover-text); }
@@ -426,9 +426,9 @@ html[data-kbd] .link-card:focus-visible { border-color: var(--line-hover, var(--
 .nm-list :is(button, a):hover, html[data-kbd] .nm-list :is(button, a):focus-visible { background: var(--sheet-hover); color: var(--ink); outline: none; }
 .nm-list :is(button, a):disabled { opacity: .5; }
 .nm-list .icon { color: var(--ink); flex: none; }
-.nm-gap { height: 7px; background: var(--sheet-gap); }
+.nm-gap { height: 0; border-top: 1px solid var(--sheet-sep); background: none; }
 .nm-list .nm-warn, .nm-list .nm-warn .icon { color: var(--sheet-danger) !important; }
-.nm-details { margin: 0; padding: .6rem 1.1rem; border: 0; border-top: 1px solid var(--sheet-sep); border-radius: 0; background: var(--sheet-gap); }
+.nm-details { margin: 0; padding: .5rem 1.1rem .6rem; border: 0; border-radius: 0; background: none; font-size: 1rem; }
 .note-menu > .note-msg { margin: 0; padding: .6rem 1.1rem; border-top: 1px solid var(--sheet-sep); }
 
 /* En-têtes et boutons de fermeture des fenêtres */
@@ -671,19 +671,20 @@ html, body { height: 100%; overflow: hidden; }
 .nm-chev { margin-left: auto; display: inline-flex; color: var(--muted); }
 .nm-list .nm-chev .icon { color: var(--muted); }
 .nm-valuerow { padding: .35rem 1.1rem .15rem; }
-.nm-vlabel { display: block; font-size: .8rem; color: var(--muted); }
+.nm-vlabel { display: block; font-size: .95rem; color: var(--muted); }
 .nm-list .nm-valuerow button.nm-value { min-height: 36px; padding: 0; gap: .6rem; font-size: .95rem; justify-content: space-between; }
 .nm-list .nm-valuerow button.nm-value:hover, html[data-kbd] .nm-list .nm-valuerow button.nm-value:focus-visible { background: none; }
 .nm-vtext { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, monospace; font-size: .85rem; }
 .nm-json { margin: 0; padding: .75rem 1.1rem; max-height: 60dvh; overflow: auto; font: .75rem/1.4 ui-monospace, monospace; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
-.nm-details dt { font-size: .8rem; color: var(--muted); }
-.nm-seen { padding: .6rem 1.1rem; }
-.nm-seen ul { margin: .25rem 0 0; padding: 0; list-style: none; font-size: .85rem; overflow-wrap: anywhere; }
+.nm-details dt { font-size: .95rem; color: var(--muted); margin-top: .35rem; }
+.nm-details dt:first-child { margin-top: 0; }
+.nm-details dd { font-size: 1rem; }
+.nm-details dd div + div { margin-top: .15rem; }
 .nm-hint { padding: .6rem 1.1rem; margin: 0; }
 .sheet-sub:focus { outline: none; }
 /* Pastille de profil dans les rubriques de menu : même taille que le texte, non cliquable */
 .nm-list .ctx-pill { font-size: .95rem; max-width: 100%; pointer-events: none; padding: 2px 10px 2px 3px; gap: .4rem; vertical-align: middle; }
 .nm-list button > span:not(.nm-chev) { min-width: 0; overflow: hidden; }
 /* Étiquette de menu : texte + pastille sur une seule ligne ; la pastille se raccourcit si le nom est long */
-.nm-list button > span:not(.nm-chev):not(.nm-vtext) { display: flex; align-items: center; gap: .4rem; min-width: 0; white-space: nowrap; }
+.nm-list :is(button, a) > span:not(.nm-chev):not(.nm-vtext) { display: flex; align-items: center; gap: .4rem; min-width: 0; white-space: nowrap; }
 .nm-list .ctx-pill { flex: 0 1 auto; min-width: 0; }
