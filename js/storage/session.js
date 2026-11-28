@@ -4,7 +4,7 @@ import { keptMeta } from './kept.js';
 
 const KEY = 'nostr-client:session';
 const KEY46 = 'nostr-client:nip46';
-const METHODS = ['nip07', 'readonly'];
+const METHODS = ['nip07'];
 const HEX64 = /^[0-9a-f]{64}$/;
 
 export function loadNip46() {

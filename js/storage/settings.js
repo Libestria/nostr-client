@@ -14,7 +14,6 @@ export const defaults = () => ({
   shareClient: true,
   threadMode: 'flat',
   previewService: DEFAULT_SERVICE,
-  readOnly: false,
   browserNotify: false,
   muted: { pubkeys: [], words: [], events: [] },
 });
@@ -31,7 +30,6 @@ function normalize(raw) {
     threadMode: s.threadMode === 'nested' ? 'nested' : 'flat',
     linkPreviews: typeof s.linkPreviews === 'boolean' ? s.linkPreviews : d.linkPreviews,
     previewService: validTemplate(s.previewService) && s.previewService !== LEGACY_SERVICE ? s.previewService : d.previewService,
-    readOnly: typeof s.readOnly === 'boolean' ? s.readOnly : d.readOnly,
     browserNotify: typeof s.browserNotify === 'boolean' ? s.browserNotify : d.browserNotify,
     muted: {
       pubkeys: Array.isArray(s.muted?.pubkeys) ? s.muted.pubkeys : [],
