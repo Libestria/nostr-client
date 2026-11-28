@@ -1,4 +1,5 @@
 // Coque de l'application (inspirée de Nostur) : barre du haut avec avatar, menu latéral, bouton « + » flottant, icônes de navigation, balayage entre sous-onglets.
+import { openSettingsMenu } from './settingsmenu.js';
 import { t } from '../i18n.js';
 import { state } from '../state.js';
 import { getSigner, logout, isRemoteKept, setRemoteKept } from '../auth.js';
@@ -29,10 +30,10 @@ function paintAvatar(box, pubkey, size) {
 function buildTopbar() {
   const avatar = el('span', { class: 'avatar', 'aria-hidden': 'true' });
   const open = el('button', { type: 'button', class: 'topbar-avatar', 'aria-haspopup': 'dialog' }, avatar);
-  // Sans compte : engrenage à droite (réglages) ; dans les réglages, flèche de retour à gauche (connexion)
-  const back = el('a', { class: 'topbar-btn topbar-back', href: '#/login' }, icon('back', 22), el('span', {}, t('menu.back')));
-  const gear = el('a', { class: 'topbar-btn topbar-gear', href: '#/settings', 'aria-label': t('nav.settings') }, icon('settings', 22));
-  const bar = el('header', { class: 'topbar' }, open, back, el('span', { class: 'topbar-title', 'aria-hidden': 'true' }), gear);
+  // Sans compte : engrenage à droite, qui ouvre le menu des réglages (thème, langue)
+  const gear = el('button', { type: 'button', class: 'topbar-btn topbar-gear', 'aria-haspopup': 'dialog', 'aria-label': t('nav.settings') }, icon('settings', 22));
+  gear.addEventListener('click', () => openSettingsMenu(gear));
+  const bar = el('header', { class: 'topbar' }, open, el('span', { class: 'topbar-title', 'aria-hidden': 'true' }), gear);
   document.body.insertBefore(bar, document.querySelector('.app'));
   // Hauteur réelle de la barre (zone sûre comprise) : les fenêtres du haut s'affichent dessous
   const syncHeight = () => document.documentElement.style.setProperty('--topbar-h', `${Math.round(bar.getBoundingClientRect().height)}px`);
@@ -46,10 +47,8 @@ function buildTopbar() {
     const s = state.get('session');
     open.hidden = !s;
     open.setAttribute('aria-label', t('shell.menu'));
-    const inSettings = (location.hash.replace(/^#\/?/, '').split('/')[0] || 'feed') === 'settings';
-    back.hidden = !!s || !inSettings;
-    gear.hidden = !!s || inSettings;
-    back.setAttribute('aria-label', t('menu.back')); gear.setAttribute('aria-label', t('nav.settings'));
+    gear.hidden = !!s;
+    gear.setAttribute('aria-label', t('nav.settings'));
     if (s) { requestProfile(s.pubkey); paintAvatar(avatar, s.pubkey, 34); }
   };
 

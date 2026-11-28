@@ -200,13 +200,6 @@ export function renderSettings(main, params = []) {
     status.className = 'status status-ok'; status.textContent = t('settings.saved');
   };
   const form = (...fields) => { const f = el('form', { class: 'form' }, ...fields, status); f.addEventListener('submit', (e) => e.preventDefault()); return f; };
-  // Sans compte : seulement le thème et la langue (le reste n'a pas d'effet tant qu'aucun fil n'est affiché)
-  if (!state.get('session')) {
-    main.replaceChildren(pageTitle('nav.settings'), form(
-      select('theme', 'settings.theme', [['auto', 'theme.auto'], ['light', 'theme.light'], ['dark', 'theme.dark']], s.theme, (v) => save({ theme: v })),
-      select('lang', 'settings.lang', [['fr', 'lang.fr'], ['en', 'lang.en']], s.lang, (v) => save({ lang: v }))));
-    return undefined;
-  }
   const sec = SECTIONS.find((x) => x.id === params[0] && available(x));
   if (!sec) {
     main.replaceChildren(pageTitle('nav.settings'), el('ul', { class: 'drawer-list settings-menu' },
