@@ -73,7 +73,11 @@ export function renderLogin(main) {
     location.hash = takeReturnTo();
   });
 
-  main.replaceChildren(pageTitle('nav.login'),
+  // Logo Libestria (WebP animé, fichier à déposer dans img/ à côté de index.html)
+  const logo = el('div', { class: 'login-logo' },
+    el('img', { src: 'img/logo-libestria.webp', alt: 'Libestria', width: 128, height: 128, decoding: 'async' }));
+
+  main.replaceChildren(pageTitle('nav.login'), logo,
     section('login.ro.title', 'eye', form),
     section('login.ext.title', 'puzzle', el('p', { class: 'hint' }, t(hasExtension() ? 'login.ext.hint' : 'login.ext.missing')), extBtn),
     section('login.bunker.title', 'lock', bunkerSection(setMsg)),
