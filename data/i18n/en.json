@@ -541,5 +541,7 @@
   "note.report.hint": "A report is a public event (NIP-56) visible to every relay that receives it.",
   "note.sec.author": "Author",
   "note.sec.note": "Note",
-  "note.sec.moderation": "Moderation"
+  "note.sec.moderation": "Moderation",
+  "settings.shareClient": "Show the client used",
+  "settings.shareClient.hint": "Your notes carry the “via Libestria Web” mention (public “client” tag, NIP-89)."
 }
