@@ -55,10 +55,10 @@ function openLoginMenu(opener) {
   const open = (titleKey, build) => (node) => { const { msg, setMsg } = page(); pushPage(dlg, { title: t(titleKey), body: [build(setMsg, finish), msg], opener: node }); };
 
   const items = [
-    ['puzzle', 'login.menu.ext', open('login.ext.title', (setMsg) => extensionPage(setMsg, finish))],
-    ['lock', 'login.menu.bunker', open('login.bunker.title', (setMsg) => bunkerSection(setMsg, finish))],
-    ['link', 'login.menu.nc', open('login.nc.title', (setMsg) => nostrConnectSection(setMsg, finish))],
-    ['eye', 'login.menu.explore', open('login.ro.title', (setMsg) => explorePage(setMsg, finish))],
+    ['puzzle', 'login.ext.title', open('login.ext.title', (setMsg) => extensionPage(setMsg, finish))],
+    ['lock', 'login.bunker.title', open('login.bunker.title', (setMsg) => bunkerSection(setMsg, finish))],
+    ['link', 'login.nc.title', open('login.nc.title', (setMsg) => nostrConnectSection(setMsg, finish))],
+    ['eye', 'login.ro.title', open('login.ro.title', (setMsg) => explorePage(setMsg, finish))],
   ];
   const list = el('ul', { class: 'drawer-list nm-list' });
   for (const [ic, key, run] of items) {
@@ -164,7 +164,6 @@ function nostrConnectSection(setMsg, finish) {
       mine = await startNostrConnect({ relays, name: 'Client Nostr Libestria', url: location.origin });
       const title = el('h2', { id: 'nc-title' }, t('login.nc.title'));
       const x = closeButton(t('zap.close'));
-      const open = el('a', { class: 'btn', href: mine.uri }, t('login.nc.open'));
       const copy = el('button', { type: 'button', class: 'btn' }, t('login.nc.copy'));
       copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(mine.uri); setMsg(t('profile.copied'), 'ok'); } catch { setMsg(t('profile.copyFail'), true); } });
       const cancel = el('button', { type: 'button', class: 'btn' }, t('login.nc.cancel'));
@@ -174,7 +173,7 @@ function nostrConnectSection(setMsg, finish) {
         el('div', { class: 'nc-body' },
           el('p', { class: 'hint' }, t('login.nc.hint')), qrSlot,
           el('code', { class: 'nc-link' }, mine.uri),
-          el('div', { class: 'nc-actions' }, open, copy),
+          el('div', { class: 'nc-actions' }, copy),
           el('p', { class: 'hint nc-wait', role: 'status' }, t('login.nc.waiting')), cancel));
       const closing = () => { if (!finished) mine.cancel(); setMsg(''); end(); };
       x.addEventListener('click', () => dlg.close());
