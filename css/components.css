@@ -561,9 +561,9 @@ html[data-kbd] .searchbox:focus-within { outline-width: 1.5px; }
 .qr { display: block; width: min(100%, 20rem); height: auto; aspect-ratio: 1; margin: .75rem auto; border-radius: 14px; }
 
 /* Fenêtre Nostr Connect (même gabarit que la fenêtre des détails) */
-.nc-body { display: grid; gap: .75rem; padding: var(--sheet-top) var(--sheet-side) var(--sheet-space); overflow-y: auto; }
+.nc-body { display: grid; grid-auto-rows: max-content; gap: .75rem; padding: var(--sheet-top) var(--sheet-side) var(--sheet-space); overflow-y: auto; }
 .nc-body .hint { margin: 0; padding: 0; }
-.nc-dialog { max-height: calc(100dvh - 270px); }   /* centrée : son bas reste au-dessus du bandeau de message (le corps défile si l'écran est petit) */
+.nc-dialog { max-height: calc(100dvh - 200px); }   /* le bas reste au-dessus du bandeau de message ; sur petit écran, le corps défile */
 .nc-link { display: block; max-height: 4rem; overflow: auto; font-size: .75rem; overflow-wrap: anywhere; word-break: break-all; user-select: text; -webkit-user-select: text; }
 .nc-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
 .nc-actions .btn, .nc-body > .btn { width: 100%; justify-content: center; text-align: center; white-space: nowrap; }
@@ -627,6 +627,8 @@ html, body { height: 100%; overflow: hidden; }
 .section-title .icon { flex: none; color: var(--accent); }
 /* Connexion : même écart (.75rem) entre le texte explicatif et le champ ou le bouton, dans les quatre sections */
 .login-field { gap: .75rem; }
+.login-stack { display: grid; grid-template-columns: 1fr; gap: .75rem; }   /* champ puis bouton pleine largeur */
+.login-stack .btn { width: 100%; justify-content: center; }
 
 /* Corps d'une note : tous les blocs (texte, image, vidéo, aperçu de lien, note citée…) sont séparés de 8 px, et de 8 px de l'en-tête et des boutons */
 .note-body { display: flex; flex-direction: column; gap: .5rem; margin-block: .5rem; min-width: 0; }
