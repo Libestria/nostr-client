@@ -471,8 +471,17 @@ html[data-kbd] .link-card:focus-visible { border-color: var(--line-hover, var(--
 /* Grand écran avec barre latérale : les fenêtres sont centrées sur la zone de contenu (à droite de la barre), pas sur tout l'écran */
 @media (min-width: 75rem) { body.has-sidebar :is(.note-menu, .stats-dialog, .compose-dialog) { inset-inline: 17rem 0; width: min(calc(100vw - 17rem - 20px), 34rem); } }
 @keyframes sheet-top { from { opacity: 0; transform: translateY(-24px); } to { opacity: 1; transform: none; } }
-.note-menu[open], .stats-dialog[open], .compose-dialog[open] { animation: sheet-top .2s ease-out; }
-@media (prefers-reduced-motion: reduce) { .note-menu[open], .stats-dialog[open], .compose-dialog[open] { animation: none; } }
+.compose-dialog[open] { animation: sheet-top .2s ease-out; }
+/* Menus, sous-menus, statistiques, QR : se déplient sur place (ressort), contenu flou → net ; disparition inversée (voir js/ui/sheetanim.js) */
+@keyframes sheet-in { from { transform: scale(.55); opacity: 0; border-radius: 60px; } 60% { opacity: 1; } to { transform: none; opacity: 1; } }
+@keyframes sheet-out { from { transform: none; opacity: 1; } to { transform: scale(.82); opacity: 0; border-radius: 40px; } }
+@keyframes sheet-ct-in { from { filter: blur(8px); opacity: 0; } 55% { opacity: 1; } to { filter: blur(0); opacity: 1; } }
+@keyframes sheet-ct-out { from { filter: blur(0); opacity: 1; } to { filter: blur(6px); opacity: 0; } }
+.sheet-in { animation: sheet-in 380ms cubic-bezier(.2, 1.25, .35, 1) both; }
+.sheet-out { animation: sheet-out 160ms cubic-bezier(.4, 0, 1, 1) both; }
+.sheet-in > * { animation: sheet-ct-in 380ms ease-out both; }
+.sheet-out > * { animation: sheet-ct-out 160ms ease-in both; }
+@media (prefers-reduced-motion: reduce) { .compose-dialog[open], .sheet-in, .sheet-out, .sheet-in > *, .sheet-out > * { animation: none; } }
 .note-menu { overflow-y: auto; }
 
 /* Repost / réponse décalés, temps non cliquable, appui long sur une note */
@@ -606,13 +615,7 @@ html, body { height: 100%; overflow: hidden; }
 /* Sous-menus des fenêtres : pages empilées, la nouvelle glisse depuis la droite */
 .sheet-pages { display: grid; grid-template-columns: minmax(0, 1fr); overflow-x: clip; }
 .sheet-page { grid-area: 1 / 1; min-width: 0; background: transparent; }
-.sheet-sub { background: var(--sheet-solid, var(--surface)); z-index: 1; }
-@keyframes sheet-collapse { to { height: 0; overflow: hidden; visibility: hidden; } }
-.sheet-under { animation: sheet-collapse 0s .25s forwards; }
-@keyframes sheet-from-right { from { transform: translateX(100%); } to { transform: none; } }
-@keyframes sheet-to-right { from { transform: none; } to { transform: translateX(100%); } }
-.sheet-enter { animation: sheet-from-right .25s cubic-bezier(.2, .8, .2, 1); }
-.sheet-leave { animation: sheet-to-right .22s ease-in forwards; }
+.sheet-page[hidden] { display: none; }   /* sous-menu affiché : le menu du dessous est masqué (jamais superposé), le fond verre reste celui de la fenêtre */
 :is(.note-menu, .stats-dialog, .compose-dialog) .sheet-subhead { display: grid; grid-template-columns: 32px 1fr 32px; align-items: center; gap: .5rem; padding: .7rem .75rem; border-bottom: 1px solid var(--sheet-sep); }
 .sheet-subhead h2 { margin: 0; font-size: 1.2rem; font-weight: 600; text-align: center; overflow-wrap: anywhere; }
 .nm-list .nm-chev { margin-left: auto; display: inline-flex; }
@@ -711,14 +714,19 @@ body.signed-out .nav { display: none; }
 .topbar-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; border-radius: 50%; color: var(--accent); text-decoration: none; }
 .topbar-btn[hidden] { display: none; }
 .topbar-gear { margin-left: auto; }
+.topbar-back { gap: .15rem; padding: 0 .75rem 0 .25rem; border-radius: 12px; font-size: 1.05rem; font-weight: 500; }   /* chevron + « Retour » */
 
 /* Page de connexion : logo qui grandit avec l'écran, message d'accueil, bouton « Se connecter » (largeur limitée sur grand écran) */
 .login-logo img { width: 128px; height: 128px; }
 @media (min-width: 48rem) { .login-logo img { width: 192px; height: 192px; } }
 @media (min-width: 75rem) { .login-logo img { width: 256px; height: 256px; } }
 .login-welcome { text-align: center; }
-.login-welcome h2 { margin: 0 0 .6rem; font-size: 1.4rem; }
+.login-welcome h2 { margin: 0 0 .6rem; font-size: 1.4rem; color: var(--ink); }
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .login-welcome h2 { color: transparent; background: var(--grad-title); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+}
 .login-welcome p { margin: 0 0 .75rem; color: var(--muted); max-width: none; }
+.login-welcome h2 + p { color: var(--ink); }   /* phrase d'accroche : couleur d'encre du thème (blanche en sombre) */
 .login-cta-wrap { display: flex; justify-content: center; }
 .login-cta { width: 100%; max-width: 20rem; min-height: 48px; font-size: 1.05rem; justify-content: center; }
 /* Sous-menus de connexion */

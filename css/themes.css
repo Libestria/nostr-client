@@ -21,7 +21,7 @@
   --nav-hover-bg: #ece7f7;
   --nav-hover-text: #4b1fa8;
   --stops: #e6dcfa 0%, #e0e4fa 25%, #eef0fb 50%, #f5f3fa 75%;
-  --grad-title: linear-gradient(105deg, #7b2fd0 0%, #c026b8 50%, #1d6fd6 100%);
+  --grad-title: linear-gradient(105deg, #8a2be2 0%, #7b2fd6 25%, #c4259f 52%, #5b4bd8 75%, #0f86c8 100%);   /* titre de bienvenue, thème clair : teintes du site, plus foncées */
   --scrim: rgb(28 23 48 / 55%);
 
   /* Dérivés : valables pour les deux thèmes */
