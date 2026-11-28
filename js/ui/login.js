@@ -136,8 +136,8 @@ function nostrConnectSection(setMsg, finish) {
         el('div', { class: 'nc-body' },
           el('p', { class: 'hint' }, t('login.nc.hint')), qrSlot,
           el('code', { class: 'nc-link' }, mine.uri),
-          el('div', { class: 'nc-actions' }, copy),
-          el('p', { class: 'hint nc-wait', role: 'status' }, t('login.nc.waiting')), cancel));
+          el('div', { class: 'nc-actions' }, copy, cancel),
+          el('p', { class: 'hint nc-wait', role: 'status' }, t('login.nc.waiting'))));   // le message s'affiche en bandeau en bas de l'écran
       const closing = () => { if (!finished) mine.cancel(); setMsg(''); end(); };
       x.addEventListener('click', () => dlg.close());
       cancel.addEventListener('click', () => dlg.close());
