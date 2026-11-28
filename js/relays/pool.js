@@ -122,6 +122,15 @@ export class Pool {
   }
 
   onChange(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
+  // NIP-45 : nombre d'événements correspondant aux filtres, d'après les relais de lecture connectés qui gèrent COUNT.
+  // Plus grande valeur reçue (un relais ne voit qu'une partie du réseau) ; null si aucun relais n'a répondu.
+  async count(filters, { timeout = 4000 } = {}) {
+    const list = (Array.isArray(filters) ? filters : [filters]).slice(0, 10);
+    const targets = [...this.relays.values()].filter((r) => r.state === 'open' && r.read && r.scope === 'account' && (!Array.isArray(r.info?.nips) || r.info.nips.includes(45)));
+    const res = (await Promise.all(targets.map((r) => r.count(list, timeout)))).filter((n) => n != null);
+    return res.length ? Math.max(...res) : null;
+  }
+
   // Publie sur les relais d'écriture connectés : [{ url, ok, message }]
   publish(event) {
     const targets = [...this.relays.values()].filter((r) => r.write && r.scope === 'account' && r.state === 'open');

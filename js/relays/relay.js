@@ -5,6 +5,7 @@ import { readJsonLimited } from '../nostr/http.js';
 const MAX_EVENTS_PER_SEC = 500;
 const MAX_MESSAGE_CHARS = 1_000_000;
 const BACKOFF_MAX_MS = 60_000;
+let countSeq = 0;
 
 export class Relay {
   constructor(url, hooks) {
@@ -26,6 +27,7 @@ export class Relay {
     this.authChallenge = null;    // NIP-42 : traité au jalon réseau
     this.subs = new Map();
     this.pendingOk = new Map();   // id d'événement → callback (accusé OK du relais)
+    this.counts = new Map();      // id de requête COUNT (NIP-45) → callback
     this.active = new Set();
     this.ws = null;
     this.timer = null;
@@ -44,6 +46,7 @@ export class Relay {
     clearTimeout(this.timer);
     this.timer = null;
     this._failPending('closed');
+    this._failCounts();
     const ws = this.ws;
     this.ws = null;
     this.active.clear();
@@ -97,6 +100,7 @@ export class Relay {
       this.ws = null;
       this.active.clear();
       this._failPending('closed');
+      this._failCounts();
       if (this.wanted) { this._set('retrying'); this._retry(); } else this._set('closed');
     };
   }
@@ -154,6 +158,20 @@ export class Relay {
     for (const [id, cb] of this.pendingOk) { this.pendingOk.delete(id); cb(false, message); }
   }
 
+  _failCounts() { for (const cb of [...this.counts.values()]) cb(null); }
+
+  // NIP-45 : nombre d'événements correspondant aux filtres, ou null (relais sans COUNT, refus, délai dépassé).
+  count(filters, timeout = 4000) {
+    return new Promise((resolve) => {
+      if (this.state !== 'open') return resolve(null);
+      const id = `c${(++countSeq).toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+      const timer = setTimeout(() => done(null), timeout);
+      const done = (n) => { clearTimeout(timer); this.counts.delete(id); resolve(n); };
+      this.counts.set(id, done);
+      this._send(['COUNT', id, ...filters]);
+    });
+  }
+
   _send(msg) { if (this.ws?.readyState === 1) this.ws.send(JSON.stringify(msg)); }
 
   _pump() {
@@ -182,7 +200,14 @@ export class Relay {
         break;
       }
       case 'EOSE': this.subs.get(msg[1])?.markEose(this.url); break;
+      case 'COUNT': {
+        const cb = this.counts.get(msg[1]);
+        const n = msg[2]?.count;
+        if (cb) cb(Number.isSafeInteger(n) && n >= 0 ? n : null);
+        break;
+      }
       case 'CLOSED': {
+        if (this.counts.has(msg[1])) { this.counts.get(msg[1])(null); break; }   // COUNT refusé
         const sub = this.subs.get(msg[1]);
         this.active.delete(msg[1]);
         this.notice = String(msg[2] ?? '').slice(0, 200);
@@ -221,7 +246,8 @@ export class Relay {
       if (!res.ok) return;
       const j = await readJsonLimited(res);
       const s = (v) => (typeof v === 'string' ? v.slice(0, 200) : undefined);
-      this.info = { name: s(j.name), description: s(j.description), software: s(j.software) };
+      this.info = { name: s(j.name), description: s(j.description), software: s(j.software),
+        nips: Array.isArray(j.supported_nips) ? j.supported_nips.filter(Number.isInteger).slice(0, 200) : undefined };
       const ms = j?.limitation?.max_subscriptions;
       if (Number.isInteger(ms) && ms > 0) { this.maxSubs = Math.min(10, ms); this._pump(); }
       this.hooks.onChange();
