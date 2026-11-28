@@ -706,3 +706,18 @@ body.signed-out .nav { display: none; }
 .topbar-btn { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; border-radius: 50%; color: var(--accent); text-decoration: none; }
 .topbar-btn[hidden] { display: none; }
 .topbar-gear { margin-left: auto; }
+
+/* Page de connexion : logo qui grandit avec l'écran, message d'accueil, bouton « Se connecter » (largeur limitée sur grand écran) */
+.login-logo img { width: 128px; height: 128px; }
+@media (min-width: 48rem) { .login-logo img { width: 192px; height: 192px; } }
+@media (min-width: 75rem) { .login-logo img { width: 256px; height: 256px; } }
+.login-welcome { text-align: center; }
+.login-welcome h2 { margin: 0 0 .6rem; font-size: 1.4rem; }
+.login-welcome p { margin: 0 0 .75rem; color: var(--muted); max-width: none; }
+.login-cta-wrap { display: flex; justify-content: center; }
+.login-cta { width: 100%; max-width: 20rem; min-height: 48px; font-size: 1.05rem; justify-content: center; }
+/* Sous-menus de connexion */
+.login-page { display: grid; gap: .9rem; padding: .75rem 1.1rem 1rem; }
+.login-page .hint, .login-page .field { margin: 0; }
+.nm-msg { margin: 0; padding: .6rem 1.1rem; }
+.nowrap { white-space: nowrap; }
