@@ -34,8 +34,10 @@ export function scrollToTop(smooth = true) {
 // (sinon le cadre de focus apparaît sur le bouton après un simple appui).
 let keyboardUsed = false;
 if (typeof addEventListener === 'function') {
-  addEventListener('keydown', () => { keyboardUsed = true; }, true);
-  addEventListener('pointerdown', () => { keyboardUsed = false; }, true);
+  // Cadre de focus : visible seulement après Tab au clavier (html[data-kbd]) ; masqué dès le moindre appui ou clic
+  const root = document.documentElement;
+  addEventListener('keydown', (e) => { keyboardUsed = true; if (e.key === 'Tab') root.setAttribute('data-kbd', ''); }, true);
+  addEventListener('pointerdown', () => { keyboardUsed = false; root.removeAttribute('data-kbd'); }, true);
 }
 // Écrit un message d'état et sa couleur dans l'élément : 'info' (blanc), 'ok' (vert), 'warn' (orange), 'error' (rouge).
 // La fenêtre du bas reprend le texte et la couleur.
@@ -51,6 +53,7 @@ export function closeButton(label, { cls = '', title = null } = {}) {
 }
 
 export const returnFocus = (node) => { if (keyboardUsed) node?.focus?.(); };
+export const keyboardActive = () => keyboardUsed;
 
 // Titre de page : le <h1> reste dans le document (accessibilité) ; sur mobile il est masqué et le titre s'affiche dans la barre fixe du haut.
 export function pageTitle(key) {

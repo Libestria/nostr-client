@@ -1,7 +1,8 @@
 // Composeur de notes / réponses, et affichage du résultat de publication par relais.
 import { t } from '../i18n.js';
 import { getSigner } from '../auth.js';
-import { buildNote, MAX_NOTE_CHARS } from '../nostr/compose.js';
+import { state } from '../state.js';
+import { buildNote, MAX_NOTE_CHARS, CLIENT_NAME } from '../nostr/compose.js';
 import { publishEvent, republishEvent } from '../publish.js';
 import { el, publishKind } from './common.js';
 
@@ -54,7 +55,7 @@ export function composer({ reply = null, onPublished, quote = null } = {}) {
     e.preventDefault();
     if (busy || !getSigner()) return;
     let tpl;
-    try { tpl = buildNote(area.value, { reply }); } catch (err) { showError(err); return; }
+    try { tpl = buildNote(area.value, { reply, client: state.get('settings')?.shareClient === false ? null : CLIENT_NAME }); } catch (err) { showError(err); return; }
     busy = true; send.disabled = true; out.replaceChildren(t('lists.publishing'));
     try {
       const res = await publishEvent(tpl);

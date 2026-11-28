@@ -218,6 +218,7 @@ export function renderSettings(main, params = []) {
       checkbox('loadMedia', 'settings.media', 'settings.media.hint', s.loadMedia, (v) => save({ loadMedia: v })),
       checkbox('linkPreviews', 'settings.previews', 'settings.previews.hint', s.linkPreviews !== false, (v) => save({ linkPreviews: v })),
       previewServiceField(s, save, status),
+      checkbox('shareClient', 'settings.shareClient', 'settings.shareClient.hint', s.shareClient !== false, (v) => save({ shareClient: v })),
       checkbox('readOnly', 'settings.readOnly', 'settings.readOnly.hint', s.readOnly, (v) => save({ readOnly: v })),
       ...(typeof Notification !== 'undefined' ? [checkbox('browserNotify', 'settings.notify', 'settings.notify.hint', s.browserNotify, async (v) => {
         if (v && Notification.permission !== 'granted') {
