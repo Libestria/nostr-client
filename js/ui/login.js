@@ -94,7 +94,7 @@ function bunkerSection(setMsg, finish) {
   const go = el('button', { type: 'submit', class: 'btn' }, t('login.bunker.button'));
   const form = el('form', { class: 'form' }, el('div', { class: 'field login-field' },
     el('p', { class: 'hint', id: 'bunker-hint' }, t('login.bunker.hint')),
-    el('div', { class: 'row' }, input, go)));
+    el('div', { class: 'row login-stack' }, input, go)));
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const value = input.value.trim();
