@@ -3,12 +3,18 @@ import { state } from '../state.js';
 import { pool } from '../relays/pool.js';
 import { latest, getReplaceable, putEvent } from '../storage/db.js';
 import { decode, npubEncode } from '../nostr/nip19.js';
-import { resolveNip05, parseIdentifier } from '../nostr/nip05.js';
+import { resolveNip05 } from '../nostr/nip05.js';
+import { tagUrls } from '../nostr/relaylists.js';
 import { parseContacts, buildContactsTemplate } from '../nostr/contacts.js';
 import { getCached, onProfiles, requestProfile } from '../profiles.js';
 import { getSigner } from '../auth.js';
 import { el, pageTitle, stateBlock, shortNpub, publishKind } from './common.js';
-import { authorLink, noteCard, updateAuthors } from './note.js';
+import { authorLink, noteCard, updateAuthors, nip05Line } from './note.js';
+import { icon } from './icons.js';
+import { toast } from './toast.js';
+import { openSheet } from './listwindow.js';
+import { fitLine } from './fit.js';
+import { qrSvg } from './qr.js';
 import { profileEditor } from './profile-edit.js';
 import { planFor } from '../relays/outbox.js';
 import { zapPanel } from './zap.js';
@@ -19,9 +25,66 @@ const PAGE = 30;
 const PEOPLE_PAGE = 50;
 const HEX64 = /^[0-9a-f]{64}$/;
 
-function nip05Label(text) {
-  const id = parseIdentifier(text);
-  return id ? (id.name === '_' ? id.domain : `${id.name}@${id.domain}`) : text;
+const FOLLOWERS_LIMIT = 200;      // demande par relais : au-delà, la liste est tronquée (affichage « N+ »)
+const COUNT_CAP = 1000;           // « 1000+ » à partir de ce nombre
+
+// Bouton « copier » d'une valeur : confirmation verte, ou erreur rouge
+function copyButton(text, label) {
+  const b = el('button', { type: 'button', class: 'p-icon', title: label, 'aria-label': label }, icon('copy', 16));
+  b.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(text); toast(t('profile.copied'), { kind: 'ok' }); } catch { toast(t('profile.copyFail'), { error: true }); }
+  });
+  return b;
+}
+
+// Fenêtre Liquid listant des comptes : source.get() → { pks, loading, note } ; source.on(fn) → arrêt. Tap sur un compte : ouvre son profil.
+function openPeople({ title, opener, source, emptyKey }) {
+  const body = el('div', { class: 'sheet-body' });
+  let shown = PEOPLE_PAGE, off = () => {}, stopProfiles = () => {};
+  const paint = () => {
+    const { pks, loading, note } = source.get();
+    if (!pks.length) { body.replaceChildren(loading ? stateBlock('loading', 'state.loading') : el('p', { class: 'sheet-note' }, t(emptyKey))); return; }
+    const ul = el('ul', { class: 'sheet-people' }, ...pks.slice(0, shown).map((pk) => el('li', {}, authorLink(pk))));
+    const kids = [...(note ? [el('p', { class: 'sheet-note' }, note)] : []), ul];
+    if (shown < pks.length) {
+      const more = el('button', { type: 'button', class: 'btn' }, t('people.more'));
+      more.addEventListener('click', () => { shown += PEOPLE_PAGE; paint(); });
+      kids.push(el('div', { class: 'sheet-more' }, more));
+    }
+    body.replaceChildren(...kids);
+    updateAuthors(body);
+  };
+  const dlg = openSheet({ title, opener, body, cls: 'people-window', onClose: () => { off(); stopProfiles(); } });
+  body.addEventListener('click', (e) => { if (e.target.closest('a')) dlg.close(); });
+  off = source.on(paint);
+  stopProfiles = onProfiles(() => { if (dlg.isConnected) updateAuthors(body); });
+  paint();
+}
+
+// Fenêtre Liquid des relais publiés par le compte, avec l'état de connexion de chacun
+function openRelays({ opener, urlsOf }) {
+  const body = el('div', { class: 'sheet-body' });
+  const paint = () => {
+    const urls = urlsOf();
+    if (!urls) { body.replaceChildren(stateBlock('loading', 'state.loading')); return; }
+    if (!urls.length) { body.replaceChildren(el('p', { class: 'sheet-note' }, t('profile.noRelays'))); return; }
+    const open = new Set(pool.status().filter((r) => r.state === 'open').map((r) => r.url));
+    body.replaceChildren(el('ul', { class: 'sheet-people sheet-relays' }, ...urls.map((u) => el('li', {},
+      el('span', { class: 'rl-url' }, u), el('span', { class: `rl-state${open.has(u) ? ' rl-on' : ''}` }, t(open.has(u) ? 'profile.relay.on' : 'profile.relay.off'))))));
+  };
+  const off = pool.onChange(paint);
+  openSheet({ title: t('profile.relays.title'), opener, body, cls: 'people-window', onClose: off });
+  paint();
+}
+
+// Fenêtre Liquid de l'adresse Lightning : QR code, adresse, copie
+function openLightning(opener, address) {
+  const slot = el('div', { class: 'nc-qr' });
+  const copy = el('button', { type: 'button', class: 'btn' }, t('profile.ln.copy'));
+  copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(address); toast(t('profile.copied'), { kind: 'ok' }); } catch { toast(t('profile.copyFail'), { error: true }); } });
+  const body = el('div', { class: 'nc-body' }, slot, el('code', { class: 'nc-link' }, address), copy);
+  openSheet({ title: t('profile.ln.title'), opener, body });
+  qrSvg(`lightning:${address}`, t('profile.ln.qr')).then((svg) => slot.append(svg)).catch(() => {});   // sans bibliothèque : adresse seule
 }
 
 export function renderProfile(main, params) {
@@ -65,12 +128,83 @@ export function renderProfile(main, params) {
     const head = el('section', { class: 'p-head' });
     const actions = el('div', { class: 'row' });
     const msg = el('p', { class: 'status', role: 'status' });
-    const tabbar = el('div', { class: 'tabs', role: 'group', 'aria-label': t('profile.sections') });
-    const panel = el('div');
-    body.replaceChildren(head, actions, msg, tabbar, panel);
+    const panel = el('div', { class: 'p-notes' });
+    body.replaceChildren(head, actions, msg, panel);
 
-    // ---- en-tête et NIP-05
-    let nip05State = null, nip05For = null, shown = undefined, followsMe = false;
+    // ---- en-tête : bannière, avatar + nom, identifiants, barre de statistiques, bio
+    let shown = undefined, followsMe = false;
+    let theirs = null, followsDone = false, theirRelays = null, relaysDone = false;
+    const followers = { found: new Map(), done: false, sub: null, listeners: new Set(), draw: null };
+    const fc = { count: null, tried: false };
+
+    const notifyFollowers = () => { followers.draw ||= setTimeout(() => { followers.draw = null; followers.listeners.forEach((fn) => fn()); paintStats(); }, 200); };
+    const startFollowers = () => {
+      if (followers.sub || !alive) return;
+      followers.sub = pool.subscribe([{ kinds: [3], '#p': [pubkey], limit: FOLLOWERS_LIMIT }], {
+        closeOnEose: true, maxEvents: 300,
+        onevent: (ev) => { if (ev.kind === 3 && !followers.found.has(ev.pubkey) && parseContacts(ev).includes(pubkey)) { followers.found.set(ev.pubkey, ev); notifyFollowers(); } },
+        oneose: () => { followers.done = true; notifyFollowers(); },
+      });
+      paintStats();
+    };
+    stops.push(() => { followers.sub?.close(); clearTimeout(followers.draw); });
+
+    // Texte du compteur d'abonnés : « … » pendant le chargement, « 1000+ » à partir de 1000 (COUNT),
+    // « N+ » quand la recherche sur les relais s'arrête avant la fin (liste tronquée)
+    const followersText = () => {
+      const seen = followers.found.size, c = fc.count ?? 0;
+      if (c >= COUNT_CAP) return { n: COUNT_CAP, text: `${COUNT_CAP}+` };
+      if (!fc.tried || (!c && !seen && !(followers.sub && followers.done))) return { n: 2, text: '…' };
+      const n = Math.max(c, seen);
+      return { n, text: `${n}${seen >= FOLLOWERS_LIMIT && seen >= c ? '+' : ''}` };
+    };
+    const statBtn = (cls) => el('button', { type: 'button', class: `p-stat ${cls}`, 'aria-haspopup': 'dialog' });
+    const sFollows = statBtn('p-stat-follows'), sFollowers = statBtn('p-stat-followers'), sRelays = statBtn('p-stat-relays');
+    const dot = () => el('span', { class: 'p-dot', 'aria-hidden': 'true' }, '\u2022');
+    const stats = el('div', { class: 'p-stats' }, sFollows, dot(), sFollowers, dot(), sRelays);
+    const relayUrls = () => (relaysDone || theirRelays ? (theirRelays ? tagUrls(theirRelays, 'pub') : []) : null);
+    function paintStats() {
+      const nf = theirs ? parseContacts(theirs).length : followsDone ? 0 : null;
+      sFollows.textContent = t(nf != null && nf < 2 ? 'profile.stat.follows.one' : 'profile.stat.follows', { n: nf ?? '…' });
+      const f = followersText();
+      sFollowers.textContent = t(f.n < 2 ? 'profile.stat.followers.one' : 'profile.stat.followers', { n: f.text });
+      const urls = relayUrls();
+      if (urls && !urls.length) sRelays.textContent = t('profile.stat.relays.none');
+      else {
+        const open = new Set(pool.status().filter((r) => r.state === 'open').map((r) => r.url));
+        sRelays.textContent = t('profile.stat.relays', { x: urls ? urls.filter((u) => open.has(u)).length : '…', y: urls ? urls.length : '…' });
+      }
+      layoutStats();
+    }
+    // Sur écran étroit les trois éléments passent à la ligne : on masque alors les puces « • » (une puce ne doit jamais finir une ligne)
+    const layoutStats = () => {
+      stats.classList.remove('wrapped');
+      if (sRelays.offsetTop > sFollows.offsetTop + 4) stats.classList.add('wrapped');
+    };
+    if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(() => { if (!stats.isConnected) return; layoutStats(); }); ro.observe(stats); stops.push(() => ro.disconnect()); }
+    sFollows.addEventListener('click', () => openPeople({ title: t('profile.tab.follows'), opener: sFollows, emptyKey: 'profile.noFollows',
+      source: { get: () => ({ pks: theirs ? parseContacts(theirs) : [], loading: !followsDone && !theirs }), on: (fn) => { followsListeners.add(fn); return () => followsListeners.delete(fn); } } }));
+    sFollowers.addEventListener('click', () => {
+      startFollowers();
+      openPeople({ title: t('profile.tab.followers'), opener: sFollowers, emptyKey: 'profile.noFollowers',
+        source: {
+          get: () => { const pks = [...followers.found.keys()]; return { pks, loading: !followers.done, note: pks.length ? t('profile.followers.note', { n: pks.length }) : null }; },
+          on: (fn) => { followers.listeners.add(fn); return () => followers.listeners.delete(fn); },
+        } });
+    });
+    sRelays.addEventListener('click', () => openRelays({ opener: sRelays, urlsOf: relayUrls }));
+    const followsListeners = new Set();
+    stops.push(pool.onChange(paintStats));
+
+    // Une ligne « titre / valeur » ; la valeur tient sur une seule ligne (raccourcie au milieu si besoin), suivie d'icônes d'action
+    const idRow = (titleKey, value, actions) => el('div', { class: 'p-row' }, el('dt', {}, t(titleKey)), el('dd', {}, value, ...actions));
+    const keyRow = (titleKey, full, label) => {
+      const v = el('span', { class: 'p-val ident' });
+      const row = idRow(titleKey, v, [copyButton(full, label)]);
+      queueMicrotask(() => fitLine(v, full));
+      return row;
+    };
+
     const paintHead = () => {
       const p = getCached(pubkey);
       const media = state.get('settings')?.loadMedia;
@@ -79,30 +213,33 @@ export function renderProfile(main, params) {
         ? el('img', { class: 'avatar avatar-lg', src: p.picture, alt: '', width: 72, height: 72, loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' })
         : el('span', { class: 'avatar avatar-lg', 'aria-hidden': 'true' });
       av.addEventListener?.('error', () => av.remove());
-      const badge = p?.nip05 ? el('p', { class: 'nip05' },
-        el('span', { class: `badge badge-${nip05State ?? 'checking'}` }, t(`nip05.${nip05State ?? 'checking'}`)), ' ', el('span', { class: 'ident' }, nip05Label(p.nip05))) : null;
+      const over = media && p?.banner;
+      const rows = [];
+      if (p) {
+        const n05 = typeof p.nip05 === 'string' ? p.nip05.trim() : '';
+        rows.push(idRow('profile.id.nip05', nip05Line(pubkey), n05 ? [copyButton(n05.startsWith('_@') ? n05.slice(2) : n05, t('profile.copy.nip05'))] : []));
+      }
+      rows.push(keyRow('profile.id.npub', npub, t('profile.copy.npub')), keyRow('profile.id.hex', pubkey, t('profile.copy.hex')));
+      if (p?.lud16) {
+        const qr = el('button', { type: 'button', class: 'p-icon', title: t('profile.ln.title'), 'aria-label': t('profile.ln.title'), 'aria-haspopup': 'dialog' }, icon('qr', 16));
+        qr.addEventListener('click', () => openLightning(qr, p.lud16));
+        rows.push(idRow('profile.id.ln', el('span', { class: 'p-val ident' }, p.lud16), [copyButton(p.lud16, t('profile.copy.ln')), qr]));
+      }
       head.replaceChildren(
-        ...(media && p?.banner ? [el('img', { class: 'p-banner', src: p.banner, alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' })] : []),
-        el('div', { class: `p-id${media && p?.banner ? ' p-id-over' : ''}` }, av, el('div', {}, el('h2', { class: 'p-name' }, name), followsMe ? el('p', { class: 'follows-you' }, t('profile.followsYou')) : null, badge)),
-        p?.about ? el('p', { class: 'p-about' }, p.about) : null,
-        p?.lud16 ? el('p', { class: 'ident' }, `⚡ ${p.lud16}`) : null,
-        el('p', { class: 'ident' }, npub));
-    };
-    const verify = async (p) => {
-      if (!p?.nip05 || nip05For === p.nip05) return;
-      nip05For = p.nip05; nip05State = 'checking'; paintHead();
-      try { nip05State = (await resolveNip05(p.nip05)).pubkey === pubkey ? 'ok' : 'bad'; }
-      catch (e) { nip05State = e?.message === 'not-found' ? 'bad' : 'unreachable'; }
-      if (alive) paintHead();
+        ...(over ? [el('img', { class: 'p-banner', src: p.banner, alt: '', loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' })] : []),
+        el('div', { class: `p-id${over ? ' p-id-over' : ''}` }, av, el('div', { class: 'p-who' }, el('h2', { class: 'p-name' }, name), followsMe ? el('p', { class: 'follows-you' }, t('profile.followsYou')) : null)),
+        el('dl', { class: 'p-ids' }, ...rows),
+        stats,
+        p?.about ? el('p', { class: 'p-about' }, p.about) : null);
     };
     const onProfile = () => {
       const p = getCached(pubkey);
-      if (p !== shown) { shown = p; paintHead(); verify(p); }
+      if (p !== shown) { shown = p; paintHead(); }
       updateAuthors(panel);
     };
     stops.push(onProfiles(onProfile));
     requestProfile(pubkey, { force: true });
-    onProfile(); paintHead();
+    onProfile(); paintHead(); paintStats();
 
     // ---- modification de son propre profil
     if (me && me === pubkey && getSigner()) {
@@ -120,13 +257,7 @@ export function renderProfile(main, params) {
       stops.push(() => editor?.stop());
     }
 
-    // ---- actions : copier, suivre
-    const copy = el('button', { type: 'button', class: 'btn' }, t('profile.copy'));
-    copy.addEventListener('click', async () => {
-      try { await navigator.clipboard.writeText(npub); msg.textContent = t('profile.copied'); msg.classList.remove('status-error'); msg.classList.add('status-ok'); } catch { msg.textContent = t('profile.copyFail'); msg.classList.remove('status-ok'); msg.classList.add('status-error'); }
-    });
-    actions.append(copy);
-
+    // ---- actions : suivre, zapper, masquer, modifier
     const say = (text, kind = false) => { msg.textContent = text; msg.classList.toggle('status-error', kind === true); msg.classList.toggle('status-ok', kind === 'ok'); msg.classList.toggle('status-warn', kind === 'warn'); };
     let mine = null, mineReady = false, mineRelays = 0, confirmEmpty = false, busy = false;
     const follow = el('button', { type: 'button', class: 'btn', disabled: true }, t('state.loading'));
@@ -185,26 +316,31 @@ export function renderProfile(main, params) {
     } else if (!me) actions.append(el('a', { class: 'btn', href: '#/login' }, t('login.cta')));
     paintFollow();
 
-    // ---- liste des abonnements de ce compte (kind 3)
-    let theirs = null;
-    const tabs = {};
-    const countLabel = (key, n) => (n == null ? t(key) : `${t(key)} (${n})`);
-    const theirSub = loadReplaceable(3, pubkey, (ev) => { theirs = ev; if (me && me !== pubkey) { const f = parseContacts(ev).includes(me); if (f !== followsMe) { followsMe = f; paintHead(); } } tabs.follows.textContent = countLabel('profile.tab.follows', parseContacts(ev).length); if (current === 'follows') show('follows'); });
-    stops.push(() => theirSub.close());
+    // ---- abonnements de ce compte (kind 3) et relais publiés (kind 10002)
+    const theirSub = loadReplaceable(3, pubkey,
+      (ev) => { theirs = ev; if (me && me !== pubkey) { const f = parseContacts(ev).includes(me); if (f !== followsMe) { followsMe = f; paintHead(); } } paintStats(); followsListeners.forEach((fn) => fn()); },
+      () => { followsDone = true; paintStats(); followsListeners.forEach((fn) => fn()); });
+    const relaySub = loadReplaceable(10002, pubkey, (ev) => { theirRelays = ev; paintStats(); }, () => { relaysDone = true; paintStats(); });
+    stops.push(() => theirSub.close(), () => relaySub.close());
+
+    // ---- nombre d'abonnés : COUNT (NIP-45) sur les relais qui le gèrent, sinon recherche de listes de contacts (repli)
+    const waitRelays = () => new Promise((resolve) => {
+      const ready = () => pool.status().some((r) => r.state === 'open' && r.read && r.scope === 'account');
+      if (ready()) return resolve();
+      const off = pool.onChange(() => { if (ready()) { off(); clearTimeout(tm); resolve(); } });
+      const tm = setTimeout(() => { off(); resolve(); }, 4000);
+    });
+    (async () => {
+      await waitRelays();
+      let n = null;
+      try { n = await pool.count([{ kinds: [3], '#p': [pubkey] }]); } catch { /* repli */ }
+      if (!alive) return;
+      fc.count = n; fc.tried = true;
+      if (!n) startFollowers();    // pas de COUNT (ou 0 : peu fiable) : on cherche les listes elles-mêmes
+      paintStats();
+    })();
 
     // ---- panneaux
-    let current = null, stopPanel = null;
-    const people = (pks) => {
-      let n = 0;
-      const ul = el('ul', { class: 'people' });
-      const more = el('button', { type: 'button', class: 'btn' }, t('feed.more'));
-      const next = () => {
-        pks.slice(n, n + PEOPLE_PAGE).forEach((pk) => ul.append(el('li', {}, authorLink(pk))));
-        n += PEOPLE_PAGE; more.hidden = n >= pks.length;
-      };
-      more.addEventListener('click', next); next();
-      return el('div', {}, ul, more);
-    };
     const panels = {
       notes() {
         const notes = new Map(); const subs = []; let oldest = Infinity, drawTimer = null, live = true;
@@ -235,44 +371,12 @@ export function renderProfile(main, params) {
         latest({ kinds: [1], limit: 300 }).then((evs) => evs.filter((e) => e.pubkey === pubkey).slice(0, PAGE).forEach(add));
         page(true);
         return { node: el('div', {}, holder, list, more), stop: () => { live = false; clearTimeout(drawTimer); subs.forEach((s) => s.close()); } };
-      },
-      follows() {
-        if (!theirs) return { node: stateBlock('loading', 'state.loading'), stop() {} };
-        const pks = parseContacts(theirs);
-        return { node: pks.length ? people(pks) : stateBlock('empty', 'profile.noFollows'), stop() {} };
-      },
-      followers() {
-        const found = new Map(); const node = el('div', {}, stateBlock('loading', 'state.loading'));
-        let done = false, draw = null, live = true;
-        const paint = () => {
-          draw = null; if (!live) return;
-          const pks = [...found.keys()];
-          node.replaceChildren(el('p', { class: 'hint' }, t('profile.followers.note', { n: pks.length })), ...(pks.length ? [people(pks)] : done ? [stateBlock('empty', 'profile.noFollowers')] : [stateBlock('loading', 'state.loading')]));
-        };
-        const sub = pool.subscribe([{ kinds: [3], '#p': [pubkey], limit: 200 }], {
-          closeOnEose: true, maxEvents: 300,
-          onevent: (ev) => { if (ev.kind === 3 && !found.has(ev.pubkey) && parseContacts(ev).includes(pubkey)) { found.set(ev.pubkey, ev); draw ||= setTimeout(paint, 200); } },
-          oneose: () => { done = true; paint(); },
-        });
-        return { node, stop: () => { live = false; clearTimeout(draw); sub.close(); } };
-      },
+      }
     };
-    function show(name) {
-      stopPanel?.();
-      current = name;
-      for (const [k, b] of Object.entries(tabs)) b.setAttribute('aria-pressed', String(k === name));
-      const p = panels[name]();
-      stopPanel = p.stop;
-      panel.replaceChildren(p.node);
-      updateAuthors(panel);
-    }
-    for (const k of ['notes', 'follows', 'followers']) {
-      tabs[k] = el('button', { type: 'button', class: 'tab', 'aria-pressed': 'false' }, countLabel(`profile.tab.${k}`, null));
-      tabs[k].addEventListener('click', () => show(k));
-      tabbar.append(tabs[k]);
-    }
-    stops.push(() => stopPanel?.());
-    show('notes');
+    const notes = panels.notes();
+    panel.replaceChildren(notes.node);
+    updateAuthors(panel);
+    stops.push(() => notes.stop());
   }
 
   return () => { alive = false; stops.forEach((s) => (typeof s === 'function' ? s() : s.close?.())); };

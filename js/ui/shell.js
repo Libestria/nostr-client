@@ -6,10 +6,7 @@ import { getSigner, logout, isRemoteKept, setRemoteKept } from '../auth.js';
 import { toast } from './toast.js';
 import { feedNeighbor } from './feedmenu.js';
 import { getCached, onProfiles, requestProfile } from '../profiles.js';
-import { getReplaceable } from '../storage/db.js';
-import { parseContacts } from '../nostr/contacts.js';
-import { npubEncode } from '../nostr/nip19.js';
-import { el, shortNpub, returnFocus, scrollToTop, scrollTopNow, closeButton } from './common.js';
+import { el, returnFocus, scrollToTop, scrollTopNow, closeButton } from './common.js';
 import { icon } from './icons.js';
 import { openCompose } from './composedialog.js';
 
@@ -57,19 +54,16 @@ function buildTopbar() {
     const s = state.get('session');
     if (!s) return;
     const pk = s.pubkey, p = getCached(pk);
-    const npub = npubEncode(pk);
     const banner = el('div', { class: 'drawer-banner' });
     if (p?.banner && loadMedia()) { const img = el('img', { src: p.banner, alt: '', decoding: 'async', referrerpolicy: 'no-referrer' }); img.addEventListener('error', () => img.remove()); banner.append(img); }
     const pic = el('span', { class: 'avatar avatar-xl', 'aria-hidden': 'true' }); paintAvatar(pic, pk, 72);
     const close = dismiss ? closeButton(t('shell.menu.close'), { cls: 'drawer-close' }) : null;
-    const copy = el('button', { type: 'button', class: 'drawer-npub', title: t('shell.copyNpub'), 'aria-label': t('shell.copyNpub') }, el('span', {}, shortNpub(pk)), icon('copy', 14));
-    copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(npub); copy.querySelector('span').textContent = t('shell.copied'); setTimeout(() => { copy.querySelector('span').textContent = shortNpub(pk); }, 1500); } catch { /* presse-papiers refusé */ } });
-    const follows = el('p', { class: 'drawer-follows' });
-    getReplaceable(3, pk).then((ev) => { const n = ev ? parseContacts(ev).length : 0; follows.textContent = t('shell.following', { n }); }).catch(() => {});
     const link = (href, ic, label) => el('li', {}, el('a', { href }, icon(ic, 20), el('span', {}, label)));
-    const items = [link('#/profile', 'user', t('nav.profile')), link('#/bookmarks', 'bookmark', t('nav.bookmarks')), link('#/messages', 'mail', t('nav.messages'))];
+    // Ordre : Profil, Réglages, filet, Favoris, Messages, Portefeuille (si signature), Liste de blocage
+    const items = [link('#/profile', 'user', t('nav.profile')), link('#/settings', 'settings', t('nav.settings')),
+      el('li', { class: 'drawer-sep', role: 'separator' }), link('#/bookmarks', 'bookmark', t('nav.bookmarks')), link('#/messages', 'mail', t('nav.messages'))];
     if (getSigner()) items.push(link('#/settings/wallet', 'wallet', t('menu.wallet')));
-    items.push(link('#/settings/mute', 'mute', t('menu.mute')), link('#/settings', 'settings', t('nav.settings')));
+    items.push(link('#/settings/mute', 'mute', t('menu.mute')));
     const out = el('button', { type: 'button', class: 'drawer-logout' }, icon('logout', 20), el('span', {}, t('menu.logout')));
     out.addEventListener('click', () => { dismiss?.(); logout(); location.hash = '#/login'; });
     // Signeur distant : option facultative pour rester connecté entre deux ouvertures du navigateur (clé de transport chiffrée)
@@ -89,7 +83,7 @@ function buildTopbar() {
     list.addEventListener('click', (e) => { if (e.target.closest('a')) dismiss?.(); });
     close?.addEventListener('click', () => dismiss());
     drawer.replaceChildren(el('div', { class: 'drawer-head' }, banner, close, pic),
-      el('div', { class: 'drawer-id' }, el('strong', {}, p?.displayName || p?.name || shortNpub(pk)), copy, follows), list, el('div', { class: 'drawer-foot' }, keep, out));
+      el('div', { class: 'drawer-id' }, el('strong', {}, p?.displayName || p?.name || t('shell.account'))), list, el('div', { class: 'drawer-foot' }, keep, out));
   }
 
   open.addEventListener('click', async () => {

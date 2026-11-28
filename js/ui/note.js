@@ -65,7 +65,7 @@ export function authorLink(pk) {
 
 // NIP-05 sous le nom : vert si vérifié, rouge si non vérifié (autre clé, inconnu ou domaine injoignable),
 // gris pendant la vérification ; « Aucun NIP-05 renseigné » en gris quand le profil n'en a pas.
-function nip05Line(pk) {
+export function nip05Line(pk) {
   const line = el('span', { class: 'nip05-line', 'data-pk': pk });
   const paint = () => {
     const p = getCached(pk);
