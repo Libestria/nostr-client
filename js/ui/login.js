@@ -1,9 +1,8 @@
 import { t } from '../i18n.js';
 import { state } from '../state.js';
 import { el, pageTitle, closeButton, returnFocus, setStatus } from './common.js';
-import { decode, Nip19Error, npubEncode } from '../nostr/nip19.js';
-import { resolveNip05 } from '../nostr/nip05.js';
-import { hasExtension, connectExtension, readOnlySession, setSession, setRemoteSession, logout, takeReturnTo } from '../auth.js';
+import { npubEncode } from '../nostr/nip19.js';
+import { hasExtension, connectExtension, setSession, setRemoteSession, logout, takeReturnTo } from '../auth.js';
 import { connectBunker, startNostrConnect } from '../nostr/nip46.js';
 import { pool } from '../relays/pool.js';
 import { bootRelays } from '../account.js';
@@ -33,8 +32,7 @@ export function renderLogin(main) {
   const welcome = el('div', { class: 'login-welcome' },
     el('h2', {}, t('login.welcome.title')),
     el('p', {}, t('login.welcome.tagline')),
-    el('p', {}, ...t('login.welcome.keys').split(/(NIP-\d+)/).map((x) => (/^NIP-\d+$/.test(x) ? el('span', { class: 'nowrap' }, x) : x))),   // « NIP-07 » ne se coupe pas en fin de ligne
-    el('p', {}, t('login.welcome.explore')));
+    el('p', {}, ...t('login.welcome.keys').split(/(NIP-\d+)/).map((x) => (/^NIP-\d+$/.test(x) ? el('span', { class: 'nowrap' }, x) : x))));   // « NIP-07 » ne se coupe pas en fin de ligne
   const cta = el('button', { type: 'button', class: 'btn btn-primary login-cta', 'aria-haspopup': 'dialog' }, t('login.cta'));
   cta.addEventListener('click', () => openLoginMenu(cta));
   main.replaceChildren(pageTitle('nav.login'), logo, welcome, el('div', { class: 'login-cta-wrap' }, cta));
@@ -58,7 +56,6 @@ function openLoginMenu(opener) {
     ['puzzle', 'login.ext.title', open('login.ext.title', (setMsg) => extensionPage(setMsg, finish))],
     ['lock', 'login.bunker.title', open('login.bunker.title', (setMsg) => bunkerSection(setMsg, finish))],
     ['link', 'login.nc.title', open('login.nc.title', (setMsg) => nostrConnectSection(setMsg, finish))],
-    ['eye', 'login.ro.title', open('login.ro.title', (setMsg) => explorePage(setMsg, finish))],
   ];
   const list = el('ul', { class: 'drawer-list nm-list' });
   for (const [ic, key, run] of items) {
@@ -88,40 +85,6 @@ function extensionPage(setMsg, finish) {
     }
   });
   return el('div', { class: 'login-page' }, el('p', { class: 'hint' }, t('login.ext.hint')), btn);
-}
-
-// Explorer sans compte (lecture seule)
-function explorePage(setMsg, finish) {
-  const input = el('input', { type: 'text', id: 'ro-id', name: 'ro-id', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false', 'aria-label': t('login.ro.label'), 'aria-describedby': 'ro-hint' });
-  const roBtn = el('button', { type: 'submit', class: 'btn' }, t('login.ro.button'));
-  const form = el('form', { class: 'form login-page' },
-    el('div', { class: 'field login-field' },
-      el('p', { class: 'hint', id: 'ro-hint' }, t('login.ro.hint')),
-      el('div', { class: 'row' }, input, roBtn)));
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const value = input.value.trim();
-    if (!value) return;
-    if (/^(nsec|ncryptsec)1/i.test(value)) { input.value = ''; return setMsg(t('login.nsec'), true); }
-    roBtn.disabled = true;
-    let pubkey;
-    try {
-      if (/^(npub|nprofile)1/i.test(value)) {
-        const d = decode(value);
-        pubkey = d.type === 'npub' ? d.data : d.data.pubkey;
-      } else {
-        setMsg(t('profile.resolving'));
-        pubkey = (await resolveNip05(value)).pubkey;
-      }
-    } catch (err) {
-      roBtn.disabled = false;
-      if (err instanceof Nip19Error && err.code === 'private-key') { input.value = ''; return setMsg(t('login.nsec'), true); }
-      return setMsg(t(err instanceof Nip19Error || err.message === 'invalid' ? 'login.ro.invalid' : 'login.ro.nip05fail'), true);
-    }
-    setSession(readOnlySession(pubkey));
-    finish('readonly');
-  });
-  return form;
 }
 
 const errKey = (e) => ({ invalid: 'login.bunker.invalid', 'no-relays': 'login.bunker.noRelays', timeout: 'login.bunker.timeout', unsupported: 'login.bunker.unsupported', cancelled: 'login.bunker.cancelled' })[e?.code] || 'login.bunker.failed';

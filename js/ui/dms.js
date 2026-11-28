@@ -91,7 +91,7 @@ export function renderDms(main, params) {
           else setStatus(result, t('dm.error.FAILED'), 'error');
         } catch (err) {
           const code = err?.code === 'signer' ? 'SIGNER' : err?.message;
-          setStatus(result, t(`dm.error.${['NO_DM_RELAYS', 'NO_NIP44', 'READ_ONLY', 'SIGNER', 'INVALID'].includes(code) ? code : 'FAILED'}`), 'error');
+          setStatus(result, t(`dm.error.${['NO_DM_RELAYS', 'NO_NIP44', 'NO_SIGNER', 'SIGNER', 'INVALID'].includes(code) ? code : 'FAILED'}`), 'error');
         }
         send.disabled = false; paint();
       });
@@ -176,7 +176,7 @@ export function renderDms(main, params) {
         try { const r = await decryptLegacy(pk); btn.remove(); paintMsgs(r.messages, r.failed); }
         catch (err) {
           const code = err?.code === 'signer' ? 'SIGNER' : err?.message;
-          out.replaceChildren(el('p', { class: 'status warn', role: 'alert' }, t(`dm.legacy.error.${['NO_NIP04', 'READ_ONLY', 'SIGNER'].includes(code) ? code : 'SIGNER'}`)));
+          out.replaceChildren(el('p', { class: 'status warn', role: 'alert' }, t(`dm.legacy.error.${['NO_NIP04', 'NO_SIGNER', 'SIGNER'].includes(code) ? code : 'SIGNER'}`)));
           btn.disabled = false;
         }
       });

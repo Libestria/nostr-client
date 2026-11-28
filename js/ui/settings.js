@@ -163,7 +163,7 @@ function listsSection() {
   }
   const offs = [state.on('lists', () => drawAll()), state.on('listsProgress', () => drawAll()), pool.onChange(() => drawAll())];
   drawAll();
-  const hint = getSigner() ? el('p', { class: 'hint' }, t('lists.edit.hint')) : el('p', { class: 'hint' }, t('lists.readonly.hint'));
+  const hint = getSigner() ? el('p', { class: 'hint' }, t('lists.edit.hint')) : el('p', { class: 'hint' }, t('lists.nosigner.hint'));
   return { node: el('section', {}, el('h2', { class: 'section-title' }, t('settings.lists')), hint, ...[...boxes.values()].map((b) => b.node), el('div', { class: 'row' }, refresh), status), stop: () => offs.forEach((f) => f()) };
 }
 
@@ -176,8 +176,8 @@ function accountSection() {
   out.addEventListener('click', () => { logout(); location.hash = '#/login'; });
   return el('section', {}, el('h2', { class: 'section-title' }, t('settings.account')),
     el('p', {}, t(`login.connected.${s.method}`)), el('p', { class: 'ident' }, npubEncode(s.pubkey)),
-    ...(s.method === 'readonly' ? [] : [el('p', { class: 'hint' }, t('settings.signer.nip44', { state: t(`settings.signer.${caps.nip44}`) })),
-      ...(caps.nip44 === 'no' ? [el('p', { class: 'hint' }, t('settings.signer.nip44.missing'))] : [])]), out);
+    el('p', { class: 'hint' }, t('settings.signer.nip44', { state: t(`settings.signer.${caps.nip44}`) })),
+    ...(caps.nip44 === 'no' ? [el('p', { class: 'hint' }, t('settings.signer.nip44.missing'))] : []), out);
 }
 
 // Rubriques des réglages (comme Nostur) : une liste, puis une page par rubrique.
@@ -226,7 +226,6 @@ export function renderSettings(main, params = []) {
       checkbox('linkPreviews', 'settings.previews', 'settings.previews.hint', s.linkPreviews !== false, (v) => save({ linkPreviews: v })),
       previewServiceField(s, save, status),
       checkbox('shareClient', 'settings.shareClient', 'settings.shareClient.hint', s.shareClient !== false, (v) => save({ shareClient: v })),
-      checkbox('readOnly', 'settings.readOnly', 'settings.readOnly.hint', s.readOnly, (v) => save({ readOnly: v })),
       ...(typeof Notification !== 'undefined' ? [checkbox('browserNotify', 'settings.notify', 'settings.notify.hint', s.browserNotify, async (v) => {
         if (v && Notification.permission !== 'granted') {
           let perm = 'denied';

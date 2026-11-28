@@ -154,7 +154,7 @@ function renderTokens(tokens, { hideRefs = false } = {}) {
 
 const done = { reacted: new Set(), reposted: new Set() };   // pour éviter les doublons dans cette session
 
-// Bouton-icône avec compteur. Sans signeur (lecture seule), c'est un simple affichage.
+// Bouton-icône avec compteur. Sans signeur, c'est un simple affichage.
 function actionItem({ name, label, interactive, onClick }) {
   const count = el('span', { class: 'act-count' });
   const text = el('span', { class: 'act-label' });
