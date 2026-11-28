@@ -97,7 +97,7 @@ export async function startDms() {
   stopDms(false);
   const session = state.get('session');
   const lists = state.get('lists');
-  if (!session || session.method === 'readonly' || state.get('settings')?.readOnly || lists.status !== 'ready') return;
+  if (!session || lists.status !== 'ready') return;
   if (signerCapabilities(session).nip44 === 'no') { set({ status: 'nosigner' }); return; }
   if (!(lists.dm?.relays?.length)) { set({ status: 'norelays' }); return; }
   const run = ++runId;
@@ -130,7 +130,7 @@ export function stopDms(clearMemory = true) {
   set({ status: 'off' });
 }
 
-// Branchement : démarrage / arrêt selon le compte, les listes de relais et le mode lecture seule.
+// Branchement : démarrage / arrêt selon le compte, et les listes de relais.
 export function initDms() {
   let owner = null;
   const refresh = () => {
@@ -148,8 +148,6 @@ export function initDms() {
     lastKey = key;
     if (state.get('session')) startDms();
   });
-  state.on('settings', (s) => { if (state.get('session') && s.readOnly !== initDms.ro) { initDms.ro = s.readOnly; startDms(); } });
-  initDms.ro = state.get('settings')?.readOnly;
   owner = state.get('session')?.pubkey ?? null;
   if (owner) startDms();
 }
@@ -168,10 +166,10 @@ export async function dmRelaysOf(pubkey) {
 }
 
 // Envoie un message à UN correspondant. → { record, partner: [résultats], self: [résultats], ok }
-// Erreurs : READ_ONLY, NO_SIGNER, NO_NIP44 (DmError 'signer'), NO_DM_RELAYS, INVALID.
+// Erreurs : NO_SIGNER, NO_NIP44 (DmError 'signer'), NO_DM_RELAYS, INVALID.
 export async function sendDm(partner, text) {
   const signer = getSigner();
-  if (!signer || !me) throw new Error('READ_ONLY');
+  if (!signer || !me) throw new Error('NO_SIGNER');
   if (!signer.nip44) throw new Error('NO_NIP44');
   if (!HEX64.test(partner ?? '')) throw new Error('INVALID');
   const rcptRelays = await dmRelaysOf(partner);
@@ -220,10 +218,10 @@ export function loadLegacy(timeout = 8000) {
 }
 export const legacyPartners = () => legacy ?? new Map();
 
-// Déchiffre à la demande la conversation avec un interlocuteur. → { messages, failed } ; lève NO_NIP04 / READ_ONLY / SIGNER
+// Déchiffre à la demande la conversation avec un interlocuteur. → { messages, failed } ; lève NO_NIP04 / NO_SIGNER / SIGNER
 export async function decryptLegacy(partner) {
   const signer = getSigner();
-  if (!signer) throw new Error('READ_ONLY');
+  if (!signer) throw new Error('NO_SIGNER');
   if (!signer.nip04) throw new Error('NO_NIP04');
   const messages = [];
   let failed = 0;

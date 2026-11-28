@@ -16,7 +16,7 @@ const ext = (kind) => {
 
 // → { nip44: 'yes' | 'no' | 'unknown', nip04: … } selon le type de signeur ('unknown' = à vérifier à la première utilisation)
 export function signerCapabilities(session = state.get('session')) {
-  if (!session || session.method === 'readonly') return { nip44: 'no', nip04: 'no' };
+  if (!session) return { nip44: 'no', nip04: 'no' };
   if (session.method === 'nip07') return { nip44: ext('nip44') ? 'yes' : 'no', nip04: ext('nip04') ? 'yes' : 'no' };
   const s = getSigner();
   return { nip44: s?.nip44 ? 'unknown' : 'no', nip04: s?.nip04 ? 'unknown' : 'no' };
@@ -42,8 +42,6 @@ export async function connectExtension() {
   if (typeof pubkey !== 'string' || !HEX64.test(pubkey)) throw new Error('bad-pubkey');
   return { method: 'nip07', pubkey };
 }
-
-export const readOnlySession = (pubkey) => ({ method: 'readonly', pubkey });
 
 // `info` vient de nostr/nip46.js (connectBunker / startNostrConnect)
 export function setRemoteSession(info) {
@@ -88,10 +86,10 @@ async function verified(ev, tpl, pubkey) {
   return ev;
 }
 
-// Signeur utilisé pour publier (suivre, notes…). null en lecture seule ou sans signeur.
+// Signeur utilisé pour publier (suivre, notes…). null sans signeur.
 export function getSigner() {
   const s = state.get('session');
-  if (!s || state.get('settings')?.readOnly) return null;
+  if (!s) return null;
   if (s.method === 'nip07') {
     return {
       pubkey: s.pubkey,
