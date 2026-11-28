@@ -44,7 +44,7 @@ const main = document.getElementById('view');
 let renderId = 0;
 let currentLang = null;
 let cleanup = null;
-const OPEN_ROUTES = new Set(['login', 'settings']);   // accessibles sans compte
+const OPEN_ROUTES = new Set(['login']);   // accessibles sans compte
 
 function parseHash() {
   const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean).map((p) => {
@@ -82,6 +82,7 @@ async function render(focus = false) {
     if (id === renderId) main.replaceChildren(stateBlock('error', 'state.error'));
   }
   if (focus && id === renderId) main.focus({ preventScroll: true });
+  if (id === renderId) document.dispatchEvent(new Event('app:rendered'));   // la page est prête (le menu des réglages attend ce signal pour confirmer un changement de langue)
 }
 
 function applyTheme(theme) {
